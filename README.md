@@ -106,6 +106,10 @@ source ~/.bashrc
 roslaunch px4 mavros_posix_sitl.launch
 ~~~
 
+<p align="center"> 
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/Try-PX4.png" width="80%" height="80%"> 
+</p align> 
+
 
 
 
