@@ -82,7 +82,7 @@ sudo apt install gstreamer1.0-plugins-bad
 ## 3.3 Build PX4 
 
 ~~~
-cd ~/repos/PX4-Autopilot
+cd ~/PX4/PX4-Autopilot
 DONT_RUN=1 make px4_sitl gazebo
 ~~~
 
