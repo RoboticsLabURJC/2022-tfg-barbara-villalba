@@ -26,6 +26,10 @@ behaviour = " "
 class Drone():
     def __init__(self):
         self.current_state = State()
+        self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb)
+        self.comander_sub = rospy.Subscriber('/interfaces/comander',
+                           String, self.manage_behavior)
+        self.local_pos_pub = rospy.Publisher(LOCAL_POS_PUB, PoseStamped, queue_size=10)
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -85,13 +89,6 @@ if __name__ == "__main__":
     rospy.init_node("teleop_node_py")
     drone = Drone()
 
-    state_sub = rospy.Subscriber(STATE_SUB, State, callback=drone.state_cb)
-
-    sub = rospy.Subscriber('/interfaces/comander',
-                           String, drone.manage_behavior)
-
-    local_pos_pub = rospy.Publisher(LOCAL_POS_PUB, PoseStamped, queue_size=10)
-
     rospy.wait_for_service(ARMING_CLIENT)
     arming_client = rospy.ServiceProxy(ARMING_CLIENT, CommandBool)
 
@@ -123,6 +120,6 @@ if __name__ == "__main__":
                            arming_client, set_mode_client)
 
         pose = drone.check_behavior(pose)
-        local_pos_pub.publish(pose)
+        drone.local_pos_pub.publish(pose)
 
         rate.sleep()
