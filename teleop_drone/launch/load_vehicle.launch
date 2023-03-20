@@ -5,4 +5,11 @@
 		<arg name="sdf" default="/home/bvillalb/repos/PX4-Autopilot/Tools/sitl_gazebo/models/iris_fpv_cam/iris_fpv_cam.sdf"/>
 	</include>
 
+	
+	<node name="interface" pkg="teleop_drone" type="interface.py" /> 
+	<node name="teleop_node" pkg="teleop_drone" type="teleop_node.py" />
+	 
+	
+	
+
 </launch>
