@@ -3,8 +3,9 @@ permalink: /about me/
 title: "About me"
 ---
 
-Hello, my name is Cristian and I'm currently finishing my degree in Robotics engineering in URJC.
+Hello, my name is Bárbara and I am currently finishing my degree in Robotics Engineering at URJC.
 
-I'm a passionate about programming and everything related to electronics and hardware. Presently improving my knownledge about ROS, C++, Python, AI, Git, ...etc.
+I am passionate about programming and everything related to robots and helping people through robotics.
+Currently improving my knowledge about ROS, ROS2, C++, Python, C,...etc.
 
-I like to describe myself as someone analytical, self-critical and perfectionist, always trying to advance to be competent on what I do.
+I am a hard-working, constant person who hardly gives up on things. I love challenges and overcome them and always trying to move forward to be competent in the future
