@@ -21,14 +21,14 @@ In the first few months it investigates how to load the sdf iris model into the 
 To load the iris model in the launch 'mavros_posix_sitl.launch' it was enough with change sdf field for model iris: 
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/mavros_posix_sitl.launch.png" alt="mavros_posix_sitl" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/mavros_posix_sitl.launch.png" alt="mavros_posix_sitl" width="500"/>
 </p>
 
 But I found the problem that PX4 was not able to load the model well and could not find the exact folder where it was located.
 During a week of research and reading the PX4 forum, I tried to load the model by passing it as a parameter to launch itself, that is, passing the destination path to launch so that PX4 could find it:
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/load_vehicle.launch.png" alt="load_vehicle" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/load_vehicle.launch.png" alt="load_vehicle" width="500"/>
 </p>
 
 This was a possible solution to be able to load the desired model.
@@ -60,7 +60,7 @@ After having it in opencv format, we must transform it into QT format, which wil
 The camera image also shows the current FPS. This will be done simply by measuring the time elapsed between one image and another and calculating the frequency of the image (it is the inverse of the period). Said calculation will make an average with all the measurements and we will update the FPS every second: 
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/ImageCapture.png" alt="ImageCapture" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/ImageCapture.png" alt="ImageCapture" width="500"/>
 </p>
 
 Finally with opencv we can use a function called putText to average the FPS.
@@ -73,7 +73,7 @@ POSITION AND VELOCITY are modes in how we want to command the drone, whether in 
 LAND and TAKEOFF are modes to land and take off the drone.
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/BottomsInterface.png" alt="BottomsInterface" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/BottomsInterface.png" alt="BottomsInterface" width="500"/>
 </p>
 
 - The sliders are to send position, speed and orientation to the drone depending on which control the user has chosen. And the topics '/commands/control_position' and '/commands/control_velocity' will be used, filling the messages with type PoseStamped and Twist
@@ -92,7 +92,7 @@ For each control I will subscribe to the topics of the interface node to obtain 
 In order to control the modes in which we find ourselves, we will use some simple checks:
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/Modes.png" alt="Modes" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/Modes.png" alt="Modes" width="500"/>
 </p>
 
 #### Control Position
@@ -102,7 +102,7 @@ This control will only work only when the drone has taken off.
 To make the turns in the z axis we have had to subscribe to the topic '/mavros/local_position/pose' to obtain the local position of the drone and obtain what orientations it has since when we publish the angle we are working in quaternions not in angles which we will use Two methods of the tfs euler_from_quaternion and quaternion_from_euler to be able to transform the euler angles (in this case we are interested in the z axis) into quaternions 
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/ControlPosition.png" alt="ControlPosition" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/ControlPosition.png" alt="ControlPosition" width="500"/>
 </p>
 
 #### Control Velocity
@@ -110,14 +110,14 @@ The position control will consist of commanding the drone speeds in the gazebo w
 This control will only work only when the drone has taken off.
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/ControlVelocity.png" alt="ControlVelocity" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/ControlVelocity.png" alt="ControlVelocity" width="500"/>
 </p>
 
 #### Mode Land
 In order to land the drone we will use a service called "/mavros/cmd/land" and when the user presses the LAND button the drone will land where it is 
 
 <p align="center">
-<img src="/2022-tfg-barbara-villalba/images/LAND.png" alt="LAND" width="500"/>
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/LAND.png" alt="LAND" width="500"/>
 </p>
 
 #### Mode Take Off
