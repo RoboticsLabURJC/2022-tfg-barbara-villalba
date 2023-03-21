@@ -142,11 +142,10 @@ class Interface():
         self.msg_v.linear.x = self.VelocitySlider.value()
         self.pub_velocity.publish(self.msg_v)
 
-
-    def comanderVelocityRawZ(self):
-        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.Raw_zSlider.value()) + " degrees/s")
+    def comanderAngularVelocity(self):
+        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.AngularVelocityZSlider.value()) + " degrees/s")
         self.layout.addWidget(self.ValueRawZ,2,3)
-        self.msg_v.angular.z = self.Raw_zSlider.value()
+        self.msg_v.angular.z = self.AngularVelocityZSlider.value()
         self.pub_velocity.publish(self.msg_v)
 
     def addSliders(self):
@@ -186,17 +185,17 @@ class Interface():
         self.layout.addWidget(self.ValueVelocity,5,3)
         self.VelocitySlider.valueChanged.connect(self.comanderVelocity)
 
-        self.Raw_zSlider = QSlider(QtCore.Qt.Horizontal)
-        self.Raw_zSlider.setMinimum(MIN_ANGLE_YAW)
-        self.Raw_zSlider.setMaximum(MAX_ANGLE_YAW)
-        self.Raw_zSlider.setValue(0)
-        self.Raw_zSlider.setTickPosition(QSlider.TicksBelow)
-        self.Raw_zSlider.setTickInterval(5)
-        self.layout.addWidget(self.Raw_zSlider,4,3)
+        self.AngularVelocityZSlider = QSlider(QtCore.Qt.Horizontal)
+        self.AngularVelocityZSlider.setMinimum(MIN_ANGLE_YAW)
+        self.AngularVelocityZSlider.setMaximum(MAX_ANGLE_YAW)
+        self.AngularVelocityZSlider.setValue(0)
+        self.AngularVelocityZSlider.setTickPosition(QSlider.TicksBelow)
+        self.AngularVelocityZSlider.setTickInterval(5)
+        self.layout.addWidget(self.AngularVelocityZSlider,4,3)
         self.ValueRawZ = QLabel("Value")
-        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.Raw_zSlider.value()) + " degrees/s")
+        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.AngularVelocityZSlider.value()) + " degrees/s")
         self.layout.addWidget(self.ValueRawZ,2,3)
-        self.Raw_zSlider.valueChanged.connect(self.comanderVelocityRawZ)
+        self.AngularVelocityZSlider.valueChanged.connect(self.comanderAngularVelocity)
 
 
     def executeInterface(self):

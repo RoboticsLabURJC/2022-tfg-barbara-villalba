@@ -78,7 +78,13 @@ LAND and TAKEOFF are modes to land and take off the drone.
 
 - The sliders are to send position, speed and orientation to the drone depending on which control the user has chosen. And the topics '/commands/control_position' and '/commands/control_velocity' will be used, filling the messages with type PoseStamped and Twist
 
-FOTO
+<p align="center">
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/Sliders.png" alt="Sliders" width="500"/>
+</p>
+
+<p align="center">
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/AddSliders.png" alt="AddSliders" width="500"/>
+</p>
 
 
 ### Teleop node 
@@ -123,6 +129,11 @@ In order to land the drone we will use a service called "/mavros/cmd/land" and w
 #### Mode Take Off
 In order to take off the drone and make it fly, we send the height on the z axis by position.
 
+### Results 
+
+<p align="center">
+<img src="https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/blob/main/docs/images/Teleop-Interface.png" alt="Teleop" width="500"/>
+</p>
 
 ### Conclusions 
 It is a very simple teleoperator and a contact to know the controls that we can command a drone. Both the interface and the teleoperator could be improved by having other types of behaviors such as commanding speeds, angular speeds, turns and positions in the 3 axes.
