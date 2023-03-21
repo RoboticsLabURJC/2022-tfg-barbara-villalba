@@ -158,8 +158,6 @@ if __name__ == "__main__":
     rospy.wait_for_service(LAND_CMD_SRV)
     land_client = rospy.ServiceProxy(LAND_CMD_SRV, CommandTOL)
 
-    rospy.wait_for_service(TAKE_OFF_CMD_CLIENT)
-    take_off_client = rospy.ServiceProxy(TAKE_OFF_CMD_CLIENT, CommandTOL)
 
     rate = rospy.Rate(20)
 

@@ -20,7 +20,7 @@ MAX_ANGLE_YAW = 180
 MIN_ANGLE_YAW = 0
 
 MAX_VELOCITY_X = 5
-MIN_VELOCITY_X = 0
+MIN_VELOCITY_X = -5
 
 MAX_SECONDS = 1
 
@@ -137,14 +137,14 @@ class Interface():
 
     def comanderVelocity(self):
         
-        self.ValueVelocity.setText( "Velocity in exe x : " + str(self.VelocitySlider.value()))
+        self.ValueVelocity.setText( "Velocity linear in exe x : " + str(self.VelocitySlider.value()))
         self.layout.addWidget(self.ValueVelocity,5,3)
         self.msg_v.linear.x = self.VelocitySlider.value()
         self.pub_velocity.publish(self.msg_v)
 
 
     def comanderVelocityRawZ(self):
-        self.ValueRawZ.setText( "Yaw : " + str(self.Raw_zSlider.value()) + " degrees")
+        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.Raw_zSlider.value()) + " degrees/s")
         self.layout.addWidget(self.ValueRawZ,2,3)
         self.msg_v.angular.z = self.Raw_zSlider.value()
         self.pub_velocity.publish(self.msg_v)
@@ -182,7 +182,7 @@ class Interface():
         self.VelocitySlider.setTickInterval(5)
         self.layout.addWidget(self.VelocitySlider,6,3)
         self.ValueVelocity = QLabel("Value")
-        self.ValueVelocity.setText( "Velocity in exe x : " + str(self.VelocitySlider.value()))
+        self.ValueVelocity.setText( "Velocity linear in exe x : " + str(self.VelocitySlider.value()))
         self.layout.addWidget(self.ValueVelocity,5,3)
         self.VelocitySlider.valueChanged.connect(self.comanderVelocity)
 
@@ -194,7 +194,7 @@ class Interface():
         self.Raw_zSlider.setTickInterval(5)
         self.layout.addWidget(self.Raw_zSlider,4,3)
         self.ValueRawZ = QLabel("Value")
-        self.ValueRawZ.setText( "Yaw : " + str(self.Raw_zSlider.value()) + " degrees")
+        self.ValueRawZ.setText( "Angular velocity in exe z : " + str(self.Raw_zSlider.value()) + " degrees/s")
         self.layout.addWidget(self.ValueRawZ,2,3)
         self.Raw_zSlider.valueChanged.connect(self.comanderVelocityRawZ)
 
