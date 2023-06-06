@@ -1,0 +1,58 @@
+#-- Para instalar UnrealEngine (version 4.27) (TIENES QUE REGISTRATE EN LA ASOCIACION DE EPICGAMES : https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/)
+    git clone -b 4.27 https://github.com/EpicGames/UnrealEngine
+
+    cd UnrealEngine
+
+    ./Setup.sh
+
+    ./GenerateProjectFiles.sh
+
+    make
+
+    ThirdParty: ~/UnrealEngine-4.27/Engine/Binaries/ThirdParty/Mono/Linux/bin/mono 
+    ~/UnrealEngine-4.27/Engine/Binaries/DotNET/UnrealBuildTool.exe Development Linux -Project=/home/bvillalb/AirSim/Unreal/Environments/Blocks/Blocks.uproject -TargetType=Editor -Progress
+
+    instalar previamente mono, enlace: https://www.mono-project.com/download/stable/#download-lin
+    instrucciones de configuracion, foro: https://github.com/microsoft/AirSim/issues/4535
+
+
+#-- Para instalar Airsim
+    git clone https://github.com/Microsoft/AirSim.git
+    cd AirSim
+    ./setup.sh
+    ./build.sh
+
+    - Para usar topics de airsim a traves de ROS Wrapper: 
+        - cd Airsim/ros
+        - catkin_make (puede que tengas problemas con la version del compilador: necesitas la version gcc v8 para ello esta este enlace para cambiarlo)
+            sudo apt-get update
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+
+    - Coloca en el .bashrc el repositorio: source /home/$USER/Airsim/ros/devel/setup.bashrc
+    - Cierra todas las terminales que tengas abiertas
+
+#-- Para poder abrir el simulador UnrealEngine:
+    - cd UnrealEngine/Engine/Binaries/Linux/
+    - ./UE4Editor
+
+#-- Para lanzar AirsimNH con el nodo: 
+    - Descargar enviroments a traves de esta pagina: https://github.com/microsoft/Airsim/releases (v1.8.1 Linux)
+    - Descargar AirsimNH o Blocks 
+    - Descomprime y ejecuta el *.sh (si no tiene permisos de ejecucion chmod +x *.sh)
+    - Ejecuta los scripts 
+  *NOTA: Airsim tiene el carpeta /home/$USER/Documents un archivo llamado settings.json, este archivo es de configuracion para que tipo de vehiculo quieres es importante
+  que lo configures con lo que desees, ya que si no pones el tipo de vehiculo al ejecutar el launch de airsim no te funcionara. (Para ello hay ejemplos en las carpetas
+  dentro de Airsim/ros/src/settings para ver configuraciones de vehiculos)
+  - Configuracion de settings.json: 
+    - Uno sencillo seria este: 
+
+        {
+            "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
+            "SettingsVersion": 1.2,
+            "SimMode": "Multirotor"
+        }
+
+        *Si quieres otra configuracion las tienes en las carpetas: /home/$USER/AirSim/ros/src/airsim_tutorial_pkgs/settings
+   - ./AirSimNH.sh -ResX=640 -ResY=480 -windowed
+   - roslaunch airsim_ros_pkgs airsim_node.launch  
+   - rostopic list
