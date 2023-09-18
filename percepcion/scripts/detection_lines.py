@@ -5,102 +5,115 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
+import math
 
 IMAGE_TOPIC = '/airsim_node/drone/front_center_custom/Scene'
 
-point1 = (0, 400)
-#--point2 = (100,200)
-#--point3 = (300,200)
-point2 = (0,300)
-point3 = (200,200)
-point4 = (400,320)
-point5 = (400,400)
-
 lower_white = np.array([0,22,0])
 upper_white = np.array([103,39,255])
+
+MAX_SLOPE = 0.5
 
 class ImageSubscriber:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback)
 
-
-    def interest_region(self,cv_image):
-        mask = np.zeros_like(cv_image)
-        points = np.array([[point1,point2,point3,point4,point5]], dtype=np.int32)
-
-        cv2.fillPoly(mask,points,(255,255,255))
-        masked_image = cv2.bitwise_and(cv_image, mask)
-
-
+    def region_selection(self,image):
+        mask = np.zeros_like(image)   
+       
+        rows, cols = image.shape[:2]
+        bottom_left  = [cols * 0.1, rows * 0.95]
+        top_left     = [cols * 0.4, rows * 0.6]
+        bottom_right = [cols * 0.9, rows * 0.95]
+        top_right    = [cols * 0.6, rows * 0.6]
+        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
+        cv2.fillPoly(mask, vertices,(255,255,255))
+        masked_image = cv2.bitwise_and(image, mask)
         return masked_image
     
-    def detection_lines(self,img,rgb_image):
-        linesP = cv2.HoughLinesP(img, 1, np.pi / 180, 70, None, 20, 10)
+    def hough_lines(self,img):
 
-        if linesP is not None:
-            for i in range(0, len(linesP)):
-                l = linesP[i][0]
-                if(((l[0] >= 0 and l[2] <= 180) and (l[3] >=200 and l[1] <= 320)) 
-                   or ((l[2] >= 180 and l[0] <= 400 ) and (l[3] >=200 and l[1] <= 320)) ):
-                    print("Start: " + str(l[0]) + "," + str(l[1]) + "; End: " + str(l[2]) + "," + str(l[3]))
-                    cv2.line(rgb_image, (l[0], l[1]), (l[2], l[3]), (0,0,255), 3, cv2.LINE_AA)
+        rho = 1              #Distance resolution of the accumulator in pixels.
+        theta = np.pi/180    #Angle resolution of the accumulator in radians.
+        threshold = 70       #Only lines that are greater than threshold will be returned.
+        minLineLength = 20   #Line segments shorter than that are rejected.
+        maxLineGap = 10     #Maximum allowed gap between points on the same line to link them
+        return cv2.HoughLinesP(img, rho, theta, threshold, None, minLineLength, maxLineGap)
 
-        return rgb_image
+    def calculate_lane(self,lines,image):
+        left_line_x = []
+        left_line_y = []
+        right_line_x = []
+        right_line_y = []
+        if lines is not None:
+            for line in lines:
+                for x1, y1, x2, y2 in line:
+                    slope = (y2 - y1) / (x2 - x1) #-- Calculing the slope of line
+                    if math.fabs(slope) < MAX_SLOPE: #-- Extreme slope with an umbral in 0.5 value (arbitrary), are discards
+                        continue
+                    if slope <= 0: #-- If the slope is negative, left group.
+                        left_line_x.extend([x1, x2])
+                        left_line_y.extend([y1, y2])
+                    else: #-- If the slope is positive, left group..
+                        right_line_x.extend([x1, x2])
+                        right_line_y.extend([y1, y2])
 
+            min_y = int(image.shape[0] * 0.625)  # <-- Just below the horizon, depend on the shape image. 250 value
+            max_y = image.shape[0] # <-- Adjust in image
+
+            
+            poly_left = np.poly1d(np.polyfit(
+                left_line_y,
+                left_line_x,
+                deg=1
+            ))
+            left_x_start = int(poly_left(max_y))
+            left_x_end = int(poly_left(min_y))
+            poly_right = np.poly1d(np.polyfit(
+                right_line_y,
+                right_line_x,
+                deg=1
+            ))
+
+            right_x_start = int(poly_right(max_y))
+            right_x_end = int(poly_right(min_y))
+
+            return left_x_start,left_x_end,right_x_start,right_x_end,min_y,max_y
+        
+    def draw_lane_lines(self,image,lines, color, thickness):
+
+        line_img = np.zeros((image.shape[0],image.shape[1],3),dtype=np.uint8)
+       
+        image = np.copy(image)
+        if lines is None:
+            return
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+        img = cv2.addWeighted(image, 0.8, line_img, 1.0, 0.0)
+        return img
 
         
     def callback(self, data):
 
-        """
-    position:
-      x: 37.3194618225
-      y: -11.8251657486
-      z: -1.38555669785
-        """
-
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
+        gray_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2GRAY)
+        canny_image = cv2.Canny(gray_image, 100, 150,3)
 
-       
-        canny_image = cv2.Canny(cv_image, 100, 150,3)
+        img = self.region_selection(canny_image)
 
-        img = self.interest_region(canny_image)
+        lines = self.hough_lines(img)
+        left_x_start,left_x_end,right_x_start,right_x_end,min_y,max_y = self.calculate_lane(lines,img)
+
+        img_lines = self.draw_lane_lines(cv_image,[[
+            [left_x_start, max_y, left_x_end, min_y],
+            [right_x_start, max_y, right_x_end, min_y],
+        ]],(255,0,0),3)
 
         cv2.imshow("canny",img)
-        cv2.imshow("lines",self.detection_lines(img,cv_image))
+        cv2.imshow("img",img_lines)
         cv2.waitKey(1)
-
-
-    """
-        grayscale = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-        kernel_size = 3
-        blur = cv2.GaussianBlur(grayscale, (kernel_size, kernel_size), 0)
-
-        low_t = 50
-        high_t = 150
-        edges = cv2.Canny(blur, low_t, high_t)
-
-        vertices = np.array([[point1, point2,point3,point4]], dtype=np.int32)
-
-        mask = np.zeros_like(edges)
-        cv2.fillPoly(mask, vertices, (255,255,255))
-        masked_edges = cv2.bitwise_and(edges, mask)
-
-        linesP = cv2.HoughLinesP(masked_edges, 1, np.pi / 180, 70, None, 20, 10)
-
-        if linesP is not None:
-            for i in range(0, len(linesP)):
-                l = linesP[i][0]
-                cv2.line(cv_image, (l[0], l[1]), (l[2], l[3]), (0,0,255), 3, cv2.LINE_AA)
-
-        #--image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV_FULL)
-
-        
-        cv2.imshow("Canny",edges)
-        cv2.imshow("Trapecio",masked_edges)
-        
-    """
-        
 
 class ImageViewer:
     def __init__(self):
