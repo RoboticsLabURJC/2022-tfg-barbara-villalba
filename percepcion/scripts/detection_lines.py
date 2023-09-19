@@ -8,11 +8,11 @@ import cv2
 import math
 
 IMAGE_TOPIC = '/airsim_node/drone/front_center_custom/Scene'
-
-lower_white = np.array([0,22,0])
-upper_white = np.array([103,39,255])
-
 MAX_SLOPE = 0.5
+APERTURE_SIZE = 3
+T_LOWER = 100  # Lower Threshold
+T_UPPER = 150  # Upper threshold
+
 
 class ImageSubscriber:
     def __init__(self):
@@ -46,6 +46,7 @@ class ImageSubscriber:
         left_line_y = []
         right_line_x = []
         right_line_y = []
+
         if lines is not None:
             for line in lines:
                 for x1, y1, x2, y2 in line:
@@ -62,24 +63,31 @@ class ImageSubscriber:
             min_y = int(image.shape[0] * 0.625)  # <-- Just below the horizon, depend on the shape image. 250 value
             max_y = image.shape[0] # <-- Adjust in image
 
+            #-- Only calculate polynomian equation if detected left_line and right_line
+
+            if len(left_line_y) > 0 and len(left_line_x) > 0:
+                poly_left = np.poly1d(np.polyfit(left_line_y,left_line_x,deg=1))
             
-            poly_left = np.poly1d(np.polyfit(
-                left_line_y,
-                left_line_x,
-                deg=1
-            ))
-            left_x_start = int(poly_left(max_y))
-            left_x_end = int(poly_left(min_y))
-            poly_right = np.poly1d(np.polyfit(
-                right_line_y,
-                right_line_x,
-                deg=1
-            ))
+                left_x_start = int(poly_left(max_y))
+                left_x_end = int(poly_left(min_y))
+            else:
+                pass
+                
+            if len(right_line_y) > 0 and len(right_line_x) > 0:
+                poly_right = np.poly1d(np.polyfit(right_line_y,right_line_x,deg=1))
 
-            right_x_start = int(poly_right(max_y))
-            right_x_end = int(poly_right(min_y))
+                right_x_start = int(poly_right(max_y))
+                right_x_end = int(poly_right(min_y))
 
-            return left_x_start,left_x_end,right_x_start,right_x_end,min_y,max_y
+            else:
+                pass
+
+            if (len(left_line_y) > 0 and len(left_line_x) > 0) and (len(right_line_y) > 0 and len(right_line_x) > 0):
+                return [[left_x_start, max_y, left_x_end, min_y],[right_x_start, max_y, right_x_end, min_y]]
+
+        else:
+            return None
+        
         
     def draw_lane_lines(self,image,lines, color, thickness):
 
@@ -87,10 +95,10 @@ class ImageSubscriber:
        
         image = np.copy(image)
         if lines is None:
-            return
+            return image
         for line in lines:
-            for x1, y1, x2, y2 in line:
-                cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+            x1, y1, x2, y2 =  line
+            cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
         img = cv2.addWeighted(image, 0.8, line_img, 1.0, 0.0)
         return img
 
@@ -99,20 +107,17 @@ class ImageSubscriber:
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
         gray_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2GRAY)
-        canny_image = cv2.Canny(gray_image, 100, 150,3)
+        canny_image = cv2.Canny(gray_image, T_LOWER, T_UPPER,APERTURE_SIZE)
 
         img = self.region_selection(canny_image)
 
         lines = self.hough_lines(img)
-        left_x_start,left_x_end,right_x_start,right_x_end,min_y,max_y = self.calculate_lane(lines,img)
-
-        img_lines = self.draw_lane_lines(cv_image,[[
-            [left_x_start, max_y, left_x_end, min_y],
-            [right_x_start, max_y, right_x_end, min_y],
-        ]],(255,0,0),3)
-
-        cv2.imshow("canny",img)
-        cv2.imshow("img",img_lines)
+        
+        lanes_lines = self.calculate_lane(lines,img)
+       
+        img_lanes = self.draw_lane_lines(cv_image,lanes_lines,(255,0,0),3)
+        cv2.imshow("Lanes",img_lanes)
+        
         cv2.waitKey(1)
 
 class ImageViewer:
