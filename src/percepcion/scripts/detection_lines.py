@@ -1,33 +1,51 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import rospy
 from sensor_msgs.msg import Image
+from sensor_msgs.point_cloud2 import PointCloud2
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
 import math
-
 IMAGE_TOPIC = '/airsim_node/drone/front_center_custom/Scene'
+
 MAX_SLOPE = 0.5
 APERTURE_SIZE = 3
-T_LOWER = 100  # Lower Threshold
-T_UPPER = 150  # Upper threshold
+T_LOWER = 50  # Lower Threshold
+T_UPPER =  150 # Upper threshold
+
+bottom_left = []
+top_left = []
+bottom_right = []
+top_right = []
 
 
 class ImageSubscriber:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback)
+        
 
     def region_selection(self,image):
+        global bottom_left,top_left,bottom_right,top_right
         mask = np.zeros_like(image)   
        
         rows, cols = image.shape[:2]
+        
+        """
         bottom_left  = [cols * 0.1, rows * 0.95]
         top_left     = [cols * 0.4, rows * 0.6]
         bottom_right = [cols * 0.9, rows * 0.95]
         top_right    = [cols * 0.6, rows * 0.6]
-        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
+        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)        
+        """
+        bottom_left = [0, rows]
+        medium = [cols/2 , rows/2]
+        bottom_right = [cols,rows]
+        
+        vertices = np.array([[bottom_left,medium,bottom_right]], dtype=np.int32)
+        
+        
         cv2.fillPoly(mask, vertices,(255,255,255))
         masked_image = cv2.bitwise_and(image, mask)
         return masked_image
@@ -98,25 +116,46 @@ class ImageSubscriber:
             return image
         for line in lines:
             x1, y1, x2, y2 =  line
+            M = (int(((x1+x2))/2),int (((y1+y2))/2))
             cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+            #--print(M)
+            #--self.draw_control_lines(line_img)
         img = cv2.addWeighted(image, 0.8, line_img, 1.0, 0.0)
         return img
-
+    
+    def draw_control_lines(self,img_lanes):
         
+        cv2.circle(img_lanes, (200, 290), 2, (0, 255, 255), -1)
+        cv2.circle(img_lanes, (200, 310), 2, (0, 255, 255), -1)
+        cv2.circle(img_lanes, (200, 330), 2, (0, 255, 255), -1)
+
     def callback(self, data):
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        gray_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2GRAY)
-        canny_image = cv2.Canny(gray_image, T_LOWER, T_UPPER,APERTURE_SIZE)
-
+        resized_image = cv2.resize(cv_image, (600, 600))
+        
+        gray_image = cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)
+        
+        gausBlur = cv2.GaussianBlur(gray_image, (3,3),0)
+        
+        canny_image = cv2.Canny(gausBlur, T_LOWER, T_UPPER,APERTURE_SIZE)
         img = self.region_selection(canny_image)
+
+        
 
         lines = self.hough_lines(img)
         
         lanes_lines = self.calculate_lane(lines,img)
        
-        img_lanes = self.draw_lane_lines(cv_image,lanes_lines,(255,0,0),3)
-        cv2.imshow("Lanes",img_lanes)
+        img_lanes = self.draw_lane_lines(resized_image,lanes_lines,(255,0,0),3)
+
+
+       
+        cv2.imshow("img_lanes",img_lanes)
+        cv2.imshow("Canny",canny_image)
+        
+        cv2.imshow("region_selection",img)
+
         
         cv2.waitKey(1)
 
@@ -136,3 +175,4 @@ if __name__ == '__main__':
     rospy.init_node("detection_lines_py")
     image_viewer = ImageViewer()
     image_viewer.run()
+
