@@ -11,6 +11,7 @@ import csv
 from sklearn.cluster import DBSCAN
 from collections import Counter
 from numba import jit
+import matplotlib.pyplot as plt
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -27,9 +28,11 @@ class ImageSubscriber:
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
         self.list = []
+        self.left_cluster = []
+        self.right_cluster = []
 
 
-
+    
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         shape = img.shape[:2]  # current shape [height, width]
         if isinstance(new_shape, int):
@@ -57,9 +60,67 @@ class ImageSubscriber:
         return canvas, r, dw, dh, new_unpad_w, new_unpad_h  # (dw,dh)
     
 
-    def average(self,val):
-        self.list.append(val)
-        return sum(self.list)/len(self.list)
+    def calculate_histogram(self,img_lane,plot=True):
+        """
+        Calculate the image histogram to find peaks in white pixel count
+            
+        :param frame: The warped image
+        :param plot: Create a plot if True
+        """
+        frame = img_lane
+        # Generate the histogram
+        self.histogram = np.sum(frame[int(
+                frame.shape[0]/2):,:], axis=0)
+        
+        #--print("histogram")
+        #print(self.histogram)
+    
+                
+        return self.histogram
+    
+
+    def clustering(self,img):
+        points_lane = np.column_stack(np.where(img > 0))
+        dbscan = DBSCAN(eps=20, min_samples=40,metric="euclidean")
+        dbscan.fit(points_lane)
+        n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
+        #print("Clusters: " + str(n_clusters_))
+        #print("Noise points: " + str(list(dbscan.labels_).count(-1)))
+
+        result = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+
+        for cluster in range(len(set(dbscan.labels_))):
+
+            point_cluster = points_lane[dbscan.labels_==cluster,:]
+            if point_cluster.size > 0 and not np.isnan(point_cluster).all():
+                centroid_of_cluster = np.nanmean(point_cluster, axis=0)
+
+                #--DETECTION LANE RIGHT
+                if(int(centroid_of_cluster[1]) >= 160):
+                    self.right_cluster = point_cluster
+                    #print("RIGHT LANE ->  Xmin: " + str(point_cluster[:, 1].min()) + " Xmax: " + str(point_cluster[:, 1].max()))
+
+                    result[point_cluster[:, 0], point_cluster[:, 1]] = [0,0,255]
+
+                #--DETECTION LANE LEFT
+                if (int(centroid_of_cluster[1]) >= 60 and int(centroid_of_cluster[1]) <= 160):
+                   self.left_cluster = point_cluster
+                   #print("LEFT LANE ->  Xmin: " + str(point_cluster[:, 1].min()) + " Xmax: " + str(point_cluster[:, 1].max()))
+                   result[point_cluster[:, 0], point_cluster[:, 1]] = [0,255,255] 
+
+        bottom_left = [self.left_cluster[:,1].min(),self.left_cluster[:,0].max()]
+        top_left = [self.left_cluster[:,1].max(),self.left_cluster[:,0].min()]
+        bottom_right = [self.right_cluster[:,1].max(),self.right_cluster[:,0].max()]
+        top_right = [self.right_cluster[:,1].min(),self.right_cluster[:,0].min()]
+
+        print(top_right)
+
+        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32) 
+        cv2.fillPoly(result, vertices,(255,255,255))
+        
+
+        return result
+
     
 
     def infer_yolop(self,cvimage):
@@ -85,22 +146,6 @@ class ImageSubscriber:
             ['det_out', 'drive_area_seg', 'lane_line_seg'],
             input_feed={"images": img}
         )
-        
-        
-        
-        
-        """
-                with open('/home/bb6/pepe_ws/src/yolop/medidas/onnx/640-640/inference_time.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([(inference_time)])
-        """
-
-        
-        
-        # Add fps to total fps.
-        #--total_fps += fps
-        # Increment frame count.
-        #--frame_count += 1
 
         images = []
 
@@ -116,152 +161,48 @@ class ImageSubscriber:
 
             images.append(image_norm)
 
+
+        #--kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(33,33))
+        #--closing = cv2.morphologyEx(images[1], cv2.MORPH_CLOSE, kernel)
+
+
+        #--color_image_lanes =  np.zeros((images[1].shape[0], images[1].shape[1], 3), dtype=np.uint8)
+        #--color_image_lanes[images[1] == 1] = [0, 0, 255]
+
+        result = self.clustering(images[1])
         
+      
         
-
-        
-        points_lane = np.column_stack(np.where(images[1] > 0))
-        points_road = np.column_stack(np.where(images[0] > 0))
-
-        dbscan = DBSCAN(eps=30, min_samples=40,metric="euclidean")
-        dbscan.fit(points_lane)
-        n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
-        print("Clusters: " + str(n_clusters_))
-        print("Noise points: " + str(list(dbscan.labels_).count(-1)))
-
-        result = np.zeros((images[1].shape[0], images[1].shape[1], 3), dtype=np.uint8)
-        right_points = 0 
-        left_points = []
-        right_x = 0
-        left_x = 0
-        centroid_of_right_cluster = []
-        centroid_of_left_cluster = []
-
-        final_final = [[]]
-
-        for cluster in range(len(set(dbscan.labels_))):
-
-            point_cluster = points_lane[dbscan.labels_==cluster,:]
-            if point_cluster.size > 0 and not np.isnan(point_cluster).all():
-                if(cluster == 0):
-                    
-                    result[point_cluster[:,0],point_cluster[:,1]] = [0,0,255]
-
-                elif(cluster == 1):
-                    point_cluster = points_lane[dbscan.labels_==cluster,:]
-                    result[point_cluster[:,0],point_cluster[:,1]] = [0,255,0]
-
-                elif(cluster == 2):
-                    result[point_cluster[:,0],point_cluster[:,1]] = [255,0,0]
-
-                #--result[point_cluster[:,0],point_cluster[:,1]] = [0,0,255]
-                
-                """
-                centroid_of_cluster = np.nanmean(point_cluster, axis=0)
-                #--print("Centroid Cluster [" + str(cluster) + "]: " + str(int(centroid_of_cluster[1])) + ", " + str(int(centroid_of_cluster[0]))) 
-                if(int(centroid_of_cluster[1]) >= 160):
-                    #--print("Centroid Right Cluster [" + str(cluster) + "]: " + str(int(centroid_of_cluster[1])) + ", " + str(int(centroid_of_cluster[0]))) 
-                    right_points = point_cluster
-                    centroid_of_right_cluster = centroid_of_cluster
-                    #--print(centroid_of_right_cluster)
-                    result[right_points[:, 0], right_points[:, 1]] = [0,0,255]
-                    right_x = right_points[:, 1]
-                    pepe_der = points_road[np.logical_and(points_road[:,1] > right_x.min(),points_road[:,1] > right_x.max())]
-                    diff_right = np.setdiff1d(points_road[:,1],pepe_der)
-                    #print(diff_right)
-                    
-                    #result[points_road[mask],points_road[diff_right]] = [0,255,0]
-                #print(diff_right)
-                if (int(centroid_of_cluster[1]) >= 50 and int(centroid_of_cluster[1]) <= 160):
-                    left_points = point_cluster
-                    centroid_of_left_cluster = centroid_of_cluster
-                    result[left_points[:, 0], left_points[:, 1]] = [0,0,255]
-                    left_x = left_points[:, 1]
-                    sum(points_road,left_x)
-                    
-                    
-                    #pepe_izq = points_road[points_road[:,1] < left_x]
-                    #result[pepe_izq[:,0],pepe_izq[:,1]] = [0,255,0]
-                    #diff_left = np.setdiff1d(points_road[:,1],pepe_izq)
-
-                
-                if(len(diff_left) > 0 and len(diff_right)> 0):
-
-                    filtro = np.concatenate((diff_left, diff_right))
-                    #--print(filtro)
-                    #-filtro = diff_left + diff_right
-
-                    #print(diff_right)
-
-                    final_final = points_road[np.in1d(points_road[:,1],filtro)]
-                """
-                
-
-                 
-                 
-                    #--print(final_left.shape,final_right.shape)
-                    #final_final = np.concatenate((final_left,final_right), axis=0)
-                    #result[final_final[:,0],final_final[:,1]] = [0,255,0]
-
-                
-        #--pepe = points_road[np.logical_and(left_x.min() <= points_road[:,1], np.logical_and(left_x.max() <= points_road[:,1], np.logical_and(points_road[:,1] <= right_x.min(), points_road[:,1] <= right_x.max())))]
-        #pepe = points_road[np.logical_and(points_road[:,1] > 50,points_road[:,1] < 160)]
-
-            #points_in_between = points_road[np.logical_and(points_road[:,1] > left_points.min(),points_road[:,1] < left_points.max())]
-            #print(points_in_between[:,1])
-        #--result[pepe[:,0],pepe[:,1]] = [0,255,0]
-        
-        
-            #--print(left_x.min(),left_x.max())
-            #--print(right_x.min(),right_x.max())
-          
-            #--print(left_x)
-            #print("Road")
-            #print(points_road[:,1].min(),points_road[:,1].max())
-
-            # Crea máscaras booleanas para cada condición
-            #mask1 = (points_road[:,1] >= left_x.min()) & (points_road[:,1] < left_x.max())
-            #--mask2 = (points_road[:,1] >= right_x.min()) & (points_road[:,1] < right_x.max())
-
-            # Combina las máscaras y selecciona los elementos
-            
-        """
-         
-
-            
-            print(points_road[:,1])
+        #print(type(images[1]))
 
 
+        superimposed_image = cv2.addWeighted(cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR), 0.6, result, 0.4, 0)
+        #superimposed_image2 = cv2.addWeighted(cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR), 0.6, color_image_lanes_closing, 0.4, 0)
 
-            #points_in_between = points_road[(points_road[:,1] > left_x.min()) & (left_x.max() > points_road[:,1])]
-            points_in_between = points_road[np.logical_and(left_x.min() <= points_road[:,1], np.logical_and(left_x.max() <= points_road[:,1], np.logical_and(points_road[:,1] <= right_x.min(), points_road[:,1] <= right_x.max())))]
-        """
-       
-        color_image =  np.zeros((images[0].shape[0], images[0].shape[1], 3), dtype=np.uint8)
-        color_image[images[0] == 1] = [0, 255, 0]
-        color_image[images[1] == 1] = [0,0,255]
-
-
-        superimposed_image = cv2.addWeighted(cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR), 0.6, color_image, 0.4, 0)
- 
         t2 = time.time()
-        #print(1/(t2-t1))
-        return superimposed_image,result
+
+        iterations = str (int(1/(t2-t1)))
+        cv2.putText(
+                superimposed_image, 
+                text = "FPS: " + iterations,
+                org=(0, 15),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+        return superimposed_image
         #return cv2.resize(superimposed_image,(640,640),cv2.INTER_LINEAR) 320-320
-    
 
-
-   
     def callback(self, data):
 
         #--t1 = time.time()
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-
-    
-        image_result,img = self.infer_yolop(cv_image)
+        image_result = self.infer_yolop(cv_image)
 
         cv2.imshow('Image', image_result)
-        cv2.imshow('Image-cluster',img)
+        #cv2.imshow('Image', histogram)
         #--t3 = time.time()
 
         #fps2 = 1 / (t3- t1)
