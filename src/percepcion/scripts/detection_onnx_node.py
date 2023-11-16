@@ -7,18 +7,13 @@ import numpy as np
 import cv2
 import time
 import onnxruntime as ort
-import csv
 from sklearn.cluster import DBSCAN
-from collections import Counter
 from numba import jit
 import matplotlib.pyplot as plt
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
 ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
-
-diff_left = []
-diff_right = []
 
 class ImageSubscriber:
     def __init__(self):
@@ -28,11 +23,17 @@ class ImageSubscriber:
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
         self.list = []
-        self.left_cluster = []
-        self.right_cluster = []
+        self.bottom_left_base = [0,320]
+        self.bottom_right_base = [320,320]
+        self.bottom_left  = [0, 280]
+        self.bottom_right = [320,280]
+        self.top_left     = [155,140]
+        self.top_right    = [165, 140]
+        self.point_cluster = np.ndarray
+        
+        
+        self.vertices = np.array([[self.bottom_left_base,self.bottom_left, self.top_left, self.top_right, self.bottom_right,self.bottom_right_base]], dtype=np.int32)
 
-
-    
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         shape = img.shape[:2]  # current shape [height, width]
         if isinstance(new_shape, int):
@@ -58,70 +59,38 @@ class ImageSubscriber:
         canvas[dh:dh + new_unpad_h, dw:dw + new_unpad_w, :] = img
 
         return canvas, r, dw, dh, new_unpad_w, new_unpad_h  # (dw,dh)
-    
 
-    def calculate_histogram(self,img_lane,plot=True):
-        """
-        Calculate the image histogram to find peaks in white pixel count
-            
-        :param frame: The warped image
-        :param plot: Create a plot if True
-        """
-        frame = img_lane
-        # Generate the histogram
-        self.histogram = np.sum(frame[int(
-                frame.shape[0]/2):,:], axis=0)
-        
-        #--print("histogram")
-        #print(self.histogram)
-    
-                
-        return self.histogram
-    
 
     def clustering(self,img):
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=20, min_samples=40,metric="euclidean")
+        dbscan = DBSCAN(eps=25, min_samples=1,metric="euclidean")
         dbscan.fit(points_lane)
         n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
-        #print("Clusters: " + str(n_clusters_))
+        print("Clusters: " + str(n_clusters_))
         #print("Noise points: " + str(list(dbscan.labels_).count(-1)))
+        self.point_cluster = []
 
-        result = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+        result = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
 
         for cluster in range(len(set(dbscan.labels_))):
+            
+            self.point_cluster.append(points_lane[dbscan.labels_==cluster,:]) 
 
-            point_cluster = points_lane[dbscan.labels_==cluster,:]
-            if point_cluster.size > 0 and not np.isnan(point_cluster).all():
-                centroid_of_cluster = np.nanmean(point_cluster, axis=0)
+        # Concatenar todos los clusters en un solo array
+        all_points = np.concatenate(self.point_cluster, axis=0)
 
-                #--DETECTION LANE RIGHT
-                if(int(centroid_of_cluster[1]) >= 160):
-                    self.right_cluster = point_cluster
-                    #print("RIGHT LANE ->  Xmin: " + str(point_cluster[:, 1].min()) + " Xmax: " + str(point_cluster[:, 1].max()))
-
-                    result[point_cluster[:, 0], point_cluster[:, 1]] = [0,0,255]
-
-                #--DETECTION LANE LEFT
-                if (int(centroid_of_cluster[1]) >= 60 and int(centroid_of_cluster[1]) <= 160):
-                   self.left_cluster = point_cluster
-                   #print("LEFT LANE ->  Xmin: " + str(point_cluster[:, 1].min()) + " Xmax: " + str(point_cluster[:, 1].max()))
-                   result[point_cluster[:, 0], point_cluster[:, 1]] = [0,255,255] 
-
-        bottom_left = [self.left_cluster[:,1].min(),self.left_cluster[:,0].max()]
-        top_left = [self.left_cluster[:,1].max(),self.left_cluster[:,0].min()]
-        bottom_right = [self.right_cluster[:,1].max(),self.right_cluster[:,0].max()]
-        top_right = [self.right_cluster[:,1].min(),self.right_cluster[:,0].min()]
-
-        print(top_right)
-
-        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32) 
-        cv2.fillPoly(result, vertices,(255,255,255))
-        
+        result[all_points[:,0], all_points[:,1]] = 255
 
         return result
-
     
+    def draw_region(self,img):
+
+        mask = np.zeros_like(img) 
+
+        cv2.fillPoly(mask, self.vertices,(255,255,255))
+        masked_image = cv2.bitwise_and(img, mask)
+
+        return masked_image
 
     def infer_yolop(self,cvimage):
         global diff_right,diff_left
@@ -165,25 +134,25 @@ class ImageSubscriber:
         #--kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(33,33))
         #--closing = cv2.morphologyEx(images[1], cv2.MORPH_CLOSE, kernel)
 
-
-        #--color_image_lanes =  np.zeros((images[1].shape[0], images[1].shape[1], 3), dtype=np.uint8)
-        #--color_image_lanes[images[1] == 1] = [0, 0, 255]
-
-        result = self.clustering(images[1])
-        
-      
-        
-        #print(type(images[1]))
+        cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
+        cvimage[images[1] == 1] = [0, 0, 255]
 
 
-        superimposed_image = cv2.addWeighted(cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR), 0.6, result, 0.4, 0)
-        #superimposed_image2 = cv2.addWeighted(cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR), 0.6, color_image_lanes_closing, 0.4, 0)
+        mask = self.draw_region(images[1])
+
+        masked_image = self.draw_region(cvimage)
+
+
+
+        result = self.clustering(mask)
+    
 
         t2 = time.time()
 
         iterations = str (int(1/(t2-t1)))
+
         cv2.putText(
-                superimposed_image, 
+                cvimage, 
                 text = "FPS: " + iterations,
                 org=(0, 15),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -192,16 +161,18 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
-        return superimposed_image
+        return cvimage,masked_image,result
         #return cv2.resize(superimposed_image,(640,640),cv2.INTER_LINEAR) 320-320
 
     def callback(self, data):
 
         #--t1 = time.time()
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        image_result = self.infer_yolop(cv_image)
+        image_result,mask,img_cluster = self.infer_yolop(cv_image)
 
-        cv2.imshow('Image', image_result)
+        cv2.imshow('Image',image_result)
+        cv2.imshow('Mask',mask)
+        cv2.imshow('img_cluster',img_cluster)
         #cv2.imshow('Image', histogram)
         #--t3 = time.time()
 
