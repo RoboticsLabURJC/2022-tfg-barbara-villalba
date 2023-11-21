@@ -43,6 +43,35 @@ def get_first_points_lanes(img_clustering):
     return first_left_lane_point,first_right_lane_point
 
 
+def calculate_values_xy(left_fit,right_fit):
+        
+    left_lane_array = np.zeros((320, 320,3), dtype=np.uint8)
+    right_lane_array = np.zeros((320, 320,3), dtype=np.uint8)
+
+    # Agregar valores en cada iteración de dos bucles for
+    for y in range(0,320):
+    
+        left_fitx= left_fit[0]*y**2 + left_fit[1]*y + left_fit[2]
+
+        right_fitx = right_fit[0]*y**2 + right_fit[1]*y + right_fit[2]
+
+ 
+        if(left_fitx >= 0 and left_fitx < 320):
+           left_lane_array[y,int(left_fitx)]  = [0,255,0]
+
+        if(left_fitx > 319):
+           left_lane_array[y,319]  = [0,255,0] 
+
+        if(right_fitx >= 0 and right_fitx < 320):
+            right_lane_array[y,int(right_fitx)]  = [0,0,255]
+
+        if(right_fitx > 319):
+            right_lane_array[y,319]  = [0,0,255]
+        
+
+
+    return left_lane_array,right_lane_array
+
 
 class ImageSubscriber:
     def __init__(self):
@@ -54,10 +83,10 @@ class ImageSubscriber:
         self.list = []
         self.bottom_left_base = [0,320]
         self.bottom_right_base = [320,320]
-        self.bottom_left  = [0, 280]
-        self.bottom_right = [320,280]
-        self.top_left     = [155,140]
-        self.top_right    = [165, 140]
+        self.bottom_left  = [0, 270]
+        self.bottom_right = [320,270]
+        self.top_left     = [155,150]
+        self.top_right    = [165, 150]
         self.vertices = np.array([[self.bottom_left_base,self.bottom_left, self.top_left, self.top_right, self.bottom_right,self.bottom_right_base]], dtype=np.int32)
         self.point_cluster = np.ndarray
         
@@ -89,28 +118,8 @@ class ImageSubscriber:
 
         return canvas, r, dw, dh, new_unpad_w, new_unpad_h  # (dw,dh)
     
-    def get_lane_line_indices_sliding_windows(self,img,right_x,left_x):
-        """
-        Get the indices of the lane line pixels using the 
-        sliding windows technique.
-            
-        :param: plot Show plot or not
-        :return: Best fit lines for the left and right lines of the current lane 
-        """
-        no_of_windows = 50
-        height = img.shape[0]
-        width = img.shape[1]
+    def get_lane_line_indices(self,img):
 
-        # El ancho de la ventana deslizante es +/- margen
-        margin = 50
-        minpix = 0
-    
-        #Copiamos la imagen
-        frame_sliding_window = img.copy()
-    
-        # Establecer la altura de las ventanas correderas.
-        window_height = np.int_(height/no_of_windows)       
-    
         # Encuentra las coordenadas x e y de todos los distintos de cero
         # (es decir, blancos) píxeles en el marco.
         nonzero = img.nonzero()
@@ -121,71 +130,38 @@ class ImageSubscriber:
         left_lane_inds = []
         right_lane_inds = []
             
-        # Posiciones actuales para índices de píxeles para cada ventana,
-        # que continuaremos actualizando
-        leftx_current = left_x #tu MAN
-        rightx_current = right_x
-    
-        # Ir a través de una ventana a la vez
-
-            
-        for window in range(no_of_windows):
-        # Identificar los límites de la ventana en x e y (y derecha e izquierda)
-            #esquina abajo
-            win_y_low = width - (window + 1) * window_height
-            #esquina arriba
-            win_y_high = width - window * window_height
-
-            win_xleft_low = leftx_current - margin
-            if(win_xleft_low <= 0):
-                win_xleft_low = 0
-            win_xleft_high = leftx_current + margin
-
-            cv2.rectangle(frame_sliding_window,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high), (255,255,255), 1)
-            
-
-            win_xright_low = rightx_current - margin
-            win_xright_high = rightx_current + margin
-            cv2.rectangle(frame_sliding_window,(win_xright_low,win_y_low),(win_xright_high,win_y_high), (255,255,255), 1)
+       # Identificar los píxeles distintos de cero (es decir, blancos) en x e y dentro de la ventana
+        good_left_inds = ((nonzeroy >= 0) & (nonzeroy <= 319) & (nonzerox >= 0) & (nonzerox < 160)).nonzero()[0]
+        #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero())
+        #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0])
         
-            # Identificar los píxeles distintos de cero (es decir, blancos) en x e y dentro de la ventana
-            good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
-            
-            good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
-                                                                
-            # Agregar estos índices a las listas.
-            left_lane_inds.append(good_left_inds)
-            right_lane_inds.append(good_right_inds)
-                
-            # Si encontró > píxeles minpix, vuelva a centrar la siguiente ventana en la posición media
-            if len(good_left_inds) > minpix:
-                leftx_current = np.int_(np.mean(nonzerox[good_left_inds]))
-                
-            if len(good_right_inds) > minpix:        
-                rightx_current = np.int_(np.mean(nonzerox[good_right_inds]))
-            
+        good_right_inds = ((nonzeroy >= 0) & (nonzeroy <= 319) & (nonzerox > 160) & (nonzerox <= 319)).nonzero()[0]
 
-        """         
+        #print(good_left_inds,good_right_inds)
+                                                            
+        # Agregar estos índices a las listas.
+        left_lane_inds.append(good_left_inds)
+        right_lane_inds.append(good_right_inds)
+            
+       
         # Concatenar los arrays de índices
         left_lane_inds = np.concatenate(left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
+
     
         # Extrae las coordenadas de píxeles para las líneas de los carriles izquierdo y derecho
         leftx = nonzerox[left_lane_inds]
         lefty = nonzeroy[left_lane_inds] 
         rightx = nonzerox[right_lane_inds] 
         righty = nonzeroy[right_lane_inds]
+
+        left_fit = np.polyfit(lefty,leftx, 2)
+        right_fit = np.polyfit(righty,rightx,2) 
+
+        img_left_lane,img_right_lane = calculate_values_xy(left_fit,right_fit)
     
-        # Ajustar una curva polinómica de segundo orden a las coordenadas de píxeles para
-        # las líneas de los carriles izquierdo y derecho
-        left_fit = np.polyfit(lefty, leftx, 2)
-        right_fit = np.polyfit(righty, rightx, 2) 
-        """
-
-        return frame_sliding_window
-
-
-
+        return img_left_lane,img_right_lane
+    
 
     def clustering(self,img):
         #--Convert image in points
@@ -258,36 +234,38 @@ class ImageSubscriber:
 
             images.append(image_norm)
 
+        
         cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
+        org_img = cvimage.copy()
         cvimage[images[1] == 1] = [0, 0, 255]
 
-
+        """
         mask = self.draw_region(images[1])
 
         masked_image = self.draw_region(cvimage)
 
 
         img_clustering,points_lanes = self.clustering(mask)
+        cvimage[img_clustering == 255] = [0, 0, 255]
 
-        first_left_lane_point,first_right_lane_point = get_first_points_lanes(img_clustering)
 
-        img_frame_window = self.get_lane_line_indices_sliding_windows(img_clustering,first_right_lane_point[0][0],first_left_lane_point[0][0])
+        img_left_lanes,img_right_lanes= self.get_lane_line_indices(img_clustering)
         
+        img_lanes = np.zeros((320, 320,3), dtype=np.uint8)
+        img_lanes = img_left_lanes + img_right_lanes
+        return org_img,masked_image,cvimage,img_clustering,img_lanes
+        """
 
-        #--print(first_left_lane_point,first_right_lane_point)
-        
-        cv2.circle(masked_image,(first_left_lane_point[0][0],first_left_lane_point[0][1]),5,(0,255,0),-1)
-        cv2.circle(masked_image,(first_right_lane_point[0][0],first_right_lane_point[0][1]),5,(0,255,255),-1)
 
-        #print(first_point)
+
 
         t2 = time.time()
 
-        iterations = str (int(1/(t2-t1)))
+        fps = str (int(1/(t2-t1)))
 
         cv2.putText(
                 cvimage, 
-                text = "FPS: " + iterations,
+                text = "FPS: " + fps,
                 org=(0, 15),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.5,
@@ -295,18 +273,28 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
-        return cvimage,masked_image,img_clustering,img_frame_window
+        
+        return cvimage
+        
 
     def callback(self, data):
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        image_result,mask,img_cluster,img_frame_window = self.infer_yolop(cv_image)
+        #image = np.float32(cv_image)
+        #image = cv2.convertScaleAbs(image,alpha=1.5)
 
-        cv2.imshow('Image',image_result)
-        cv2.imshow('Mask',mask)
-        cv2.imshow('img_cluster',img_cluster)
-        cv2.imshow('Image-windows',img_frame_window)
-        #time.sleep(1)
+       
+
+        #image = np.uint8(image)
+        #cv_image = cv2.GaussianBlur(cv_image, (5, 5), 0)
+        org_img= self.infer_yolop(cv_image)
+
+        cv2.imshow('Image-Original-Network',org_img)
+        #cv2.imshow('Masked-Image',masked_image)
+        #cv2.imshow('Image',image_result)
+        #cv2.imshow('img_cluster',img_cluster)
+        #cv2.imshow('Image-Lanes',img_lanes)
+       
         
         # Press `q` to exit.
         cv2.waitKey(1)
