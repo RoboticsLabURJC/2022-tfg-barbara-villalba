@@ -244,6 +244,7 @@ class ImageSubscriber:
             images.append(image_norm)
 
         
+        
         cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
         org_img = cvimage.copy()
         #cvimage[images[1] == 1] = [0, 0, 255]
@@ -253,7 +254,6 @@ class ImageSubscriber:
 
         masked_image = self.draw_region(cvimage)
 
-
         img_clustering,points_lanes = self.clustering(mask)
         cvimage[img_clustering == 255] = [0, 0, 255]
 
@@ -262,9 +262,11 @@ class ImageSubscriber:
 
         img_left_lane = np.zeros((320, 320), dtype=np.uint8)
         img_right_lanes = np.zeros((320, 320), dtype=np.uint8)
+
+        mask_ = np.zeros((320, 320), dtype=np.uint8)
         
-        img_left_lane[left_lane_points[:,0],left_lane_points[:,1]] = 1
-        img_right_lanes[right_lane_points[:,0],right_lane_points[:,1]] = 1
+        img_left_lane[left_lane_points[:,0],left_lane_points[:,1]] = 255
+        img_right_lanes[right_lane_points[:,0],right_lane_points[:,1]] = 255
 
         
         img_left_lane_dilatada = binary_dilation(img_left_lane, structure=self.kernel)
@@ -273,27 +275,22 @@ class ImageSubscriber:
         img_right_lane_dilatada = binary_dilation(img_right_lanes, structure=self.kernel)
         img_right_lane_dilatada = (img_right_lane_dilatada).astype(np.uint8)
 
-
-        img_lanes = np.zeros((320, 320,3), dtype=np.uint8)
         cvimage[img_left_lane_dilatada == 1] = [0,255,0]
         cvimage[img_right_lane_dilatada == 1] = [0,0,255]
-
         
 
+        mask_ = img_left_lane + img_right_lanes
+        contornos, _ = cv2.findContours(mask_, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(mask_, contornos, -1, 255, thickness=cv2.FILLED)
 
+        momentos = cv2.moments(mask_)
 
-        #cv2.fillPoly(img_lanes, np.int32([left_lane_points]),[0,255,0],lineType=cv2.LINE_4)
-        #cv2.fillPoly(img_lanes, np.int32([right_lane_points]),[0,255,255],lineType=cv2.LINE_4)
-        
+        # Calcular el centro de masa
+        cx = int(momentos['m10'] / momentos['m00'])
+        cy = int(momentos['m01'] / momentos['m00'])
 
+        cv2.circle(cvimage,(cx,cy),10,(255,255,255),-1)
 
-
-        
-        #cv2.dilate(img_lanes, self.kernel, iterations=20)
-
-
-
-                
         t2 = time.time()
 
         fps = str (int(1/(t2-t1)))
@@ -309,22 +306,20 @@ class ImageSubscriber:
                 lineType=cv2.LINE_AA
             )
         
-        return cvimage,masked_image,img_lanes
+        return cvimage,masked_image
         
 
     def callback(self, data):
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
      
-        org_img,masked_image,img_lanes= self.infer_yolop(cv_image)
+        org_img,masked_image= self.infer_yolop(cv_image)
 
         cv2.imshow('Image-Original-Network',org_img)
         cv2.imshow('Masked-Image',masked_image)
-        #cv2.imshow('Image',image_result)
         #cv2.imshow('img_cluster',img_cluster)
-        cv2.imshow('Image-Lanes',img_lanes)
-       
         
+    
         # Press `q` to exit.
         cv2.waitKey(1)
         
