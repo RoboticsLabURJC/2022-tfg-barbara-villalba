@@ -11,6 +11,8 @@ from sklearn.cluster import DBSCAN
 from numba import jit
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
+from yolop.msg import MassCentre
+
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -31,7 +33,6 @@ def calculate_values_xy(left_fit,right_fit):
         left_fitx= left_fit[0]*y**2 + left_fit[1]*y + left_fit[2]
 
         right_fitx = right_fit[0]*y**2 + right_fit[1]*y + right_fit[2]
-
  
         if(left_fitx >= 0 and left_fitx < 320):
            left_lane.append([y,int(left_fitx)])
@@ -48,13 +49,9 @@ def calculate_values_xy(left_fit,right_fit):
 
     return left_lane,right_lane
 
-
-
-
 class ImageSubscriber:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_pub = rospy.Publisher('/yolop/image',Image,queue_size=1)
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback)
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
@@ -63,16 +60,19 @@ class ImageSubscriber:
         self.bottom_right_base = [320,320]
         self.bottom_left  = [0, 270]
         self.bottom_right = [320,270]
-        self.top_left     = [155,150]
-        self.top_right    = [165, 150]
+        self.top_left     = [145,160]
+        self.top_right    = [185, 160]
         self.vertices = np.array([[self.bottom_left_base,self.bottom_left, self.top_left, self.top_right, self.bottom_right,self.bottom_right_base]], dtype=np.int32)
         self.point_cluster = np.ndarray
         self.kernel = np.array([[0,1,0], 
                                 [1,1,1], 
                                 [0, 1,0]]) 
-
         
-
+        self.msg = MassCentre()
+        self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        self.img_result = np.zeros((320, 320, 3), dtype=np.uint8)
+    
+        self.mass_centre_pub = rospy.Publisher('/yolop/detection_lane/mass_centre_lane',MassCentre,queue_size=10)
     #--Resize image for more later yolop
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         shape = img.shape[:2]  # current shape [height, width]
@@ -204,6 +204,52 @@ class ImageSubscriber:
         masked_image = cv2.bitwise_and(img, mask)
 
         return masked_image
+    
+    def calculate_mass_centre_lane(self,img):
+
+        contornos, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(img, contornos, -1, 255, thickness=cv2.FILLED)
+
+        momentos = cv2.moments(img)
+
+        # Calcular el centro de masa
+        cx = int(momentos['m10'] / momentos['m00'])
+        cy = int(momentos['m01'] / momentos['m00'])
+
+        return cx,cy
+    
+    def dilate_lines(self,left_lane_points,right_lane_points):
+        img_left_lane = np.zeros((320, 320), dtype=np.uint8)
+        img_right_lanes = np.zeros((320, 320), dtype=np.uint8)
+
+        img_left_lane[left_lane_points[:,0],left_lane_points[:,1]] = 255
+        img_right_lanes[right_lane_points[:,0],right_lane_points[:,1]] = 255
+
+        
+        img_left_lane_dilatada = binary_dilation(img_left_lane, structure=self.kernel)
+        img_left_lane_dilatada = (img_left_lane_dilatada).astype(np.uint8)
+
+        img_right_lane_dilatada = binary_dilation(img_right_lanes, structure=self.kernel)
+        img_right_lane_dilatada = (img_right_lane_dilatada).astype(np.uint8)
+
+
+        return img_left_lane_dilatada,img_right_lane_dilatada
+    
+
+    def results(self,cvimage,img_clustering,points_clustering,img_left_lane_dilatada,img_right_lane_dilatada,cx,cy):
+        cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
+
+
+        for i, points_clustering in enumerate(self.point_cluster):
+            cvimage[points_clustering[:, 0], points_clustering[:, 1]] = self.colors[i % len(self.colors)]
+        #cvimage[img_clustering == 255] = [0, 0, 255]
+
+        cvimage[img_left_lane_dilatada == 1] = [0,255,0]
+        cvimage[img_right_lane_dilatada == 1] = [0,0,255]
+
+        cv2.circle(cvimage,(cx,cy),10,(255,255,255),-1)
+
+        return cvimage
 
     def infer_yolop(self,cvimage):
         global diff_right,diff_left
@@ -244,52 +290,27 @@ class ImageSubscriber:
             images.append(image_norm)
 
         
-        
-        cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
-        org_img = cvimage.copy()
-        #cvimage[images[1] == 1] = [0, 0, 255]
-
-
         mask = self.draw_region(images[1])
 
+        cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
         masked_image = self.draw_region(cvimage)
 
         img_clustering,points_lanes = self.clustering(mask)
-        cvimage[img_clustering == 255] = [0, 0, 255]
-
+        
 
         left_lane_points,right_lane_points= self.get_lane_line_indices(img_clustering)
 
-        img_left_lane = np.zeros((320, 320), dtype=np.uint8)
-        img_right_lanes = np.zeros((320, 320), dtype=np.uint8)
+        img_left_lane_dilatada,img_right_lane_dilatada = self.dilate_lines(left_lane_points,right_lane_points)
 
         mask_ = np.zeros((320, 320), dtype=np.uint8)
-        
-        img_left_lane[left_lane_points[:,0],left_lane_points[:,1]] = 255
-        img_right_lanes[right_lane_points[:,0],right_lane_points[:,1]] = 255
+        mask_ = img_left_lane_dilatada + img_right_lane_dilatada
 
-        
-        img_left_lane_dilatada = binary_dilation(img_left_lane, structure=self.kernel)
-        img_left_lane_dilatada = (img_left_lane_dilatada).astype(np.uint8)
+        cx,cy = self.calculate_mass_centre_lane(mask_)
+        self.msg.cx = cx
+        self.msg.cy = cy
+        self.mass_centre_pub.publish(self.msg)
 
-        img_right_lane_dilatada = binary_dilation(img_right_lanes, structure=self.kernel)
-        img_right_lane_dilatada = (img_right_lane_dilatada).astype(np.uint8)
-
-        cvimage[img_left_lane_dilatada == 1] = [0,255,0]
-        cvimage[img_right_lane_dilatada == 1] = [0,0,255]
-        
-
-        mask_ = img_left_lane + img_right_lanes
-        contornos, _ = cv2.findContours(mask_, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(mask_, contornos, -1, 255, thickness=cv2.FILLED)
-
-        momentos = cv2.moments(mask_)
-
-        # Calcular el centro de masa
-        cx = int(momentos['m10'] / momentos['m00'])
-        cy = int(momentos['m01'] / momentos['m00'])
-
-        cv2.circle(cvimage,(cx,cy),10,(255,255,255),-1)
+        cvimage = self.results(cvimage,img_clustering,points_lanes,img_left_lane_dilatada,img_right_lane_dilatada,cx,cy)
 
         t2 = time.time()
 
