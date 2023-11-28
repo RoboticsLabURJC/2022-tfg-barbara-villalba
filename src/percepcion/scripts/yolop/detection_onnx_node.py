@@ -58,18 +58,20 @@ class ImageSubscriber:
         self.list = []
         self.bottom_left_base = [0,320]
         self.bottom_right_base = [320,320]
-        self.bottom_left  = [0, 270]
-        self.bottom_right = [320,270]
-        self.top_left     = [145,160]
-        self.top_right    = [185, 160]
-        self.vertices = np.array([[self.bottom_left_base,self.bottom_left, self.top_left, self.top_right, self.bottom_right,self.bottom_right_base]], dtype=np.int32)
+        self.bottom_left  = [0, 320]
+        self.bottom_right = [320,320]
+        self.top_left     = [0,180]
+        self.top_right    = [320, 180]
+        self.vertices = np.array([[self.bottom_left,self.top_left,self.top_right,self.bottom_right]], dtype=np.int32)
         self.point_cluster = np.ndarray
         self.kernel = np.array([[0,1,0], 
                                 [1,1,1], 
                                 [0, 1,0]]) 
         
+       
+        
         self.msg = MassCentre()
-        self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
         self.img_result = np.zeros((320, 320, 3), dtype=np.uint8)
     
         self.mass_centre_pub = rospy.Publisher('/yolop/detection_lane/mass_centre_lane',MassCentre,queue_size=10)
@@ -111,8 +113,6 @@ class ImageSubscriber:
         # Almacene los índices de píxeles para las líneas de los carriles izquierdo y derecho
         left_lane_inds = []
         right_lane_inds = []
-            
-       # Identificar los píxeles distintos de cero (es decir, blancos) en x e y dentro de la ventana
         good_left_inds = ((nonzeroy >= 0) & (nonzeroy <= 319) & (nonzerox >= 0) & (nonzerox < 160)).nonzero()[0]
         #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero())
         #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0])
@@ -180,21 +180,13 @@ class ImageSubscriber:
         dbscan.fit(points_lane)
         n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
         print("Clusters: " + str(n_clusters_))
-        self.point_cluster = []
-
-        result = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
-
-        #--Save all clusters in list
+        dict_clusters = {label: [] for label in set(dbscan.labels_)}
+        
         for cluster in range(len(set(dbscan.labels_))):
-            
-            self.point_cluster.append(points_lane[dbscan.labels_==cluster,:]) 
+            dict_clusters[cluster] = points_lane[dbscan.labels_==cluster,:]
 
-        #--Concatenate all clusters in only numpy.ndarray
-        all_points = np.concatenate(self.point_cluster, axis=0)
 
-        result[all_points[:,0], all_points[:,1]] = 255
-
-        return result,all_points
+        return dict_clusters
     
     def draw_region(self,img):
 
@@ -252,7 +244,7 @@ class ImageSubscriber:
         return cvimage
 
     def infer_yolop(self,cvimage):
-        global diff_right,diff_left
+        
         canvas, r, dw, dh, new_unpad_w, new_unpad_h = self.resize_unscale(cvimage, (320,320))
 
         img = canvas.copy().astype(np.float32)  # (3,640,640) RGB
@@ -295,9 +287,23 @@ class ImageSubscriber:
         cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
         masked_image = self.draw_region(cvimage)
 
-        img_clustering,points_lanes = self.clustering(mask)
+        #cvimage[images[1] == 1] = [0,0,255]
+       
+
+        dict_clusters = self.clustering(mask)
+
+        for i, cluster in enumerate(dict_clusters.values()):
+            # Asignas a cada cluster un color
+            color = self.colors[i % len(self.colors)]
+            # Dibujas los puntos de cada cluster en la imagen
+            for point in cluster:
+                #print(point)
+                cvimage[point[0], point[1]] = color  # Recuerda que en una imagen, el primer índice es la coordenada y y el segundo índice es la coordenada x
+
         
 
+        """
+        
         left_lane_points,right_lane_points= self.get_lane_line_indices(img_clustering)
 
         img_left_lane_dilatada,img_right_lane_dilatada = self.dilate_lines(left_lane_points,right_lane_points)
@@ -311,6 +317,7 @@ class ImageSubscriber:
         self.mass_centre_pub.publish(self.msg)
 
         cvimage = self.results(cvimage,img_clustering,points_lanes,img_left_lane_dilatada,img_right_lane_dilatada,cx,cy)
+        """
 
         t2 = time.time()
 
