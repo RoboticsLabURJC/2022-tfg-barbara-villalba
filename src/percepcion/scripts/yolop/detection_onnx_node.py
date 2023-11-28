@@ -102,46 +102,27 @@ class ImageSubscriber:
 
         return canvas, r, dw, dh, new_unpad_w, new_unpad_h  # (dw,dh)
     
-    def get_lane_line_indices(self,img):
+    def calculate_lineal_regression(self,dict_clusters,cvimage):
 
-        # Encuentra las coordenadas x e y de todos los distintos de cero
-        # (es decir, blancos) píxeles en el marco.
-        nonzero = img.nonzero()
-        nonzeroy = np.array(nonzero[0])
-        nonzerox = np.array(nonzero[1])
+        dict_lines = {label: [] for label in set(dict_clusters.keys())}
+        print(dict_lines)
+        valuesX = np.arange(150,320) 
+        #print(valuesX)
+        for id_cluster,points_cluster in dict_clusters.items():
+            points = points_cluster["points_cluster"]
             
-        # Almacene los índices de píxeles para las líneas de los carriles izquierdo y derecho
-        left_lane_inds = []
-        right_lane_inds = []
-        good_left_inds = ((nonzeroy >= 0) & (nonzeroy <= 319) & (nonzerox >= 0) & (nonzerox < 160)).nonzero()[0]
-        #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero())
-        #print(((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0])
-        
-        good_right_inds = ((nonzeroy >= 0) & (nonzeroy <= 319) & (nonzerox > 160) & (nonzerox <= 319)).nonzero()[0]
+            coefficients = np.polyfit(points[:,0],points[:,1],1)
+            values_fy = np.polyval(coefficients,valuesX).astype(int)
 
-        #print(good_left_inds,good_right_inds)
-                                                            
-        # Agregar estos índices a las listas.
-        left_lane_inds.append(good_left_inds)
-        right_lane_inds.append(good_right_inds)
-            
-       
-        # Concatenar los arrays de índices
-        left_lane_inds = np.concatenate(left_lane_inds)
-        right_lane_inds = np.concatenate(right_lane_inds)
+            fit = [y if y <= 319 else 319 for y in values_fy]
+            fitLine_filtered = [(x, y) for x, y in zip(valuesX, fit) if 0 <= y <= 319]
 
-    
-        # Extrae las coordenadas de píxeles para las líneas de los carriles izquierdo y derecho
-        leftx = nonzerox[left_lane_inds]
-        lefty = nonzeroy[left_lane_inds] 
-        rightx = nonzerox[right_lane_inds] 
-        righty = nonzeroy[right_lane_inds]
-
-        left_fit = np.polyfit(lefty,leftx, 2)
-        right_fit = np.polyfit(righty,rightx,2) 
+            line = np.array(fitLine_filtered)
+            dict_lines[id_cluster] = {"points_line" : line}
+ 
 
         """
-        valuesLineX = np.arange(150,320)
+        
 
         fitLineLeftY = np.polyval(left_fit, valuesLineX).astype(int)
         fitLineRightY = np.polyval(right_fit, valuesLineX).astype(int)
@@ -162,20 +143,13 @@ class ImageSubscriber:
         #print( np.array(fitLineRightY_filtered))
 
         """
+
+        return dict_lines
         
-
-        left_lane,right_lane = calculate_values_xy(left_fit,right_fit)
-
-        left_lane_points = np.array(left_lane)
-        right_lane_points = np.array(right_lane)
-    
-        return left_lane_points,right_lane_points
-    
-
     def clustering(self,img):
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-
+        print(points_lane.shape)
         dbscan = DBSCAN(eps=25, min_samples=1,metric="euclidean")
         dbscan.fit(points_lane)
         n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
@@ -183,7 +157,10 @@ class ImageSubscriber:
         dict_clusters = {label: [] for label in set(dbscan.labels_)}
         
         for cluster in range(len(set(dbscan.labels_))):
-            dict_clusters[cluster] = points_lane[dbscan.labels_==cluster,:]
+            points_cluster = points_lane[dbscan.labels_==cluster,:]
+            
+            centroid_cluster = points_cluster.mean(axis=0).astype(int)
+            dict_clusters[cluster] = {"points_cluster": points_cluster, "centroid": centroid_cluster}
 
 
         return dict_clusters
@@ -291,16 +268,18 @@ class ImageSubscriber:
        
 
         dict_clusters = self.clustering(mask)
+        #print(dict_clusters.get(0))
+
+        dict_lines = self.calculate_lineal_regression(dict_clusters,cvimage)
 
         for i, cluster in enumerate(dict_clusters.values()):
-            # Asignas a cada cluster un color
             color = self.colors[i % len(self.colors)]
-            # Dibujas los puntos de cada cluster en la imagen
-            for point in cluster:
+            points_cluster = cluster["points_cluster"]
+            centroid = cluster["centroid"]
+            for point in points_cluster:
                 #print(point)
-                cvimage[point[0], point[1]] = color  # Recuerda que en una imagen, el primer índice es la coordenada y y el segundo índice es la coordenada x
-
-        
+                cvimage[point[0], point[1]] = color
+            cv2.circle(cvimage, tuple(centroid[::-1]), 3, (0, 0, 0), -1)  
 
         """
         
