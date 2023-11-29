@@ -21,33 +21,6 @@ ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
 MIN_VALUE_Y = 150
 MAX_VALUE_Y = 320
 
-@jit(nopython=True)
-def calculate_values_xy(left_fit,right_fit):
-        
-    left_lane = []
-    right_lane = []
-
-    # Agregar valores en cada iteración de dos bucles for
-    for y in range(MIN_VALUE_Y,MAX_VALUE_Y):
-    
-        left_fitx= left_fit[0]*y**2 + left_fit[1]*y + left_fit[2]
-
-        right_fitx = right_fit[0]*y**2 + right_fit[1]*y + right_fit[2]
- 
-        if(left_fitx >= 0 and left_fitx < 320):
-           left_lane.append([y,int(left_fitx)])
-           
-        if(left_fitx > 319):
-           left_lane.append([y,319])
-
-        if(right_fitx >= 0 and right_fitx < 320):
-            right_lane.append([y,int(right_fitx)])
-            
-
-        if(right_fitx > 319):
-            right_lane.append([y,319])
-
-    return left_lane,right_lane
 
 class ImageSubscriber:
     def __init__(self):
@@ -102,8 +75,19 @@ class ImageSubscriber:
 
         return canvas, r, dw, dh, new_unpad_w, new_unpad_h  # (dw,dh)
     
-    def calculate_lineal_regression(self,dict_clusters,cvimage):
+    def calculate_lineal_regression(self,points_cluster):
 
+        valuesX = np.arange(170,320) 
+        coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],1)
+        values_fy = np.polyval(coefficients,valuesX).astype(int)
+        fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
+        line = np.array(fitLine_filtered)
+
+        return line
+
+
+        """
+        #--PARA TODOS LOS CLUSTERS
         dict_lines = {label: [] for label in set(dict_clusters.keys())}
         print(dict_lines)
         valuesX = np.arange(150,320) 
@@ -119,38 +103,16 @@ class ImageSubscriber:
 
             line = np.array(fitLine_filtered)
             dict_lines[id_cluster] = {"points_line" : line}
- 
-
-        """
-        
-
-        fitLineLeftY = np.polyval(left_fit, valuesLineX).astype(int)
-        fitLineRightY = np.polyval(right_fit, valuesLineX).astype(int)
-        
-        # Convertir los valores de fitLineY que sean mayores de 320 a 320
-        fitLineLeftY_capped = [y if y <= 319 else 319 for y in fitLineLeftY]
-
-        # Convertir los valores de fitLineY que sean mayores de 320 a 320
-        fitLineRightY_capped = [y if y <= 319 else 319 for y in fitLineRightY]
-
-        # Filtrar los valores de fitLineY_capped que sean mayores de 150 y menores de 320
-        fitLineLeftY_filtered = [(x, y) for x, y in zip(valuesLineX, fitLineLeftY_capped) if 0 <= y <= 319]
-
-        # Filtrar los valores de fitLineY_capped que sean mayores de 150 y menores de 320
-        fitLineRightY_filtered = [(x, y) for x, y in zip(valuesLineX, fitLineRightY_capped) if 0 <= y <= 319]
-
-        #print(len(fitLineLeftY_filtered))
-        #print( np.array(fitLineRightY_filtered))
-
+            return dict_lines
         """
 
-        return dict_lines
+
+       
         
     def clustering(self,img):
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        print(points_lane.shape)
-        dbscan = DBSCAN(eps=25, min_samples=1,metric="euclidean")
+        dbscan = DBSCAN(eps=30, min_samples=1,metric="euclidean")
         dbscan.fit(points_lane)
         n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
         print("Clusters: " + str(n_clusters_))
@@ -211,7 +173,6 @@ class ImageSubscriber:
 
         for i, points_clustering in enumerate(self.point_cluster):
             cvimage[points_clustering[:, 0], points_clustering[:, 1]] = self.colors[i % len(self.colors)]
-        #cvimage[img_clustering == 255] = [0, 0, 255]
 
         cvimage[img_left_lane_dilatada == 1] = [0,255,0]
         cvimage[img_right_lane_dilatada == 1] = [0,0,255]
@@ -264,39 +225,50 @@ class ImageSubscriber:
         cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
         masked_image = self.draw_region(cvimage)
 
-        #cvimage[images[1] == 1] = [0,0,255]
-       
-
         dict_clusters = self.clustering(mask)
-        #print(dict_clusters.get(0))
 
-        dict_lines = self.calculate_lineal_regression(dict_clusters,cvimage)
+        margin_right_points = []
+        margin_left_points = []
+        pepe = []
 
-        for i, cluster in enumerate(dict_clusters.values()):
-            color = self.colors[i % len(self.colors)]
-            points_cluster = cluster["points_cluster"]
-            centroid = cluster["centroid"]
-            for point in points_cluster:
-                #print(point)
-                cvimage[point[0], point[1]] = color
-            cv2.circle(cvimage, tuple(centroid[::-1]), 3, (0, 0, 0), -1)  
+        for id_cluster,values in dict_clusters.items():
+            points_cluster = values['points_cluster']
+            centroid = values['centroid']
+            color = self.colors[id_cluster % len(self.colors)]
+            print(id_cluster,centroid[1])
+            if 60 <= centroid[1] < 160:
+                #print(points_cluster)
+                margin_left_points.append(points_cluster)
+                #print(points_cluster)
+                cv2.circle(cvimage, tuple(centroid[::-1]), 5, (0, 0, 0), -1) 
+                #print("Margen izquierda: " + str(id_cluster))
 
-        """
-        
-        left_lane_points,right_lane_points= self.get_lane_line_indices(img_clustering)
+            elif centroid[1] > 160:
+                 margin_right_points.append(points_cluster)
+                 pepe = np.stack(points_cluster)
+                 cv2.circle(cvimage, tuple(centroid[::-1]), 5, (0, 0, 0), -1) 
+                 #print(margin_right_points)
+                 #print("Margen derecho: " + str(id_cluster))
+            cvimage[points_cluster[:,0], points_cluster[:,1]] = color
 
-        img_left_lane_dilatada,img_right_lane_dilatada = self.dilate_lines(left_lane_points,right_lane_points)
 
-        mask_ = np.zeros((320, 320), dtype=np.uint8)
-        mask_ = img_left_lane_dilatada + img_right_lane_dilatada
+       
+        #print(pepe)
+    
+        points_line_right = self.calculate_lineal_regression(np.concatenate(margin_right_points,axis=0))
+        points_line_left = self.calculate_lineal_regression(np.concatenate(margin_left_points,axis=0))
 
-        cx,cy = self.calculate_mass_centre_lane(mask_)
-        self.msg.cx = cx
-        self.msg.cy = cy
-        self.mass_centre_pub.publish(self.msg)
+        img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
+        cvimage[img_line_left == 1] = [255,255,255]
+        cvimage[img_line_right == 1] = [255,255,255]
 
-        cvimage = self.results(cvimage,img_clustering,points_lanes,img_left_lane_dilatada,img_right_lane_dilatada,cx,cy)
-        """
+        points_road = np.column_stack(np.where(images[0] > 0))
+        #pepe = [(x, y) for x, y in zip(points_road[:,1], points_road[:,0]) if 60 <= x <= 319]
+        #pepe2 = np.array(pepe)
+
+
+        #cvimage[pepe2[:,1],pepe2[:,0]] = [255,255,0]
+
 
         t2 = time.time()
 
