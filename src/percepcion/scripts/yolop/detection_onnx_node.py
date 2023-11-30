@@ -12,6 +12,7 @@ from numba import jit
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
 from yolop.msg import MassCentre
+from scipy.interpolate import interp1d
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -112,20 +113,24 @@ class ImageSubscriber:
     def clustering(self,img):
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=30, min_samples=1,metric="euclidean")
-        dbscan.fit(points_lane)
-        n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
-        print("Clusters: " + str(n_clusters_))
-        dict_clusters = {label: [] for label in set(dbscan.labels_)}
-        
-        for cluster in range(len(set(dbscan.labels_))):
-            points_cluster = points_lane[dbscan.labels_==cluster,:]
+        dbscan = DBSCAN(eps=25, min_samples=1,metric="euclidean")
+
+        if points_lane.size > 0:
+            dbscan.fit(points_lane)
+            n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
+            print("Clusters: " + str(n_clusters_))
+            dict_clusters = {label: [] for label in set(dbscan.labels_)}
             
-            centroid_cluster = points_cluster.mean(axis=0).astype(int)
-            dict_clusters[cluster] = {"points_cluster": points_cluster, "centroid": centroid_cluster}
+            for cluster in range(len(set(dbscan.labels_))):
+                points_cluster = points_lane[dbscan.labels_==cluster,:]
+                centroid_cluster = points_cluster.mean(axis=0).astype(int)
+                dict_clusters[cluster] = {"points_cluster": points_cluster, "centroid": centroid_cluster}
 
 
-        return dict_clusters
+            return dict_clusters
+        
+        else:
+            return None
     
     def draw_region(self,img):
 
@@ -166,20 +171,21 @@ class ImageSubscriber:
 
         return img_left_lane_dilatada,img_right_lane_dilatada
     
+    def interpolate_lines(self,img_det,points_line_left,points_line_right):
 
-    def results(self,cvimage,img_clustering,points_clustering,img_left_lane_dilatada,img_right_lane_dilatada,cx,cy):
-        cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
+        points_road = np.column_stack(np.where(img_det[0] > 0))
 
+        if(points_road.size > 0):
+            f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],fill_value="extrapolate")
+            f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],fill_value="extrapolate") 
+            y_values_f1 = f1(points_road[:, 0])
+            y_values_f2 = f2(points_road[:, 0])
+            indices = np.where((y_values_f1 <= points_road[:, 1]) & (points_road[:, 1] <= y_values_f2))
+            
+            
+            points_beetween_lines = points_road[indices]
 
-        for i, points_clustering in enumerate(self.point_cluster):
-            cvimage[points_clustering[:, 0], points_clustering[:, 1]] = self.colors[i % len(self.colors)]
-
-        cvimage[img_left_lane_dilatada == 1] = [0,255,0]
-        cvimage[img_right_lane_dilatada == 1] = [0,0,255]
-
-        cv2.circle(cvimage,(cx,cy),10,(255,255,255),-1)
-
-        return cvimage
+            return points_beetween_lines
 
     def infer_yolop(self,cvimage):
         
@@ -207,7 +213,6 @@ class ImageSubscriber:
 
         images = []
 
-        
         for image in (da_seg_out,ll_seg_out):
 
             #--Convert tensor to a numpy and then it realise transpose : (H, W, C) 
@@ -223,52 +228,64 @@ class ImageSubscriber:
         mask = self.draw_region(images[1])
 
         cvimage = cv2.resize(cvimage,(320,320),cv2.INTER_LINEAR)
+        cv2.line(cvimage,(160,0),(160,320),(0,0,0))
         masked_image = self.draw_region(cvimage)
+
+        #print(images)
 
         dict_clusters = self.clustering(mask)
 
         margin_right_points = []
         margin_left_points = []
-        pepe = []
 
         for id_cluster,values in dict_clusters.items():
             points_cluster = values['points_cluster']
             centroid = values['centroid']
             color = self.colors[id_cluster % len(self.colors)]
-            print(id_cluster,centroid[1])
-            if 60 <= centroid[1] < 160:
-                #print(points_cluster)
-                margin_left_points.append(points_cluster)
-                #print(points_cluster)
-                cv2.circle(cvimage, tuple(centroid[::-1]), 5, (0, 0, 0), -1) 
-                #print("Margen izquierda: " + str(id_cluster))
-
-            elif centroid[1] > 160:
-                 margin_right_points.append(points_cluster)
-                 pepe = np.stack(points_cluster)
-                 cv2.circle(cvimage, tuple(centroid[::-1]), 5, (0, 0, 0), -1) 
-                 #print(margin_right_points)
-                 #print("Margen derecho: " + str(id_cluster))
-            cvimage[points_cluster[:,0], points_cluster[:,1]] = color
-
+            if(points_cluster.size > 0):
+                print(id_cluster,centroid[1])
+                if (centroid[1] >= 70 and centroid[1] <= 160):
+                  
+                    margin_left_points.append(points_cluster)
+                    cvimage[points_cluster[:,0], points_cluster[:,1]] = color
+                    
+                  
+                elif (centroid[1] > 160):
+                    margin_right_points.append(points_cluster)
+                
+                    cvimage[points_cluster[:,0], points_cluster[:,1]] = color
 
        
-        #print(pepe)
-    
-        points_line_right = self.calculate_lineal_regression(np.concatenate(margin_right_points,axis=0))
-        points_line_left = self.calculate_lineal_regression(np.concatenate(margin_left_points,axis=0))
+        if margin_right_points and margin_left_points:
+            points_line_right =  self.calculate_lineal_regression(np.concatenate(margin_right_points,axis=0))
+            points_line_left = self.calculate_lineal_regression(np.concatenate(margin_left_points,axis=0))
 
-        img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
-        cvimage[img_line_left == 1] = [255,255,255]
-        cvimage[img_line_right == 1] = [255,255,255]
-
-        points_road = np.column_stack(np.where(images[0] > 0))
-        #pepe = [(x, y) for x, y in zip(points_road[:,1], points_road[:,0]) if 60 <= x <= 319]
-        #pepe2 = np.array(pepe)
+        
+            img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
 
 
-        #cvimage[pepe2[:,1],pepe2[:,0]] = [255,255,0]
+            cvimage[img_line_left == 1] = [255,255,255]
+            cvimage[img_line_right == 1] = [255,255,255]
 
+            points_road = np.column_stack(np.where(images[0] > 0))
+
+            f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],fill_value="extrapolate")
+            f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],fill_value="extrapolate") 
+
+            y_values_f1 = f1(points_road[:, 0])
+            y_values_f2 = f2(points_road[:, 0])
+
+            indices = np.where((y_values_f1 <= points_road[:, 1]) & (points_road[:, 1] <= y_values_f2))
+            
+           
+            points_beetween_lines = points_road[indices]
+            #centro_de_masas = np.mean(points_beetween_lines, axis=0).astype(int)
+            
+            
+            cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
+            #cv2.circle(cvimage, (centro_de_masas[1],centro_de_masas[0]), radius=10, color=(0, 0, 0),thickness=-1)
+        
+       
 
         t2 = time.time()
 
