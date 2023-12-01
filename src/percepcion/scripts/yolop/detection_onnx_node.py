@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 import torch
 import rospy
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image,PointCloud2
+import sensor_msgs.point_cloud2
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
@@ -16,6 +17,11 @@ from scipy.interpolate import interp1d
 from geometry_msgs.msg import PoseStamped, Twist
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest, CommandTOL, CommandTOLRequest
+from nav_msgs.msg import Odometry
+import warnings
+from numpy import RankWarning
+
+
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -32,6 +38,8 @@ WIDTH = 320
 STATE_SUB = "mavros/state"
 MODE_SUB = "/commands/mode"
 LOCAL_VEL_PUB = "/mavros/setpoint_velocity/cmd_vel_unstamped"
+LIDAR = "/airsim_node/PX4/lidar/LidarCustom"
+
 MASS_CENTRE = "/yolop/detection_lane/mass_centre_lane"
 
 #--Services
@@ -40,6 +48,14 @@ SET_MODE_CLIENT = "/mavros/set_mode"
 TAKE_OFF_CLIENT = "/mavros/cmd/takeoff"
 
 OFFBOARD = "OFFBOARD"
+
+left_fit_global = np.ndarray([])
+right_fit_global = np.ndarray([])
+
+cx_global = 0.0
+cy_global = 0.0
+
+
 
 
 class ImageSubscriber:
@@ -51,10 +67,10 @@ class ImageSubscriber:
         self.list = []
         self.bottom_left_base = [0,320]
         self.bottom_right_base = [320,320]
-        self.bottom_left  = [0, 230]
-        self.bottom_right = [320,230]
-        self.top_left     = [155,150]
-        self.top_right    = [165, 150]
+        self.bottom_left  = [0, 210]
+        self.bottom_right = [320,210]
+        self.top_left     = [80,175]
+        self.top_right    = [200, 175]
         self.vertices = np.array([[self.bottom_left_base,self.bottom_left, self.top_left, self.top_right, self.bottom_right,self.bottom_right_base]], dtype=np.int32)
         self.point_cluster = np.ndarray
         self.kernel = np.array([[0,1,0], 
@@ -69,6 +85,7 @@ class ImageSubscriber:
 
         self.cx = 0
         self.cy = 0
+
 
  
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
@@ -145,7 +162,7 @@ class ImageSubscriber:
         if points_lane.size > 0:
             dbscan.fit(points_lane)
             n_clusters_ = len(set(dbscan.labels_)) - (1 if -1 in dbscan.labels_ else 0)
-            print("Clusters: " + str(n_clusters_))
+            #print("Clusters: " + str(n_clusters_))
             self.point_cluster = []
 
             result = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
@@ -160,7 +177,10 @@ class ImageSubscriber:
 
             result[all_points[:,0], all_points[:,1]] = 255
 
-            return result,all_points
+            return result
+        
+        else:
+            return None
         
     
     def draw_region(self,img):
@@ -175,6 +195,8 @@ class ImageSubscriber:
     
     def calculate_mass_centre_lane(self,points_lane):
 
+        global cx_global,cy_global
+
         img = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
         img[points_lane[:,0],points_lane[:,1]] = 255
 
@@ -184,8 +206,17 @@ class ImageSubscriber:
         momentos = cv2.moments(img)
 
         # Calcular el centro de masa
-        cx = int(momentos['m10'] / momentos['m00'])
-        cy = int(momentos['m01'] / momentos['m00'])
+        try:
+            cx = int(momentos['m10'] / momentos['m00'])
+            cy = int(momentos['m01'] / momentos['m00'])
+
+            cx_global = cx
+            cy_global = cy
+
+        except BaseException as e:
+            cx = cx_global
+            cy = cy_global
+
 
         return cx,cy
     
@@ -293,6 +324,7 @@ class ImageSubscriber:
 
         
     def calculate_margins_points(self,img,cvimage,img_da_seg):
+        global left_fit_global,right_fit_global
           # Encuentra las coordenadas x e y de todos los distintos de cero
         # (es decir, blancos) píxeles en el marco.
         nonzero = img.nonzero()
@@ -328,10 +360,23 @@ class ImageSubscriber:
         rightx = nonzerox[right_lane_inds] 
         righty = nonzeroy[right_lane_inds]
 
-        valuesLineX = np.arange(150,320)
+        valuesLineX = np.arange(170,320)
         
-        left_fit = np.polyfit(lefty,leftx, 1)
-        right_fit = np.polyfit(righty,rightx,1) 
+        #print("Left: " + str(leftx.size) + " , " + str(lefty.size))
+        #print("Right: " + str(rightx.size) + " , " + str(righty.size))
+
+        try:
+            left_fit = np.polyfit(lefty,leftx, 1)
+            right_fit = np.polyfit(righty,rightx,1) 
+            left_fit_global = left_fit
+            right_fit_global = right_fit
+
+        except BaseException as e:
+           print("Entre")
+           left_fit =  left_fit_global
+           right_fit = right_fit_global
+    
+        #print(left_fit,right_fit)
 
         fitLineLeftY = np.polyval(left_fit, valuesLineX).astype(int)
         fitLineRightY = np.polyval(right_fit, valuesLineX).astype(int)
@@ -360,6 +405,8 @@ class ImageSubscriber:
         self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines)
 
         cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+       
+
 
         return cvimage
     
@@ -369,13 +416,40 @@ class ImageSubscriber:
     
     def callback(self, data):
 
-        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
+        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        cv2.GaussianBlur(cv_image,(3,3),0) 
+
+        """
+        hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+        hsv = np.array(hsv, dtype = np.float64)
+        hsv[:,:,1] = hsv[:,:,1]*1.25 # scale pixel values up for channel 1
+        hsv[:,:,1][hsv[:,:,1]>255]  = 255
+        hsv[:,:,2] = hsv[:,:,2]*1.35 # scale pixel values up for channel 2
+        hsv[:,:,2][hsv[:,:,2]>255]  = 255
+        hsv = np.array(hsv, dtype = np.uint8)
+        img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        """
+
+
      
         images_yolop = self.infer_yolop(cv_image)
+        #images_yolop2 = self.infer_yolop(cv_image)
+        mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
-        img_clustering,points_lanes = self.clustering(mask)
-        out_img = self.calculate_margins_points(img_clustering,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
+
         
+        img_clustering= self.clustering(mask)
+
+        if img_clustering is None:
+            return 
+
+
+        cv_image = cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR)
+        #img[images_yolop[1] == 1] = [0,0,255]
+        cvimage = cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR)
+        #cvimage[images_yolop2[1] == 1] = [0,0,255]
+        out_img = self.calculate_margins_points(img_clustering,cv_image,images_yolop[0])
+                   
         self.counter_time =  self.counter_time + (time.time() - self.t1)
 
         if(not self.isfirst):
@@ -388,8 +462,8 @@ class ImageSubscriber:
             self.counter_time = 0.0
 
 
-        cv2.line(out_img,(50,0),(50,320),(0,0,0),3)
-        cv2.line(out_img,(60,0),(60,320),(0,0,0),3)
+        #cv2.line(out_img,(50,0),(50,320),(0,0,0),3)
+        #cv2.line(out_img,(60,0),(60,320),(0,0,0),3)
         cv2.putText(
                 out_img, 
                 text = "FPS: " + str(int(self.fps)),
@@ -404,7 +478,8 @@ class ImageSubscriber:
 
 
         cv2.imshow('Image',out_img)
-
+        cv2.imshow('Sin Brillo',cvimage)
+        cv2.imshow('Mask',mask_cvimage)
     
         # Press `q` to exit.
         cv2.waitKey(3)
@@ -413,26 +488,46 @@ class ImageSubscriber:
 class LaneFollow():
     def __init__(self):
         self.current_state = State()
+        self.distance_z = 0.0
+        self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb) 
         self.local_raw_pub = rospy.Publisher(LOCAL_VEL_PUB, Twist, queue_size=10)
         rospy.wait_for_service(SET_MODE_CLIENT)
         self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
+        self.prev_error_height = 0
         self.prev_error = 0
         self.error = 0
-        self.KP_w = 0.02
+        self.error_height = 0
+        self.KP_w = 0.03
+        self.KD_w = 0.005
+        self.KP_v = 0.005
+        self.KD_v = 0.07
     
-
         self.velocity = Twist()
+
+
+    def lidar_cb(self,cloud_msg):
+        #self.msg_lidar = msg
+        #print(ros_numpy.point_cloud2.get_xyz_points(msg))
+        for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True):
+            self.distance_z = point[0] 
 
     def state_cb(self, msg):
         self.current_state = msg
 
+    
+    def height_velocity_controller(self):
+        error = round((2.5 - self.distance_z),2)
+        derr = error - self.prev_error_height
+
+        self.velocity.linear.z = (self.KP_v * error) + (self.KD_v * derr)
+        print("Error: " + str(error))
     def velocity_controller(self,cx):
         self.error = WIDTH/2 - cx
+        derr = self.error - self.prev_error
+        #print(self.error)
 
-        print(self.error)
-
-        self.velocity.angular.z = (self.KP_w * self.error)
+        self.velocity.angular.z = (self.KP_w * self.error) + (self.KD_w * derr)
 
         
 if __name__ == '__main__':
@@ -445,24 +540,23 @@ if __name__ == '__main__':
 
     rate = rospy.Rate(20)
 
-    lane_follow.velocity.linear.x = 1.0
-
+    lane_follow.velocity.linear.x = 1.5
+   
 
     last_req = rospy.Time.now()
 
     while (not rospy.is_shutdown()):
         
-    
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
 
+        print(lane_follow.distance_z)
         lane_follow.velocity_controller(image_viewer.cx)
+        lane_follow.height_velocity_controller()
+        lane_follow.prev_error_height = lane_follow.error_height
+        lane_follow.prev_error = lane_follow.error_height
         lane_follow.local_raw_pub.publish(lane_follow.velocity)
-        
-
-        
-        
 
         rate.sleep()
 
