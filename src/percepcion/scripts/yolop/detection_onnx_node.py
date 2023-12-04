@@ -18,12 +18,13 @@ from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest, CommandTOL, CommandTOLRequest
 import sensor_msgs.point_cloud2
 from sklearn.linear_model import LinearRegression
+import warnings
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
 ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
 
-MIN_VALUE_X = 170
+MIN_VALUE_X = 190
 MAX_VALUE_X = 320
 
 HEIGH = 320
@@ -44,6 +45,9 @@ TAKE_OFF_CLIENT = "/mavros/cmd/takeoff"
 OFFBOARD = "OFFBOARD"
 
 coefficients_global = np.array([])
+
+cx_global = 0.0
+cy_global = 0.0
 
 
 class ImageSubscriber:
@@ -126,9 +130,14 @@ class ImageSubscriber:
         valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
 
         try:
-            coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],1)
-            coefficients_global = coefficients
-
+            with warnings.catch_warnings():
+                warnings.filterwarnings('error')
+                try:
+                    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],1)
+                    coefficients_global = coefficients
+                except np.RankWarning:
+                    print("Polyfit may be poorly conditioned")
+                    coefficients = coefficients_global
         except:
             print("He fallado")
             coefficients = coefficients_global
@@ -139,37 +148,6 @@ class ImageSubscriber:
 
         return line
     
-
-    def filtrar_puntos_interp(self,img, reg_izquierda, reg_derecha, x_range):
-        """
-        Esta función devuelve los puntos que están entre las dos líneas de regresión usando interp1d.
-
-        Args:
-            puntos (np.array): Array de puntos a comprobar.
-            reg_izquierda (LinearRegression): Regresión lineal del lado izquierdo.
-            reg_derecha (LinearRegression): Regresión lineal del lado derecho.
-            x_range (np.array): Rango de valores x para la interpolación.
-
-        Returns:
-            np.array: Array de puntos que están entre las dos líneas.
-        """
-
-        puntos = np.column_stack(np.where(img > 0))
-        # Crear funciones de interpolación para las líneas de regresión
-        f_izq = interp1d(x_range, reg_izquierda.predict(x_range.reshape(-1, 1)), fill_value="extrapolate")
-        f_der = interp1d(x_range, reg_derecha.predict(x_range.reshape(-1, 1)), fill_value="extrapolate")
-
-   
-
-        y_values_f1 = f_izq(puntos[:, 0])
-        y_values_f2 = f_der(puntos[:, 0])
-        indices = np.where((y_values_f1 <= puntos[:, 1]) & (puntos[:, 1] <= y_values_f2))
-            
-            
-        points_between_lines = puntos[indices]
-
-        return points_between_lines
-
     def clustering(self,img):
 
         """
@@ -183,9 +161,9 @@ class ImageSubscriber:
         """
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=20, min_samples=5,metric="euclidean")
-        clusters_izquierda = []
-        clusters_derecha = []
+        dbscan = DBSCAN(eps=20, min_samples=1,metric="euclidean")
+        left_clusters = []
+        right_clusters = []
 
         if points_lane.size > 0:
             dbscan.fit(points_lane)
@@ -195,22 +173,25 @@ class ImageSubscriber:
             clusters = set(labels)
             if -1 in clusters:
                 clusters.remove(-1)
-            n_clusters_ = len(clusters)
-            print("Clusters: " + str(n_clusters_))
+            #n_clusters_ = len(clusters)
+            #print("Clusters: " + str(n_clusters_))
           
+
             for cluster in clusters:
                 points_cluster = points_lane[labels==cluster,:]
                 
                 centroid = points_cluster.mean(axis=0)
                 if centroid[1] < img.shape[1] / 2:
-                    #print(f"El cluster {cluster} está a la izquierda.")
-                    clusters_izquierda.append(points_cluster)
+                    dist = 160 - centroid[1]
+                    
+                    
+                    left_clusters.append(points_cluster)
                 else:
                   
-                    clusters_derecha.append(points_cluster)
+                    right_clusters.append(points_cluster)
 
 
-            return clusters_izquierda,clusters_derecha
+            return left_clusters,right_clusters
         
         else:
             return None,None
@@ -229,7 +210,8 @@ class ImageSubscriber:
     
     def calculate_mass_centre_lane(self,points_lane):
 
-        if(points_lane.size > 0):
+        global cx_global,cy_global
+        if(points_lane.size > 50):
             img = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
             img[points_lane[:,0],points_lane[:,1]] = 255
 
@@ -242,10 +224,15 @@ class ImageSubscriber:
             cx = int(momentos['m10'] / momentos['m00'])
             cy = int(momentos['m01'] / momentos['m00'])
 
+            cx_global = cx
+            cy_global = cy
+
             return cx,cy
         
         else:
-            return 160,160
+            print("No tengo puntos para calcular")
+            print(cx_global)
+            return cx_global,cy_global
     
     def dilate_lines(self,left_line_points,right_line_points):
 
@@ -406,7 +393,7 @@ class ImageSubscriber:
             self.isfirst = True
 
         #--Update each 1 seconds
-        if(self.counter_time > 0.25):
+        if(self.counter_time > 0.8):
             self.fps = self.calculate_fps()
             self.counter_time = 0.0
 
@@ -446,11 +433,15 @@ class LaneFollow():
         self.prev_error = 0
         self.error = 0
         self.error_height = 0
-        self.KP_w = 0.03
+        self.KP_w = 0.02
         self.KD_w = 0.007
         self.KP_v = 0.005
-        self.KD_v = 0.2
-    
+        self.KD_v = 0.7
+
+        self.max_linear_velocity = 1.8  # La velocidad máxima que quieres alcanzar
+        self.current_linear_velocity = 0.0  # La velocidad actual, que inicialmente es 0
+        self.acceleration = 0.01  # La tasa a la que quieres aumentar la velocidad
+
         self.velocity = Twist()
 
 
@@ -465,22 +456,31 @@ class LaneFollow():
 
     
     def height_velocity_controller(self):
-        error = round((2.88 - self.distance_z),2)
+        error = round((2.85 - self.distance_z),2)
         derr = error - self.prev_error_height
 
         self.velocity.linear.z = (self.KP_v * error) + (self.KD_v * derr)
-        print("Error: " + str(error))
+        print("Error altura: " + str(error))
     def velocity_controller(self,cx):
+      
         self.error = WIDTH/2 - cx
         derr = self.error - self.prev_error
-        print(self.error)
 
+    
         self.velocity.angular.z = (self.KP_w * self.error) + (self.KD_w * derr)
+        self.velocity.linear.y = (0.004 * self.error) + (0.008 * derr)
+
+    def update_velocity(self):
+        # Aumenta la velocidad actual a la tasa de aceleración, pero no más que la velocidad máxima
+        self.current_linear_velocity = min(self.current_linear_velocity + self.acceleration, self.max_linear_velocity)
+        self.velocity.linear.x = self.current_linear_velocity
 
         
 if __name__ == '__main__':
     rospy.init_node("det_node_py")
     image_viewer = ImageSubscriber()
+
+   
     lane_follow = LaneFollow()
 
     set_mode = SetModeRequest()
@@ -488,27 +488,25 @@ if __name__ == '__main__':
 
     rate = rospy.Rate(20)
 
-    lane_follow.velocity.linear.x = 1.5
-   
 
     last_req = rospy.Time.now()
 
     while (not rospy.is_shutdown()):
         
-       
-        print(lane_follow.distance_z)
-        
-        
+        #print(lane_follow.distance_z)
+
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
-
+        
         
         lane_follow.velocity_controller(image_viewer.cx)
         lane_follow.height_velocity_controller()
         lane_follow.prev_error_height = lane_follow.error_height
-        lane_follow.prev_error = lane_follow.error_height
+        lane_follow.prev_error = lane_follow.error
+        lane_follow.update_velocity()
         lane_follow.local_raw_pub.publish(lane_follow.velocity)
-        
 
+
+        
         rate.sleep()
