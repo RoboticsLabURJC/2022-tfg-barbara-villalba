@@ -24,7 +24,7 @@ IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
 ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
 
-MIN_VALUE_X = 190
+MIN_VALUE_X = 170
 MAX_VALUE_X = 320
 
 HEIGH = 320
@@ -49,6 +49,13 @@ coefficients_global = np.array([])
 cx_global = 0.0
 cy_global = 0.0
 
+frames_ = 0  
+
+def calculate_fps(t1,list_fps):
+        fps = 1/(time.time() - t1)
+        list_fps.append(fps)
+        return sum(list_fps)/len(list_fps)
+    
 
 class ImageSubscriber:
     def __init__(self):
@@ -180,12 +187,16 @@ class ImageSubscriber:
             for cluster in clusters:
                 points_cluster = points_lane[labels==cluster,:]
                 
-                centroid = points_cluster.mean(axis=0)
+                centroid = points_cluster.mean(axis=0).astype(int)
                 if centroid[1] < img.shape[1] / 2:
-                    dist = 160 - centroid[1]
                     
-                    
+                    distance = 160 - centroid[1]
+                    print(points_cluster.size)
+                    print("Izquierda: " + str(cluster) + ", " + str(centroid[1]) + ", distance: " + str(distance))
+                    #print("Izquierda: " + str(cluster) + ", " + str(centroid[1]) + ", distance: " + str(distance))
+                    #if distance <  and points_cluster.size > 20:
                     left_clusters.append(points_cluster)
+                    
                 else:
                   
                     right_clusters.append(points_cluster)
@@ -193,8 +204,7 @@ class ImageSubscriber:
 
             return left_clusters,right_clusters
         
-        else:
-            return None,None
+        
         
         
     
@@ -285,8 +295,8 @@ class ImageSubscriber:
 
         if(points_road.size > 0):
 
-            f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],fill_value="extrapolate")
-            f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],fill_value="extrapolate") 
+            f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],kind='slinear',fill_value="extrapolate")
+            f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],kind='slinear',fill_value="extrapolate") 
             y_values_f1 = f1(points_road[:, 0])
             y_values_f2 = f2(points_road[:, 0])
             indices = np.where((y_values_f1 <= points_road[:, 1]) & (points_road[:, 1] <= y_values_f2))
@@ -367,9 +377,7 @@ class ImageSubscriber:
             return cvimage
     
 
-    def calculate_fps(self):
-        fps = 1/(time.time() - self.t1)
-        return fps
+
     
     def callback(self, data):
 
@@ -382,6 +390,8 @@ class ImageSubscriber:
         if left_clusters and right_clusters is None:
             return
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
+        image_resize = cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR) 
+        image_resize[images_yolop[0] == 1] = [255,0,0]
 
 
         #out_img = self.calculate_margins_points(dict_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
@@ -389,20 +399,17 @@ class ImageSubscriber:
         self.counter_time =  self.counter_time + (time.time() - self.t1)
 
         if(not self.isfirst):
-            self.fps = self.calculate_fps()
+            self.fps = calculate_fps(self.t1,self.list)
             self.isfirst = True
 
-        #--Update each 1 seconds
+        #--Update each 0.8 seconds
         if(self.counter_time > 0.8):
-            self.fps = self.calculate_fps()
+            self.fps = calculate_fps(self.t1,self.list)
             self.counter_time = 0.0
 
-
-        #cv2.line(out_img,(50,0),(50,320),(0,0,0),3)
-        #cv2.line(out_img,(60,0),(60,320),(0,0,0),3)
         cv2.putText(
                 out_img, 
-                text = "FPS: " + str(int(self.fps)),
+                text = "FPS: " + str(int((self.fps + frames_)/2)),
                 org=(0, 15),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.5,
@@ -414,6 +421,7 @@ class ImageSubscriber:
 
 
         cv2.imshow('Image',out_img)
+        cv2.imshow('Seg-Image',image_resize)
 
     
         # Press `q` to exit.
@@ -427,8 +435,8 @@ class LaneFollow():
         self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb) 
         self.local_raw_pub = rospy.Publisher(LOCAL_VEL_PUB, Twist, queue_size=10)
-        rospy.wait_for_service(SET_MODE_CLIENT)
-        self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
+        #rospy.wait_for_service(SET_MODE_CLIENT)
+        #self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
         self.prev_error_height = 0
         self.prev_error = 0
         self.error = 0
@@ -437,10 +445,13 @@ class LaneFollow():
         self.KD_w = 0.007
         self.KP_v = 0.005
         self.KD_v = 0.7
+        self.maximum_altitude = 2.85
 
-        self.max_linear_velocity = 1.8  # La velocidad máxima que quieres alcanzar
-        self.current_linear_velocity = 0.0  # La velocidad actual, que inicialmente es 0
-        self.acceleration = 0.01  # La tasa a la que quieres aumentar la velocidad
+        self.max_linear_velocity = 1.8  # The maximum speed you want to reach
+        self.current_linear_velocity = 0.0  # The current speed, which is initially 0
+        self.acceleration = 0.01  # The rate at which you want to increase the speed
+
+        self.t1 = 0.0
 
         self.velocity = Twist()
 
@@ -466,17 +477,17 @@ class LaneFollow():
         self.error = WIDTH/2 - cx
         derr = self.error - self.prev_error
 
-    
         self.velocity.angular.z = (self.KP_w * self.error) + (self.KD_w * derr)
         self.velocity.linear.y = (0.004 * self.error) + (0.008 * derr)
 
     def update_velocity(self):
-        # Aumenta la velocidad actual a la tasa de aceleración, pero no más que la velocidad máxima
+        # Increases the current speed to the acceleration rate, but not more than the maximum speed.
         self.current_linear_velocity = min(self.current_linear_velocity + self.acceleration, self.max_linear_velocity)
         self.velocity.linear.x = self.current_linear_velocity
 
         
 if __name__ == '__main__':
+   
     rospy.init_node("det_node_py")
     image_viewer = ImageSubscriber()
 
@@ -491,21 +502,35 @@ if __name__ == '__main__':
 
     last_req = rospy.Time.now()
 
+    start_time = time.time()  
+    frames = 0
     while (not rospy.is_shutdown()):
         
-        #print(lane_follow.distance_z)
-
+       
+        frames += 1 
+       
+        """
+        
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
+    
         
-        
+        print(lane_follow.distance_z)
         lane_follow.velocity_controller(image_viewer.cx)
         lane_follow.height_velocity_controller()
         lane_follow.prev_error_height = lane_follow.error_height
         lane_follow.prev_error = lane_follow.error
         lane_follow.update_velocity()
         lane_follow.local_raw_pub.publish(lane_follow.velocity)
+        """
+
+     
+        if time.time() - start_time >= 1:
+            print(f"FPS: {frames}")
+            frames_ = frames
+            start_time = time.time()
+            frames = 0
 
 
         
