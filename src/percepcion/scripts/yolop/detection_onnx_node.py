@@ -20,6 +20,7 @@ import sensor_msgs.point_cloud2
 from sklearn.linear_model import LinearRegression
 import warnings
 import matplotlib.path as mplPath
+from scipy.optimize import curve_fit
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -31,7 +32,7 @@ MAX_VALUE_X = 320
 HEIGH = 320
 WIDTH = 320
 
-X_PER_PIXEL = 3 #--Width road 
+X_PER_PIXEL = 3.5 #--Width road 
 
 #--Topics
 STATE_SUB = "mavros/state"
@@ -101,6 +102,9 @@ class ImageSubscriber:
 
         self.mean_right_coeff = np.array([])
 
+        self.left_fit = None
+        self.right_fit = None
+
        
         self.right_polygon = np.array([(160,320),(160,180),(220,180),(320,250),(320,320)])
         self.right_polygon_path = mplPath.Path(self.right_polygon)
@@ -113,6 +117,9 @@ class ImageSubscriber:
 
         self.left_polygon_nv2 = np.array([(0,320),(0,250),(55,180),(160,180),(160,320)])
         self.left_polygon_path_nv2 = mplPath.Path(self.left_polygon_nv2)
+
+        self.counter_it_left = 0
+        self.counter_it_right = 0
 
  
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
@@ -180,9 +187,18 @@ class ImageSubscriber:
                     c = np.mean(self.list_left_coeff_c[-10:])
 
                     mean_coeff = np.array([a,b,c])
-
-
+                
                     coefficients_left_global = mean_coeff
+
+                    self.counter_it_left += 1
+
+                    if(self.counter_it_left  > 8):
+                      self.list_left_coeff_a.clear()
+                      self.list_left_coeff_b.clear()
+                      self.list_left_coeff_c.clear()  
+                      self.counter_it_left = 0
+
+                    self.left_fit = coefficients
                 except np.RankWarning:
                     print("Polyfit may be poorly conditioned")
                     mean_coeff = coefficients_left_global
@@ -229,6 +245,14 @@ class ImageSubscriber:
 
 
                     coefficients_right_global = mean_coeff
+
+                    self.counter_it_right += 1
+
+                    if(self.counter_it_right  > 8):
+                      self.list_right_coeff_a.clear()
+                      self.list_right_coeff_b.clear()
+                      self.list_right_coeff_c.clear()  
+                      self.counter_it_right = 0
                 except np.RankWarning:
                     print("Polyfit may be poorly conditioned")
                     mean_coeff = coefficients_right_global
@@ -337,30 +361,31 @@ class ImageSubscriber:
 
         return masked_image
     
+    
+    
     def calculate_mass_centre_lane(self,points_lane,img_det,cv_image):
 
         global cx_global
         #print(len(points_lane))
         if(points_lane.size > 50):
             
-            img = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
-            img[points_lane[:,0],points_lane[:,1]] = 255
+            # Supongamos que todos los puntos tienen la misma masa
+            m_i = 1
 
-            contornos, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cv2.drawContours(img, contornos, -1, 255, thickness=cv2.FILLED)
+            # Calcula la masa total
+            m_total = m_i * len(points_lane)
 
-            momentos = cv2.moments(img)
+            # Calcula la suma de las posiciones de los puntos ponderadas por su masa
+            r_i_sum = np.sum(points_lane * m_i, axis=0)
 
-            # Calcular el centro de masa
-            cx = int(momentos['m10'] / momentos['m00'])
-            cy = int(momentos['m01'] / momentos['m00'])
+            # Calcula la posición del centro de masas
+            r_CM = r_i_sum / m_total
 
-           
+            cx_global = int(r_CM[1])
+            cy_global = int(r_CM[0])
+            
 
-            cx_global = cx
-            cy_global = cy
-
-            return cx,cy
+            return int(r_CM[1]),int(r_CM[0])
             
              
         
@@ -471,7 +496,8 @@ class ImageSubscriber:
 
 
         return images
-
+    
+    
         
     def calculate_margins_points(self,left_clusters,right_clusters,cvimage,img_da_seg):
         
@@ -486,6 +512,8 @@ class ImageSubscriber:
                 points_line_right =  self.calculate_right_regression(right)
                 points_line_left = self.calculate_left_regression(left)
 
+
+
                 img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
 
                 cvimage[img_line_left == 1] = [255,255,255]
@@ -495,14 +523,21 @@ class ImageSubscriber:
 
                 cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
 
+                
+               
                 self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
 
                 #cv2.line(cvimage, (self.cx, 320), (self.cx, 250), (255, 255, 255), 1)
                 #cv2.line(cvimage, (160, 320), (160, 0), (255, 0, 255), 2)
 
-                cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+                #cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+                cv2.line(cvimage,(160,320),(self.cx,180),(255,0,255),3)
+                cv2.line(cvimage,(160,320),(160,180),(0,0,0),3)
+                #cv2.circle(cvimage, (160,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+
                 
-        
+
+
             return cvimage
     
 
@@ -530,6 +565,8 @@ class ImageSubscriber:
 
         cv2.line(img_cluster,(55,180),(0,230),(0,0,255),2)
         cv2.line(img_cluster,(270,180),(320,230),(0,0,255),2)
+
+
 
         """
        
@@ -582,8 +619,9 @@ class ImageSubscriber:
 
 
         cv2.imshow('Image',out_img)
-        #cv2.imshow('Seg-Image',image_resize)
+        cv2.imshow('Seg-Image',image_resize)
         cv2.imshow('Clusters',img_cluster)
+        
     
     
         # Press `q` to exit.
@@ -638,14 +676,13 @@ class LaneFollow():
         #print("Error altura: " + str(error))
     def velocity_controller(self,cx):
 
-        self.error = (WIDTH/2 - cx)*(3/WIDTH)
-        print(self.error)
+        self.error = (WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH)
+        #print(self.error)
 
        
        
-        self.velocity.angular.z = (0.8 * self.error) 
-        self.velocity.linear.y = 0.01 * self.error
-
+        self.velocity.angular.z = (3.5 * self.error) + (1.8 *(self.error - self.prev_error))
+        self.velocity.linear.y = 0.5 * self.error
         """
         
         if (abs(self.error) >= 3):
@@ -688,20 +725,24 @@ if __name__ == '__main__':
     frames = 0
 
     lane_follow.velocity.linear.x = 1.0
+    lane_follow.velocity.linear.y = 0.0
+    lane_follow.velocity.angular.z = 0.0
+
     while (not rospy.is_shutdown()):
         
        
         frames += 1 
      
-   
+       
+        
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
-    
+       
+        
         lane_follow.velocity_controller(image_viewer.cx)
         lane_follow.height_velocity_controller()
         
-
         lane_follow.local_raw_pub.publish(lane_follow.velocity)
      
         lane_follow.prev_error = lane_follow.error
