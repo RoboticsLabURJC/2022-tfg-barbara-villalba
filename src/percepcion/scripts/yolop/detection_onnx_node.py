@@ -20,7 +20,8 @@ import sensor_msgs.point_cloud2
 from sklearn.linear_model import LinearRegression
 import warnings
 import matplotlib.path as mplPath
-from scipy.optimize import curve_fit
+import signal
+import sys
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -32,7 +33,7 @@ MAX_VALUE_X = 320
 HEIGH = 320
 WIDTH = 320
 
-X_PER_PIXEL = 3.5 #--Width road 
+X_PER_PIXEL = 3.0 #--Width road 
 
 #--Topics
 STATE_SUB = "mavros/state"
@@ -56,10 +57,16 @@ cy_global = 0.0
 
 frames_ = 0  
 
+vy_lineal = 0
+vz_angular = 0
+vz_lineal = 0
+
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
         list_fps.append(fps)
         return sum(list_fps)/len(list_fps)
+
+
     
 
 class ImageSubscriber:
@@ -105,11 +112,10 @@ class ImageSubscriber:
         self.left_fit = None
         self.right_fit = None
 
-       
-        self.right_polygon = np.array([(160,320),(160,180),(220,180),(320,250),(320,320)])
+        self.right_polygon = np.array([(160,320),(160,180),(210,180),(320,250),(320,320)])
         self.right_polygon_path = mplPath.Path(self.right_polygon)
 
-        self.right_polygon_nv2 = np.array([(160,320),(160,180),(270,180),(320,250),(320,320)])
+        self.right_polygon_nv2 = np.array([(160,320),(160,180),(230,180),(320,250),(320,320)])
         self.right_polygon_path_nv2 = mplPath.Path(self.right_polygon_nv2)
 
         self.left_polygon = np.array([(0,320),(0,250),(85,180),(160,180),(160,320)])
@@ -192,7 +198,7 @@ class ImageSubscriber:
 
                     self.counter_it_left += 1
 
-                    if(self.counter_it_left  > 8):
+                    if(self.counter_it_left  > 5):
                       self.list_left_coeff_a.clear()
                       self.list_left_coeff_b.clear()
                       self.list_left_coeff_c.clear()  
@@ -248,7 +254,7 @@ class ImageSubscriber:
 
                     self.counter_it_right += 1
 
-                    if(self.counter_it_right  > 8):
+                    if(self.counter_it_right  > 5):
                       self.list_right_coeff_a.clear()
                       self.list_right_coeff_b.clear()
                       self.list_right_coeff_c.clear()  
@@ -280,7 +286,7 @@ class ImageSubscriber:
         """
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=15, min_samples=5,metric="euclidean")
+        dbscan = DBSCAN(eps=15, min_samples=1,metric="euclidean")
         left_clusters = []
         right_clusters = []
         
@@ -480,6 +486,7 @@ class ImageSubscriber:
             ['det_out', 'drive_area_seg', 'lane_line_seg'],
             input_feed={"images": img}
         )
+        #print(1/(time.time() - self.t1))
 
         images = []
 
@@ -530,8 +537,8 @@ class ImageSubscriber:
                 #cv2.line(cvimage, (self.cx, 320), (self.cx, 250), (255, 255, 255), 1)
                 #cv2.line(cvimage, (160, 320), (160, 0), (255, 0, 255), 2)
 
-                #cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
-                cv2.line(cvimage,(160,320),(self.cx,180),(255,0,255),3)
+                cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+                #cv2.line(cvimage,(160,320),(self.cx,180),(255,0,255),3)
                 cv2.line(cvimage,(160,320),(160,180),(0,0,0),3)
                 #cv2.circle(cvimage, (160,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
 
@@ -561,10 +568,11 @@ class ImageSubscriber:
 
       
         cv2.line(img_cluster,(85,180),(0,250),(0,255,255),2)
-        cv2.line(img_cluster,(220,180),(320,250),(0,255,255),2)
+        cv2.line(img_cluster,(210,180),(320,250),(0,255,255),2)
 
         cv2.line(img_cluster,(55,180),(0,230),(0,0,255),2)
-        cv2.line(img_cluster,(270,180),(320,230),(0,0,255),2)
+        cv2.line(img_cluster,(230,180),(320,230),(0,0,255),2)
+
 
 
 
@@ -615,6 +623,52 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
+        
+        cv2.putText(
+                out_img, 
+                text = "Vx_lineal: " + str(1.5),
+                org=(0, 45),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+        
+        cv2.putText(
+                out_img, 
+                text = "Vy_lineal: " + str(vy_lineal),
+                org=(120, 45),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+        
+        cv2.putText(
+                out_img, 
+                text = "Vz_lineal: " + str(vz_lineal),
+                org=(0, 65),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+
+        
+        
+        cv2.putText(
+                out_img, 
+                text = "Vz_angular: " + str(vz_lineal),
+                org=(0, 85),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
 
 
 
@@ -641,9 +695,8 @@ class LaneFollow():
         self.prev_error = 0
         self.error = 0
         self.derr = 0
+        self.integral_error = 0.0 
         self.error_height = 0
-        self.KP_w = 0.02
-        self.KD_w = 0.007
         self.KP_v = 0.005
         self.KD_v = 0.7
       
@@ -669,42 +722,49 @@ class LaneFollow():
 
     
     def height_velocity_controller(self):
+        global vz_lineal
         error = round((2.67 - self.distance_z),2)
         derr = error - self.prev_error_height
 
         self.velocity.linear.z = (self.KP_v * error) + (self.KD_v * derr)
+        vz_lineal = self.velocity.linear.z
         #print("Error altura: " + str(error))
     def velocity_controller(self,cx):
 
+        global vy_lineal,vz_angular
+
         self.error = (WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH)
-        #print(self.error)
+        self.integral_error += self.error 
+        print(self.error)
 
-       
-       
-        self.velocity.angular.z = (3.5 * self.error) + (1.8 *(self.error - self.prev_error))
-        self.velocity.linear.y = 0.5 * self.error
-        """
-        
-        if (abs(self.error) >= 3):
+        if(abs(self.error) <= 0.01):
+           self.integral_error = 0 
 
-            self.velocity.angular.z = (0.05 * self.error) + (0.009 * (self.error - self.prev_error))
-            self.velocity.linear.y = 0.001 * self.error 
-        else:
-            self.velocity.angular.z = (0.05 * self.error) + (0.009 * (self.error - self.prev_error))
-            self.velocity.linear.y = 0.003 * self.error
-        """
-       
-       
-        
-       
+        self.velocity.angular.z = (1.3 * self.error) + (0.5 *(self.error - self.prev_error)) + (0.01 *(self.integral_error))
+        self.velocity.linear.y = (0.9 * self.error) + (0.08 *(self.error - self.prev_error)) + (0.0009 *(self.integral_error))
 
-        
+        #self.velocity.angular.z = (1.7 * self.error) + (0.5 * (self.error - self.prev_error)) + (0.1 * (self.integral_error))
+        #self.velocity.angular.z = (3.0 * self.error)
+        #self.velocity.linear.y = (0.3 * self.error)
 
-        #self.velocity.angular.z = (self.KP_w * self.error) + (self.KD_w * self.derr)
-        #self.velocity.linear.y = (0.004 * self.error) + (0.008 * self.derr)
+        #self.velocity.angular.z = (3.5 * self.error) + (1.8 *(self.error - self.prev_error)) + (0.09 *(self.integral_error))
+        #self.velocity.angular.z = (2.0 * self.error) + (0.9 *(self.error - self.prev_error)) + (0.05 *(self.integral_error))
 
-  
-        
+        vy_lineal = self.velocity.linear.y
+        vz_angular = self.velocity.angular.z
+
+    def handler(self,signum, frame):
+        self.velocity.linear.x = 0.0
+        self.velocity.linear.y = 0.0
+        self.velocity.angular.z = 0.0
+        self.local_raw_pub.publish(self.velocity)
+        print('You pressed Ctrl+C!')
+
+        sys.exit(0)
+
+
+
+
 if __name__ == '__main__':
    
     rospy.init_node("det_node_py")
@@ -724,40 +784,42 @@ if __name__ == '__main__':
     start_time = time.time()  
     frames = 0
 
-    lane_follow.velocity.linear.x = 1.0
+    lane_follow.velocity.linear.x = 1.5
     lane_follow.velocity.linear.y = 0.0
     lane_follow.velocity.angular.z = 0.0
+
+    signal.signal(signal.SIGINT, lane_follow.handler)
+    
 
     while (not rospy.is_shutdown()):
         
        
+        
         frames += 1 
+        #print(lane_follow.distance_z)
      
        
         
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
-       
         
-        lane_follow.velocity_controller(image_viewer.cx)
-        lane_follow.height_velocity_controller()
+       
+        if (lane_follow.current_state.mode == OFFBOARD):
+            lane_follow.velocity_controller(image_viewer.cx)
+            lane_follow.height_velocity_controller()
         
         lane_follow.local_raw_pub.publish(lane_follow.velocity)
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
+       
+       
         
-        
-        
-
-
         if time.time() - start_time >= 1:
-            print(f"FPS: {frames}")
+          
             frames_ = frames
             start_time = time.time()
             frames = 0
-
-        
         
         rate.sleep()
