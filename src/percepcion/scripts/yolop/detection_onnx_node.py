@@ -27,7 +27,7 @@ IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
 ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
 
-MIN_VALUE_X = 165
+MIN_VALUE_X = 185
 MAX_VALUE_X = 320
 
 HEIGH = 320
@@ -127,6 +127,10 @@ class ImageSubscriber:
         self.counter_it_left = 0
         self.counter_it_right = 0
 
+        self.prev_distance = None
+        self.prev_density = None
+
+
  
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         """
@@ -182,17 +186,18 @@ class ImageSubscriber:
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
-                    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
+                    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],1)
+                    
 
                     self.list_left_coeff_a.append(coefficients[0])
                     self.list_left_coeff_b.append(coefficients[1])
-                    self.list_left_coeff_c.append(coefficients[2])
-
+                    #self.list_left_coeff_c.append(coefficients[2])
+#
                     a = np.mean(self.list_left_coeff_a[-10:])
                     b = np.mean(self.list_left_coeff_b[-10:])
-                    c = np.mean(self.list_left_coeff_c[-10:])
+                    #c = np.mean(self.list_left_coeff_c[-10:])
 
-                    mean_coeff = np.array([a,b,c])
+                    mean_coeff = np.array([a,b])
                 
                     coefficients_left_global = mean_coeff
 
@@ -201,13 +206,13 @@ class ImageSubscriber:
                     if(self.counter_it_left  > 5):
                       self.list_left_coeff_a.clear()
                       self.list_left_coeff_b.clear()
-                      self.list_left_coeff_c.clear()  
+                    
                       self.counter_it_left = 0
 
                     self.left_fit = coefficients
                 except np.RankWarning:
                     print("Polyfit may be poorly conditioned")
-                    mean_coeff = coefficients_left_global
+                    coefficients_left_global = mean_coeff
         except:
             print("He fallado")
             mean_coeff = coefficients_left_global
@@ -237,17 +242,17 @@ class ImageSubscriber:
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
-                    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
+                    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],1)
 
                     self.list_right_coeff_a.append(coefficients[0])
                     self.list_right_coeff_b.append(coefficients[1])
-                    self.list_right_coeff_c.append(coefficients[2])
-
+                    #self.list_right_coeff_c.append(coefficients[2])
+#
                     a = np.mean(self.list_right_coeff_a[-10:])
                     b = np.mean(self.list_right_coeff_b[-10:])
-                    c = np.mean(self.list_right_coeff_c[-10:])
-
-                    mean_coeff = np.array([a,b,c])
+                    #c = np.mean(self.list_right_coeff_c[-10:])
+#
+                    mean_coeff = np.array([a,b])
 
 
                     coefficients_right_global = mean_coeff
@@ -286,9 +291,17 @@ class ImageSubscriber:
         """
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=15, min_samples=1,metric="euclidean")
+        dbscan = DBSCAN(eps=10, min_samples=1,metric="euclidean")
         left_clusters = []
         right_clusters = []
+        #interest_point = np.array((180,160))
+        center = np.array([280, 160])
+
+        final_left_clusters = []
+        final_right_clusters = []
+        
+        
+       
         
 
         if points_lane.size > 0:
@@ -301,54 +314,62 @@ class ImageSubscriber:
                 clusters.remove(-1)
             #n_clusters_ = len(clusters)
             #print("Clusters: " + str(len(clusters)))
-          
+                
+            for cluster in clusters:
+                points_cluster = points_lane[labels==cluster,:]
+                centroid = points_cluster.mean(axis=0).astype(int)
+                
+                # Check if the centroid is within the desired lane
+                if centroid[1] < img.shape[1] / 2:  # left lane
+                    left_clusters.append((points_cluster, centroid))
+                else:  # right lane
+                    right_clusters.append((points_cluster, centroid))
 
+                
+            left_clusters.sort(key=lambda x: np.linalg.norm(x[1] - center))
+            right_clusters.sort(key=lambda x: np.linalg.norm(x[1] - center))
+
+            
+            # Keep only the closest cluster for each lane
+                # Keep only the closest N clusters for each lane
+            N = 5  # You can adjust this value
+            closest_left_clusters = left_clusters[:N]
+            closest_right_clusters = right_clusters[:N]
+
+            # Now, among the closest clusters, select the one with the highest density
+            if closest_left_clusters:
+                left_clusters = [max(closest_left_clusters, key=lambda x: len(x[0]))]
+            if closest_right_clusters:
+                right_clusters = [max(closest_right_clusters, key=lambda x: len(x[0]))]
+
+            
             for cluster in clusters:
                 points_cluster = points_lane[labels==cluster,:]
                 color = self.colors[cluster % len(self.colors)]
-                centroid = points_cluster.mean(axis=0).astype(int)
-               
-                point = (centroid[1],centroid[0])
+                cv_image[points_cluster[:,0],points_cluster[:,1]] = color
 
-                if (centroid[1] < img.shape[1] / 2) and (self.left_polygon_path.contains_point(point)):
-                    cv_image[points_cluster[:,0],points_cluster[:,1]] = color
-                    cv2.circle(cv_image, tuple(centroid[::-1]), 3, (0, 0, 0), -1) 
-                    left_clusters.append(points_cluster)
-                    
-                else:
-                    
-                    if (self.right_polygon_path.contains_point(point)):
-                        right_clusters.append(points_cluster)
-                        cv_image[points_cluster[:,0],points_cluster[:,1]] = color
-                        cv2.circle(cv_image, tuple(centroid[::-1]), 3, (0, 0, 0), -1) 
 
-            if( len(left_clusters) == 0):
-                for cluster in clusters:
-                    points_cluster = points_lane[labels==cluster,:]
-                    color = self.colors[cluster % len(self.colors)]
-                    centroid = points_cluster.mean(axis=0).astype(int)
-                
-                    point = (centroid[1],centroid[0])
-
-                    if (centroid[1] < img.shape[1] / 2) and (self.left_polygon_path_nv2.contains_point(point)):
-                        cv_image[points_cluster[:,0],points_cluster[:,1]] = color
-                        cv2.circle(cv_image, tuple(centroid[::-1]), 3, (0, 0, 0), -1) 
-                        left_clusters.append(points_cluster)
-
-            if(len(right_clusters) == 0):
-             for cluster in clusters:
-                points_cluster = points_lane[labels==cluster,:]
+            
+            # Color the clusters and their centroids
+            for points_cluster, centroid in left_clusters:
+                final_left_clusters.append(points_cluster)
+                print(len(points_cluster))
                 color = self.colors[cluster % len(self.colors)]
-                centroid = points_cluster.mean(axis=0).astype(int)
-               
-                point = (centroid[1],centroid[0])
-                if (centroid[1] > img.shape[1] / 2) and (self.right_polygon_path_nv2.contains_point(point)):
-                    right_clusters.append(points_cluster)
-                    cv_image[points_cluster[:,0],points_cluster[:,1]] = color
-                    cv2.circle(cv_image, tuple(centroid[::-1]), 3, (0, 0, 0), -1) 
+                #cv_image[points_cluster[:,0], points_cluster[:,1]] = color
+                cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
 
+            for points_cluster, centroid in right_clusters:
+                final_right_clusters.append(points_cluster)
                 
-            return left_clusters,right_clusters,cv_image
+                color = self.colors[cluster % len(self.colors)]
+                #cv_image[points_cluster[:,0], points_cluster[:,1]] = color
+                cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+          
+          
+
+          
+           
+            return final_left_clusters,final_right_clusters,cv_image
         
         else:
             return None,None
@@ -432,7 +453,7 @@ class ImageSubscriber:
 
         return img_left_line_dilatada,img_right_line_dilatada
     
-    def interpolate_lines(self,img_det,points_line_left,points_line_right):
+    def interpolate_lines(self,cvimage,points_line_left,points_line_right):
 
         """
        We calculate the interpolation of the lines in order to limit the lane area we want to show. 
@@ -448,20 +469,26 @@ class ImageSubscriber:
               
         """
 
-        points_road = np.column_stack(np.where(img_det > 0))
+        gray_image = cv2.cvtColor(cvimage, cv2.COLOR_BGR2GRAY) 
 
-        if(points_road.size > 0):
+        np_gray = np.array(gray_image)
 
-            f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],kind='slinear',fill_value="extrapolate")
-            f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],kind='slinear',fill_value="extrapolate") 
-            y_values_f1 = f1(points_road[:, 0])
-            y_values_f2 = f2(points_road[:, 0])
-            indices = np.where((y_values_f1 <= points_road[:, 1]) & (points_road[:, 1] <= y_values_f2))
-            
-            
-            points_between_lines = points_road[indices]
+        x, y = np.nonzero(np_gray)
 
-            return points_between_lines
+
+        img_points = np.column_stack((x, y))
+
+        f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],fill_value="extrapolate")
+        f2 = interp1d(points_line_right[:, 0], points_line_right[:, 1],fill_value="extrapolate") 
+        y_values_f1 = f1(img_points[:, 0])
+        y_values_f2 = f2(img_points[:, 0])
+        
+        indices = np.where((y_values_f1 < img_points[:, 1]) & (img_points[:, 1] < y_values_f2))
+        
+        points_between_lines = img_points[indices]
+        filtered_points_between_lines = points_between_lines[points_between_lines[:,0] > 180]
+
+        return filtered_points_between_lines
 
     def infer_yolop(self,cvimage):
 
@@ -526,7 +553,7 @@ class ImageSubscriber:
                 cvimage[img_line_left == 1] = [255,255,255]
                 cvimage[img_line_right == 1] = [255,255,255]
 
-                points_beetween_lines = self.interpolate_lines(img_da_seg,points_line_left,points_line_right)
+                points_beetween_lines = self.interpolate_lines(cvimage,points_line_left,points_line_right)
 
                 cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
 
@@ -534,14 +561,12 @@ class ImageSubscriber:
                
                 self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
 
-                #cv2.line(cvimage, (self.cx, 320), (self.cx, 250), (255, 255, 255), 1)
-                #cv2.line(cvimage, (160, 320), (160, 0), (255, 0, 255), 2)
+              
 
                 cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
-                #cv2.line(cvimage,(160,320),(self.cx,180),(255,0,255),3)
+               
                 cv2.line(cvimage,(160,320),(160,180),(0,0,0),3)
-                #cv2.circle(cvimage, (160,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
-
+               
                 
 
 
@@ -563,35 +588,17 @@ class ImageSubscriber:
             return
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
        
-        cv2.line(img_cluster,(0,180),(320,180),(255,0,255),1)
-        cv2.line(img_cluster,(160,180),(160,320),(255,0,255),1)
-
       
-        cv2.line(img_cluster,(85,180),(0,250),(0,255,255),2)
-        cv2.line(img_cluster,(210,180),(320,250),(0,255,255),2)
+        cv2.line(img_cluster,(160,320),(160,180),(255,0,255),3)
+        #cv2.line(img_cluster,(160,180),(160,320),(255,0,255),1)
+#
+      #
+        #cv2.line(img_cluster,(85,180),(0,250),(0,255,255),2)
+        #cv2.line(img_cluster,(210,180),(320,250),(0,255,255),2)
+#
+        #cv2.line(img_cluster,(55,180),(0,230),(0,0,255),2)
+        #cv2.line(img_cluster,(230,180),(320,230),(0,0,255),2)
 
-        cv2.line(img_cluster,(55,180),(0,230),(0,0,255),2)
-        cv2.line(img_cluster,(230,180),(320,230),(0,0,255),2)
-
-
-
-
-        """
-       
-        self.right_polygon = np.array([(160,320),(160,180),(240,180),(320,250),(320,320)])
-        self.right_polygon_path = mplPath.Path(self.right_polygon)
-
-        self.right_polygon_nv2 = np.array([(160,320),(160,180),(270,180),(320,250),(320,320)])
-        self.right_polygon_path_nv2 = mplPath.Path(self.right_polygon_nv2)
-
-        self.left_polygon = np.array([(0,320),(0,250),(85,180),(160,180),(160,320)])
-        self.left_polygon_path = mplPath.Path(self.left_polygon)
-
-        self.left_polygon_nv2 = np.array([(0,320),(0,250),(55,180),(160,180),(160,320)])
-        self.left_polygon_path_nv2 = mplPath.Path(self.left_polygon_nv2)
-        """
-        
-       
 
     
         image_resize = cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR) 
@@ -613,6 +620,8 @@ class ImageSubscriber:
             self.fps = calculate_fps(self.t1,self.list)
             self.counter_time = 0.0
 
+        """
+       
         cv2.putText(
                 out_img, 
                 text = "FPS: " + str(int((self.fps + frames_)/2)),
@@ -669,6 +678,7 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
+        """
 
 
 
@@ -740,15 +750,13 @@ class LaneFollow():
         if(abs(self.error) <= 0.01):
            self.integral_error = 0 
 
-        self.velocity.angular.z = (1.3 * self.error) + (0.5 *(self.error - self.prev_error)) + (0.01 *(self.integral_error))
+        #self.velocity.angular.z = (1.3 * self.error) + (0.5 *(self.error - self.prev_error)) + (0.03 *(self.integral_error))
+        #self.velocity.linear.y = (0.9 * self.error) + (0.08 *(self.error - self.prev_error)) + (0.0009 *(self.integral_error))
+           
+        self.velocity.angular.z = (1.3 * self.error) + (0.5 *(self.error - self.prev_error)) + (0.03 *(self.integral_error))
         self.velocity.linear.y = (0.9 * self.error) + (0.08 *(self.error - self.prev_error)) + (0.0009 *(self.integral_error))
 
-        #self.velocity.angular.z = (1.7 * self.error) + (0.5 * (self.error - self.prev_error)) + (0.1 * (self.integral_error))
-        #self.velocity.angular.z = (3.0 * self.error)
-        #self.velocity.linear.y = (0.3 * self.error)
-
-        #self.velocity.angular.z = (3.5 * self.error) + (1.8 *(self.error - self.prev_error)) + (0.09 *(self.integral_error))
-        #self.velocity.angular.z = (2.0 * self.error) + (0.9 *(self.error - self.prev_error)) + (0.05 *(self.integral_error))
+        
 
         vy_lineal = self.velocity.linear.y
         vz_angular = self.velocity.angular.z
@@ -788,7 +796,7 @@ if __name__ == '__main__':
     lane_follow.velocity.linear.y = 0.0
     lane_follow.velocity.angular.z = 0.0
 
-    signal.signal(signal.SIGINT, lane_follow.handler)
+    #signal.signal(signal.SIGINT, lane_follow.handler)
     
 
     while (not rospy.is_shutdown()):
@@ -796,11 +804,11 @@ if __name__ == '__main__':
        
         
         frames += 1 
-        #print(lane_follow.distance_z)
+        print(lane_follow.distance_z)
      
        
         """
-        
+     
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
@@ -815,7 +823,7 @@ if __name__ == '__main__':
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
         """
-       
+
        
         
         if time.time() - start_time >= 1:
