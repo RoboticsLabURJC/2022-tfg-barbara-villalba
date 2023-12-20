@@ -799,6 +799,7 @@ if __name__ == '__main__':
         #print(lane_follow.distance_z)
      
        
+        """
         
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
@@ -813,6 +814,7 @@ if __name__ == '__main__':
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
+        """
        
        
         
