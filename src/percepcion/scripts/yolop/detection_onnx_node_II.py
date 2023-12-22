@@ -765,7 +765,7 @@ if __name__ == '__main__':
     lane_follow.velocity.linear.y = 0.0
     lane_follow.velocity.angular.z = 0.0
 
-    signal.signal(signal.SIGINT, lane_follow.handler)
+    #signal.signal(signal.SIGINT, lane_follow.handler)
     
 
     while (not rospy.is_shutdown()):
@@ -773,8 +773,7 @@ if __name__ == '__main__':
         frames += 1 
         print(lane_follow.distance_z)
      
-        """
-       
+      
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
@@ -788,8 +787,7 @@ if __name__ == '__main__':
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
-        """
-
+       
         if time.time() - start_time >= 1:
           
             frames_ = frames

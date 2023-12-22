@@ -193,9 +193,9 @@ class ImageSubscriber:
                     self.list_left_coeff_b.append(coefficients[1])
                     self.list_left_coeff_c.append(coefficients[2])
 #
-                    a = np.mean(self.list_left_coeff_a[-20:])
-                    b = np.mean(self.list_left_coeff_b[-20:])
-                    c = np.mean(self.list_left_coeff_c[-20:])
+                    a = np.mean(self.list_left_coeff_a[-10:])
+                    b = np.mean(self.list_left_coeff_b[-10:])
+                    c = np.mean(self.list_left_coeff_c[-10:])
 
                     mean_coeff = np.array([a,b,c])
                 
@@ -203,7 +203,7 @@ class ImageSubscriber:
 
                     self.counter_it_left += 1
 
-                    if(self.counter_it_left  > 20):
+                    if(self.counter_it_left  > 8):
                       self.list_left_coeff_a.clear()
                       self.list_left_coeff_b.clear()
                       self.list_left_coeff_c.clear()
@@ -249,9 +249,9 @@ class ImageSubscriber:
                     self.list_right_coeff_b.append(coefficients[1])
                     self.list_right_coeff_c.append(coefficients[2])
 #
-                    a = np.mean(self.list_right_coeff_a[-20:])
-                    b = np.mean(self.list_right_coeff_b[-20:])
-                    c = np.mean(self.list_right_coeff_c[-20:])
+                    a = np.mean(self.list_right_coeff_a[-10:])
+                    b = np.mean(self.list_right_coeff_b[-10:])
+                    c = np.mean(self.list_right_coeff_c[-10:])
 #
                     mean_coeff = np.array([a,b,c])
 
@@ -260,7 +260,7 @@ class ImageSubscriber:
 
                     self.counter_it_right += 1
 
-                    if(self.counter_it_right  > 20):
+                    if(self.counter_it_right  > 8):
                       self.list_right_coeff_a.clear()
                       self.list_right_coeff_b.clear()
                       self.list_right_coeff_c.clear()  
@@ -733,10 +733,9 @@ class LaneFollow():
            self.integral_error = 0 
 
        
-        #self.velocity.angular.z = (1.0 * self.error) + (0.01 * (self.error - self.prev_error)) + (0.0001 *(self.integral_error))
-        #self.velocity.linear.y = (0.9 * self.error) + (0.01 *(self.error - self.prev_error))
-        self.velocity.angular.z = (1.1 * self.error)  + (0.001 *(self.error - self.prev_error)) + (0.0009 * (self.integral_error) )
-        self.velocity.linear.y =  (0.9 * self.error) + (0.006 *(self.error - self.prev_error))
+       
+        self.velocity.angular.z = (1.1 * self.error)  + (0.005 *(self.error - self.prev_error)) + (0.0001 *(self.integral_error))
+        self.velocity.linear.y =  (0.9 * self.error) + (0.001 *(self.error - self.prev_error)) + (0.00001 *(self.integral_error))
 
         
 
@@ -787,9 +786,8 @@ if __name__ == '__main__':
         
         frames += 1 
         print(lane_follow.distance_z)
-        
       
-       
+        
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
@@ -803,8 +801,7 @@ if __name__ == '__main__':
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
-      
-        
+       
         if time.time() - start_time >= 1:
           
             frames_ = frames
