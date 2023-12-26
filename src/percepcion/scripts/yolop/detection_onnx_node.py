@@ -181,11 +181,14 @@ class ImageSubscriber:
         """
 
         valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
+        punto = np.array([300, 0])
 
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
+                    points_cluster = np.vstack((points_cluster,punto*2))
+                  
                     coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
                     
 
@@ -203,7 +206,7 @@ class ImageSubscriber:
 
                     self.counter_it_left += 1
 
-                    if(self.counter_it_left  > 8):
+                    if(self.counter_it_left  > 5):
                       self.list_left_coeff_a.clear()
                       self.list_left_coeff_b.clear()
                       self.list_left_coeff_c.clear()
@@ -219,6 +222,7 @@ class ImageSubscriber:
             mean_coeff = coefficients_left_global
         
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
+       
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
@@ -238,11 +242,13 @@ class ImageSubscriber:
         """
 
         valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
+        punto = np.array([320,319])
 
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
+                    points_cluster = np.vstack((points_cluster,punto))
                     coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
 
                     self.list_right_coeff_a.append(coefficients[0])
@@ -260,7 +266,7 @@ class ImageSubscriber:
 
                     self.counter_it_right += 1
 
-                    if(self.counter_it_right  > 8):
+                    if(self.counter_it_right  > 5):
                       self.list_right_coeff_a.clear()
                       self.list_right_coeff_b.clear()
                       self.list_right_coeff_c.clear()  
@@ -280,6 +286,7 @@ class ImageSubscriber:
     
     def score_cluster(self,cluster, center):
         points_cluster, centroid = cluster
+      
         proximity = np.linalg.norm(centroid - center)
         density = len(points_cluster)
         return density / proximity
@@ -299,6 +306,8 @@ class ImageSubscriber:
 
         final_left_clusters = []
         final_right_clusters = []
+
+        img = cv_image.copy()
         
         
        
@@ -318,39 +327,53 @@ class ImageSubscriber:
             for cluster in clusters:
                 points_cluster = points_lane[labels==cluster,:]
                 centroid = points_cluster.mean(axis=0).astype(int)
-                
+                color = self.colors[cluster % len(self.colors)]
+                #img[points_cluster[:,0], points_cluster[:,1]] = color
+
                 # Check if the centroid is within the desired lane
-                if centroid[1] < img.shape[1] / 2:  # left lane
-                    left_clusters.append((points_cluster, centroid))
-                else:  # right lane
+                if centroid[1] < 160:  # left lane
+                    left_clusters.append(points_cluster)
+                elif centroid[1] > 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
+                    print(centroid)
+                    cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+                    img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
 
                
             # Now, among the closest clusters, select the one with the highest density
+           
+           
+            """
+            
             if left_clusters:
                 left_clusters = [max(left_clusters, key=lambda x: self.score_cluster(x, center))]
+            """
+            
+           
             if right_clusters:
                 right_clusters = [max(right_clusters, key=lambda x: self.score_cluster(x, center))]
 
-           
             
-            # Color the clusters and their centroids
-            for points_cluster, centroid in left_clusters:
-                final_left_clusters.append(points_cluster)
+            for points_cluster in left_clusters:
                
-                color = self.colors[cluster % len(self.colors)]
+
+                
+                
+                #color = self.colors[cluster % len(self.colors)]
                 cv_image[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
                 #cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
-
+            
             for points_cluster, centroid in right_clusters:
+               
                 final_right_clusters.append(points_cluster)
                 
-                color = self.colors[cluster % len(self.colors)]
+                #color = self.colors[cluster % len(self.colors)]
                 cv_image[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
-                #cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+                #
+            
            
-
-            return final_left_clusters,final_right_clusters,cv_image
+            
+            return left_clusters,final_right_clusters,cv_image,img
         
         else:
             return None,None
@@ -521,6 +544,8 @@ class ImageSubscriber:
                 left = np.concatenate(left_clusters,axis=0)
                 right = np.concatenate(right_clusters,axis=0)
 
+                
+
                 cvimage[left[:,0],left[:,1]] = [0,0,255]
                 cvimage[right[:,0],right[:,1]] = [0,255,0]
 
@@ -563,14 +588,14 @@ class ImageSubscriber:
         images_yolop = self.infer_yolop(cv_image)
         mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
-        left_clusters,right_clusters,img_cluster = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
+        left_clusters,right_clusters,img_cluster,img = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
 
         if left_clusters and right_clusters is None:
             return
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
        
       
-        cv2.line(img_cluster,(160,320),(160,280),(255,0,255),3)
+        cv2.line(img_cluster,(190,320),(190,0),(255,0,255),3)
         #cv2.line(img_cluster,(160,180),(160,320),(255,0,255),1)
 #
       #
@@ -613,7 +638,7 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
-        """
+        
         
         cv2.putText(
                 out_img, 
@@ -660,13 +685,15 @@ class ImageSubscriber:
                 thickness=2,
                 lineType=cv2.LINE_AA
             )
-        """
+        
 
 
 
         cv2.imshow('Image',out_img)
         cv2.imshow('Seg-Image',image_resize)
-        cv2.imshow('Clusters',img_cluster)
+        cv2.imshow('Clusters choised',img_cluster)
+        cv2.imshow('Clusters DBSCAN',img)
+
         
     
     
@@ -715,7 +742,7 @@ class LaneFollow():
     
     def height_velocity_controller(self):
         global vz_lineal
-        error = round((2.67 - self.distance_z),2)
+        error = round((2.80 - self.distance_z),2)
         derr = error - self.prev_error_height
 
         self.velocity.linear.z = (self.KP_v * error) + (self.KD_v * derr)
@@ -787,6 +814,8 @@ if __name__ == '__main__':
         frames += 1 
         print(lane_follow.distance_z)
       
+       
+        """
         
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
@@ -801,6 +830,9 @@ if __name__ == '__main__':
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
+        """
+        
+       
        
         if time.time() - start_time >= 1:
           
