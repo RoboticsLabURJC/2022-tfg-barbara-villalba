@@ -20,6 +20,7 @@ import sensor_msgs.point_cloud2
 import warnings
 import signal
 import sys
+import math
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -100,20 +101,36 @@ class QLearning:
         self.epsilon = 0.5
         self.alpha = 0.4 #--Between 0-1. 
         self.beta = 0.5 #--Between 0-1.
+        self.end_episode = False
 
         self.current_state = 0
 
 
     def algorithm(self):
 
+        for i in self.N_EPISODES:
+            current_state = position_drone
+            
+
         print("epsilon-greedy")
 
     def updateQTable(self):
         print("update table")
 
-    def reward_function(self,cx):
-        error_lane_center = (WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH)
+    def reward_function(self,cx,angle,speed):
+        error_lane_center = np.normalize((WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH))
 
+        #--Weight for each component 
+        w1 = 0.5
+        w2 = 0.5
+
+        if dron se ha salido del carril :
+            reward = -10
+
+        if dron si no detecta las lineas:
+            reward = -10
+
+        reward = (1/error_lane_center) * w1 + angle * w2
 
 class ImageSubscriber:
     def __init__(self):
@@ -258,18 +275,10 @@ class ImageSubscriber:
         
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
 
-        m_left = 2*a*160 + b
-        theta = np.arctan(m_left)
-
-        # Convierte el ángulo a grados
-        theta_deg = np.degrees(theta)
-
-        print("El ángulo del carril izquierdo con respecto a la horizontal es: ", theta_deg, "grados")
-       
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
-        return line,theta_deg
+        return line
     
 
     def calculate_right_regression(self,points_cluster):
@@ -322,17 +331,13 @@ class ImageSubscriber:
             mean_coeff = coefficients_right_global
         
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
-        m_right = 2*a*160 + b
-        theta = np.arctan(m_right)
 
-        # Convierte el ángulo a grados
-        theta_deg = np.degrees(theta)
-
-        print("El ángulo del carril derecho con respecto a la horizontal es: ", theta_deg, "grados")
+       
+        
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
-        return line,theta_deg
+        return line
     
     def score_cluster(self,cluster, center):
         points_cluster, centroid = cluster
@@ -462,9 +467,13 @@ class ImageSubscriber:
             # Calcula la posición del centro de masas
             r_CM = r_i_sum / m_total
 
+            cx = int(r_CM[1])
+            cy = int(r_CM[0])
+
             cx_global = int(r_CM[1])
             cy_global = int(r_CM[0])
-            
+
+        
 
             return int(r_CM[1]),int(r_CM[0])
             
@@ -474,7 +483,32 @@ class ImageSubscriber:
             print("No tengo puntos para calcular")
             #print(cx_global)
             return cx_global
+
+    def calculate_angle(self,A, B,img):
         
+        Ax, Ay = A
+        Bx, By = B
+
+        #--Point P: imagen vertical
+        Px, Py = [img // 2, 0]
+
+        # Vectores PA y PB
+        PAx, PAy = Ax - Px, Ay - Py
+        PBx, PBy = Bx - Px, By - Py
+
+        # Producto escalar y magnitudes
+        dot_product = PAx * PBx + PAy * PBy
+        magnitude_PA = math.sqrt(PAx**2 + PAy**2)
+        magnitude_PB = math.sqrt(PBx**2 + PBy**2)
+
+        # Ángulo en radianes
+        angle_in_radians = math.acos(dot_product / (magnitude_PA * magnitude_PB))
+
+        # Convertir a grados
+        angle_in_degrees = math.degrees(angle_in_radians)
+
+        return angle_in_degrees
+
     
     def dilate_lines(self,left_line_points,right_line_points):
 
@@ -599,15 +633,10 @@ class ImageSubscriber:
                 cvimage[left[:,0],left[:,1]] = [0,0,255]
                 cvimage[right[:,0],right[:,1]] = [0,255,0]
 
-                points_line_right,angle_right =  self.calculate_right_regression(right)
-                points_line_left,angle_left = self.calculate_left_regression(left)
+                points_line_right =  self.calculate_right_regression(right)
+                points_line_left = self.calculate_left_regression(left)
 
-                angle = (angle_left + angle_right) / 2
-
-                print("El ángulo del carril  con respecto a la horizontal es: ", angle, "grados")
-
-
-
+            
                 img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
 
                 cvimage[img_line_left == 1] = [255,255,255]
@@ -618,15 +647,15 @@ class ImageSubscriber:
                 cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
 
                 
-               
                 self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
-                print(self.cx)
+                print("Centroid x : " + str(self.cx))
+                print("Angle: " + str(self.calculate_angle([self.cx,self.cy],[cvimage // 2,self.cy]),cvimage))
 
-              
 
+                
                 cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
                
-                cv2.line(cvimage,(160,320),(160,180),(0,0,0),3)
+                cv2.line(cvimage,(160,320),(self.cx,self.cy),(0,0,0),3)
                
                 
 
@@ -672,7 +701,7 @@ class ImageSubscriber:
         if left_clusters and right_clusters is None:
             return
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
-        self.drawStates(out_img)
+        #self.drawStates(out_img)
        
       
         
@@ -686,6 +715,18 @@ class ImageSubscriber:
         if(self.counter_time > 0.8):
             self.fps = calculate_fps(self.t1,self.list)
             self.counter_time = 0.0
+
+
+        cv2.putText(
+                out_img, 
+                text = "FPS: " + str(int((self.fps))),
+                org=(0, 15),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5,
+                color=(255, 255, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
 
 
 
@@ -704,7 +745,7 @@ class ImageSubscriber:
 if __name__ == '__main__':
     rospy.init_node("RL_node_py")
     image_viewer = ImageSubscriber()
-    #qlearning = QLearning()
+    qlearning = QLearning()
 
     try:
         rospy.spin()
