@@ -14,13 +14,14 @@ from scipy.ndimage import binary_dilation
 from yolop.msg import MassCentre
 from scipy.interpolate import interp1d
 from geometry_msgs.msg import PoseStamped, Twist
-from mavros_msgs.msg import State
-from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest, CommandTOL, CommandTOLRequest
+from mavros_msgs.msg import State,ExtendedState
+from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest, CommandTOL, CommandTOLRequest,CommandHome,CommandHomeRequest
 import sensor_msgs.point_cloud2
 import warnings
 import signal
 import sys
 import math
+import random
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -36,6 +37,7 @@ X_PER_PIXEL = 3.0 #--Width road
 
 #--Topics
 STATE_SUB = "mavros/state"
+EXTENDED_STATE = "/mavros/extended_state"
 MODE_SUB = "/commands/mode"
 LOCAL_VEL_PUB = "/mavros/setpoint_velocity/cmd_vel_unstamped"
 LIDAR = "/airsim_node/PX4/lidar/LidarCustom"
@@ -45,11 +47,21 @@ MASS_CENTRE = "/yolop/detection_lane/mass_centre_lane"
 ARMING_CLIENT = "/mavros/cmd/arming"
 SET_MODE_CLIENT = "/mavros/set_mode"
 TAKE_OFF_CLIENT = "/mavros/cmd/takeoff"
+SET_HOME_CLIENT = "/mavros/cmd/set_home"
+SET_MODE_CLIENT = "/mavros/set_mode"
 
 OFFBOARD = "OFFBOARD"
 
+STATE_ON_GROUND = 1
+STATE_IN_AIR = 2
+STATE_IN_TAKE_OFF = 3
+STATE_IN_LANDING = 4
+
 coefficients_left_global = np.array([])
 coefficients_right_global = np.array([])
+
+is_not_detected_left = False
+is_not_detected_right = False
 
 cx_global = 0.0
 cy_global = 0.0
@@ -62,6 +74,8 @@ vz_lineal = 0
 
 STATES = [(i, i+20) for i in range(60, 240, 20)]
 
+
+#--Speeds and rate speeds
 ACTIONS = [
     [0.2, -0.1],
     [0.2, -0.09],
@@ -100,23 +114,124 @@ class QLearning:
         self.N_EPISODES = 100
         self.epsilon = 0.5
         self.alpha = 0.4 #--Between 0-1. 
-        self.beta = 0.5 #--Between 0-1.
+        self.gamma = 0.5 #--Between 0-1.
         self.end_episode = False
 
         self.current_state = 0
 
+        self.local_raw_pub = rospy.Publisher(LOCAL_VEL_PUB, Twist, queue_size=10)
 
-    def algorithm(self):
+        rospy.wait_for_service(SET_HOME_CLIENT)
+        self.set_home_client = rospy.ServiceProxy(SET_HOME_CLIENT, CommandHome)
 
-        for i in self.N_EPISODES:
-            current_state = position_drone
+        rospy.wait_for_service(SET_MODE_CLIENT)
+        self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
+
+        rospy.wait_for_service(ARMING_CLIENT)
+        self.arming_client = rospy.ServiceProxy(ARMING_CLIENT, CommandBool)
+
+        self.arm_cmd = CommandBoolRequest()
+        self.arm_cmd.value = True
+
+        self.set_mode = SetModeRequest()
+        self.set_mode.custom_mode = 'AUTO.RTL'
+
+        self.current_state = State()
+        self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb)
+        self.extended_state = ExtendedState()
+        self.extend_state_sub = rospy.Subscriber(EXTENDED_STATE,ExtendedState,callback=self.extended_state_cb)
+
+        self.set_home_position = CommandHomeRequest()
+        self.set_home_position.current_gps = False
+        self.set_home_position.yaw = 42.0
+        self.set_home_position.latitude = 47.6416705
+        self.set_home_position.longitude =  -122.1405088
+        self.set_home_position.altitude =  101.36056744315884
+
+        self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
+        self.distance_z = 0.0
+
+        self.velocity = Twist()
+
+        self.last_req = 0.0
+        self.has_armed = False
+        self.has_taken_off = False
+
+    def state_cb(self, msg):
+        self.current_state = msg
+
+    def extended_state_cb(self,msg):
+        self.extended_state = msg
+       
+
+    def lidar_cb(self,cloud_msg):
+        for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True):
+            self.distance_z = point[0] 
             
+        
+    def getState(self,cx):
+        for id_state in range(len(STATES)):
+            if STATES[id_state][0] <= cx <= STATES[id_state][1]:
+                    return id_state
+            
+            else:
+                return -1
 
-        print("epsilon-greedy")
 
-    def updateQTable(self):
-        print("update table")
+    def chooseAction(self,state):
 
+        n = random.uniform(0, 1)
+
+        #--Exploration
+        if n < self.epsilon:
+            id_action = random.randint(0, len(ACTIONS) - 1)
+            return ACTIONS[id_action]
+        
+        #--Explotation
+        else:
+            return np.argmax(self.QTable[state, :])
+
+    def functionQLearning(self,state,next_state,action,reward):
+        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, :]) - self.QTable[state, action])
+
+
+    def check_to_fly(self):
+        if (self.arming_client.call(self.arm_cmd).success is True and self.has_armed is False):
+            rospy.loginfo("Armed")
+            self.has_armed = True
+            return True
+
+    def reset_env(self):
+
+       
+
+        if self.check_to_fly():
+            self.set_mode.custom_mode = 'AUTO.TAKEOFF'
+            if (self.set_mode_client.call(self.set_mode).mode_sent is True and self.has_taken_off is False):
+                rospy.loginfo("TAKE OFF") 
+                self.has_taken_off = True
+
+
+    def return_position(self):
+        
+        if (self.set_home_client.call(self.set_home_position)):
+            rospy.loginfo("He cambiado la posicion de casa") 
+
+        if (self.set_mode_client.call(self.set_mode).mode_sent is True):
+            rospy.loginfo("RETURN MODE") 
+            self.has_return = True
+
+    def execute_action(self,action):
+
+        self.velocity.linear.x = action[0]
+        self.velocity.angular.z = action[1]
+
+        
+
+        self.local_raw_pub.publish(self.velocity)
+
+
+           
     def reward_function(self,cx,angle,speed):
         error_lane_center = np.normalize((WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH))
 
@@ -124,18 +239,15 @@ class QLearning:
         w1 = 0.5
         w2 = 0.5
 
-        if dron se ha salido del carril :
-            reward = -10
-
-        if dron si no detecta las lineas:
+        if is_not_detected_left or is_not_detected_right:
             reward = -10
 
         reward = (1/error_lane_center) * w1 + angle * w2
 
-class ImageSubscriber:
+class QLearningTraining:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback)
+        self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img)
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
         self.list = []
@@ -160,6 +272,8 @@ class ImageSubscriber:
         self.cx = 0
         self.cy = 0
 
+        self.orientation_angle = 0.0
+
         self.list_left_coeff_a = []
         self.list_left_coeff_b = []
         self.list_left_coeff_c = []
@@ -181,6 +295,9 @@ class ImageSubscriber:
 
         self.prev_distance = None
         self.prev_density = None
+
+        self.qlearning = QLearning()
+
 
 
  
@@ -274,7 +391,7 @@ class ImageSubscriber:
             mean_coeff = coefficients_left_global
         
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
-
+       
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
@@ -331,9 +448,6 @@ class ImageSubscriber:
             mean_coeff = coefficients_right_global
         
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
-
-       
-        
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
@@ -364,10 +478,6 @@ class ImageSubscriber:
 
         img = cv_image.copy()
         
-        
-       
-        
-
         if points_lane.size > 0:
             dbscan.fit(points_lane)
             labels = dbscan.labels_
@@ -432,11 +542,7 @@ class ImageSubscriber:
         
         else:
             return None,None
-        
-        
-        
-        
-    
+
     def draw_region(self,img):
 
 
@@ -449,40 +555,24 @@ class ImageSubscriber:
     
     
     
-    def calculate_mass_centre_lane(self,points_lane,img_det,cv_image):
+    def calculate_mass_centre_lane(self,points_lane):
 
-        global cx_global
-        #print(len(points_lane))
-        if(points_lane.size > 50):
             
-            # Supongamos que todos los puntos tienen la misma masa
-            m_i = 1
+        # Supongamos que todos los puntos tienen la misma masa
+        m_i = 1
 
-            # Calcula la masa total
-            m_total = m_i * len(points_lane)
+        # Calcula la masa total
+        m_total = m_i * len(points_lane)
 
-            # Calcula la suma de las posiciones de los puntos ponderadas por su masa
-            r_i_sum = np.sum(points_lane * m_i, axis=0)
+        # Calcula la suma de las posiciones de los puntos ponderadas por su masa
+        r_i_sum = np.sum(points_lane * m_i, axis=0)
 
-            # Calcula la posición del centro de masas
-            r_CM = r_i_sum / m_total
+        # Calcula la posición del centro de masas
+        r_CM = r_i_sum / m_total
 
-            cx = int(r_CM[1])
-            cy = int(r_CM[0])
 
-            cx_global = int(r_CM[1])
-            cy_global = int(r_CM[0])
-
-        
-
-            return int(r_CM[1]),int(r_CM[0])
-            
-             
-        
-        else:
-            print("No tengo puntos para calcular")
-            #print(cx_global)
-            return cx_global
+        return int(r_CM[1]),int(r_CM[0])
+      
 
     def calculate_angle(self,A, B,img):
         
@@ -490,7 +580,7 @@ class ImageSubscriber:
         Bx, By = B
 
         #--Point P: imagen vertical
-        Px, Py = [img // 2, 0]
+        Px, Py = [160, 0]
 
         # Vectores PA y PB
         PAx, PAy = Ax - Px, Ay - Py
@@ -647,20 +737,15 @@ class ImageSubscriber:
                 cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
 
                 
-                self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
-                print("Centroid x : " + str(self.cx))
-                print("Angle: " + str(self.calculate_angle([self.cx,self.cy],[cvimage // 2,self.cy]),cvimage))
+                cx,cy = self.calculate_mass_centre_lane(points_beetween_lines)
+                orientation_angle = self.calculate_angle([self.cx,self.cy],[160,self.cy],cvimage)
 
-
-                
-                cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
+                #cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
                
-                cv2.line(cvimage,(160,320),(self.cx,self.cy),(0,0,0),3)
+                #cv2.line(cvimage,(160,320),(self.cx,self.cy),(0,0,0),3)
                
-                
 
-
-            return cvimage
+            return cvimage,cx,cy,orientation_angle
     
 
 
@@ -685,14 +770,9 @@ class ImageSubscriber:
                     1,
                     cv2.LINE_AA,
                 )
-            
 
 
-    
-    def callback(self, data):
-
-        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        #cv_image = cv2.GaussianBlur(cv_image, (5, 5), 0)
+    def perception(self,cv_image):
         images_yolop = self.infer_yolop(cv_image)
         mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
@@ -701,60 +781,89 @@ class ImageSubscriber:
         if left_clusters and right_clusters is None:
             return
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
-        #self.drawStates(out_img)
+
+        return out_img
+
+
+
+    def callback_img(self, data):
+
+        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
+        print(self.qlearning.extended_state.landed_state)
+        if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND):
+            self.qlearning.reset_env()
+        elif(self.qlearning.extended_state.landed_state == STATE_IN_AIR):
+
+            img,cx,cy,orientation_angle = self.perception(cv_image)
+            state = self.qlearning.getState(cx)
+
+            if(state == -1):
+                self.qlearning.return_position()
+
+            else:
+                action = self.qlearning.chooseAction(state)
+
+
+               
+
+
+
+        elif (self.qlearning.extended_state.landed_state == STATE_IN_LANDING):
+            self.qlearning.has_armed = False
+            self.qlearning.has_taken_off = False
+
+        """
        
-      
+
+        if(self.qlearning.extended_state.landed_state == 1):
+            self.qlearning.reset_env()
+        elif(self.qlearning.extended_state.landed_state == 2):
+            out_image = self.perception(cv_image)
+            self.drawStates(out_image)
+
+            self.counter_time =  self.counter_time + (time.time() - self.t1)
+
+            if(not self.isfirst):
+                self.fps = calculate_fps(self.t1,self.list)
+                self.isfirst = True
+
+            #--Update each 0.8 seconds
+            if(self.counter_time > 0.8):
+                self.fps = calculate_fps(self.t1,self.list)
+                self.counter_time = 0.0
         
-        self.counter_time =  self.counter_time + (time.time() - self.t1)
-
-        if(not self.isfirst):
-            self.fps = calculate_fps(self.t1,self.list)
-            self.isfirst = True
-
-        #--Update each 0.8 seconds
-        if(self.counter_time > 0.8):
-            self.fps = calculate_fps(self.t1,self.list)
-            self.counter_time = 0.0
-
-
-        cv2.putText(
-                out_img, 
-                text = "FPS: " + str(int((self.fps))),
-                org=(0, 15),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5,
-                color=(255, 255, 255),
-                thickness=2,
-                lineType=cv2.LINE_AA
-            )
+            cv2.putText(
+                    cv_image, 
+                    text = "FPS: " + str(int((self.fps))),
+                    org=(0, 15),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.5,
+                    color=(255, 255, 255),
+                    thickness=2,
+                    lineType=cv2.LINE_AA
+                )
 
 
 
+            cv2.imshow('Image',out_image)
+            cv2.waitKey(3)
+        """
 
-        cv2.imshow('Image',out_img)
-        cv2.imshow('Clusters choised',img_cluster)
-        cv2.imshow('Clusters DBSCAN',img)
 
-        
-    
-    
-        # Press `q` to exit.
-        cv2.waitKey(3)
-    
+
+            
 
 if __name__ == '__main__':
     rospy.init_node("RL_node_py")
-    image_viewer = ImageSubscriber()
-    qlearning = QLearning()
-
+    
+    control = QLearningTraining()
+   
     try:
         rospy.spin()
-    except rospy.ROSInterruptException:
-            pass
+    except KeyboardInterrupt:
+        print("Parado")
 
 
-
-
-
-
-
+    
+        
+   
