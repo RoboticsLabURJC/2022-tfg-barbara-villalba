@@ -72,7 +72,16 @@ vy_lineal = 0
 vz_angular = 0
 vz_lineal = 0
 
+n_episodes = 0
+n_steps = 0
+
+
 STATES = [(i, i+20) for i in range(60, 240, 20)]
+STATES.insert(0,(0,60))
+STATES.append((240,320))
+
+STATE_TERMINAL_LEFT = 0
+STATE_TERMINAL_RIGHT = 10
 
 
 #--Speeds and rate speeds
@@ -111,11 +120,15 @@ class QLearning:
     
         self.QTable = np.zeros((len(STATES),len(ACTIONS)))  
 
-        self.N_EPISODES = 100
+        self.MAX_EPISODES = 1
         self.epsilon = 0.5
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.5 #--Between 0-1.
+        self.episodes = [0,0]
         self.end_episode = False
+        self.begin_episode = False
+        self.is_first_episode = False
+        self.n_episode = 0
 
         self.current_state = 0
 
@@ -156,6 +169,7 @@ class QLearning:
         self.last_req = 0.0
         self.has_armed = False
         self.has_taken_off = False
+        self.end_program = False
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -170,13 +184,14 @@ class QLearning:
             
         
     def getState(self,cx):
+       
+        state = None
         for id_state in range(len(STATES)):
-            if STATES[id_state][0] <= cx <= STATES[id_state][1]:
-                    return id_state
-            
-            else:
-                return -1
-
+          
+            if cx >= STATES[id_state][0]  and cx <= STATES[id_state][1]: 
+                state = id_state
+                
+        return state
 
     def chooseAction(self,state):
 
@@ -190,6 +205,14 @@ class QLearning:
         #--Explotation
         else:
             return np.argmax(self.QTable[state, :])
+        
+
+    def getSpeedAction(self,id_action):
+        return ACTIONS[id_action][0]
+        
+    def getAngularSpeedAction(self,id_action):
+        return ACTIONS[id_action][1]
+
 
     def functionQLearning(self,state,next_state,action,reward):
         self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, :]) - self.QTable[state, action])
@@ -201,7 +224,7 @@ class QLearning:
             self.has_armed = True
             return True
 
-    def reset_env(self):
+    def take_off(self):
 
        
 
@@ -212,7 +235,8 @@ class QLearning:
                 self.has_taken_off = True
 
 
-    def return_position(self):
+    
+    def return_home_position(self):
         
         if (self.set_home_client.call(self.set_home_position)):
             rospy.loginfo("He cambiado la posicion de casa") 
@@ -223,17 +247,18 @@ class QLearning:
 
     def execute_action(self,action):
 
+
         self.velocity.linear.x = action[0]
         self.velocity.angular.z = action[1]
+        #self.local_raw_pub.publish(self.velocity)
 
+    def stop(self):
         
+        self.velocity.linear.x = 0
+        self.velocity.angular.z = 0
 
-        self.local_raw_pub.publish(self.velocity)
-
-
-           
     def reward_function(self,cx,angle,speed):
-        error_lane_center = np.normalize((WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH))
+        error_lane_center = (WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH)
 
         #--Weight for each component 
         w1 = 0.5
@@ -242,8 +267,24 @@ class QLearning:
         if is_not_detected_left or is_not_detected_right:
             reward = -10
 
-        reward = (1/error_lane_center) * w1 + angle * w2
+        else:
 
+            reward = (1/abs(error_lane_center)) * w1 + angle * w2
+
+        return reward
+
+    def startEpisode(self):
+        
+        self.episodes[0] += 1
+
+    def is_beggin_episode(self):
+        global n_episodes
+        if(self.begin_episode is False):
+            n_episodes += 1
+            self.begin_episode = True
+
+
+    
 class QLearningTraining:
     def __init__(self):
         self.bridge = CvBridge()
@@ -297,6 +338,8 @@ class QLearningTraining:
         self.prev_density = None
 
         self.qlearning = QLearning()
+
+
 
 
 
@@ -586,12 +629,18 @@ class QLearningTraining:
         PAx, PAy = Ax - Px, Ay - Py
         PBx, PBy = Bx - Px, By - Py
 
+       
+
+
         # Producto escalar y magnitudes
         dot_product = PAx * PBx + PAy * PBy
         magnitude_PA = math.sqrt(PAx**2 + PAy**2)
         magnitude_PB = math.sqrt(PBx**2 + PBy**2)
 
         # Ángulo en radianes
+
+    
+
         angle_in_radians = math.acos(dot_product / (magnitude_PA * magnitude_PB))
 
         # Convertir a grados
@@ -738,7 +787,7 @@ class QLearningTraining:
 
                 
                 cx,cy = self.calculate_mass_centre_lane(points_beetween_lines)
-                orientation_angle = self.calculate_angle([self.cx,self.cy],[160,self.cy],cvimage)
+                orientation_angle = self.calculate_angle([cx,cy],[160,cy],cvimage)
 
                 #cv2.circle(cvimage, (self.cx,self.cy), radius=10, color=(0, 0, 0),thickness=-1)
                
@@ -778,80 +827,68 @@ class QLearningTraining:
         mask = self.draw_region(images_yolop[1])
         left_clusters,right_clusters,img_cluster,img = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
 
-        if left_clusters and right_clusters is None:
-            return
-        out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
-
-        return out_img
+        if left_clusters  != None and right_clusters != None:
+            out_img,cx,cy,orientation_angle = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
+            return out_img,cx,cy,orientation_angle
+        
+        else:
+            return None,-1,-1,-1
 
 
 
     def callback_img(self, data):
+        global n_episodes,n_steps
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        print(self.qlearning.extended_state.landed_state)
-        if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND):
-            self.qlearning.reset_env()
+        print(n_episodes)
+
+
+        if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND and self.qlearning.end_program is False):
+            self.qlearning.take_off()
+
         elif(self.qlearning.extended_state.landed_state == STATE_IN_AIR):
+            print("STATE_IN_AIR")
 
-            img,cx,cy,orientation_angle = self.perception(cv_image)
-            state = self.qlearning.getState(cx)
+            if(n_episodes < self.qlearning.MAX_EPISODES):
+               self.qlearning.is_beggin_episode()
 
-            if(state == -1):
-                self.qlearning.return_position()
+               if(self.qlearning.begin_episode):
+                   print("begin_episode")
+                   
+                   if(self.qlearning.is_first_episode is False):
+                    _,cx,cy,angle_orientation = self.perception(cv_image)
+                    self.qlearning.current_state = self.qlearning.getState(cx)
+                    print("first_episode")
+                    self.qlearning.is_first_episode = True
 
+                   
+                   if((self.qlearning.current_state == STATE_TERMINAL_LEFT or self.qlearning.current_state == STATE_TERMINAL_RIGHT) or (n_steps > 1)):
+                       self.qlearning.stop()
+                       self.qlearning.return_home_position()
+                       self.qlearning.has_armed = False
+                       self.qlearning.has_taken_off = False
+                       self.qlearning.begin_episode = False
+                       self.qlearning.is_first_episode = False
+                    
+                   else:
+                       n_steps += 1
+                       action = self.qlearning.chooseAction(self.qlearning.current_state)
+                      
+                       self.qlearning.execute_action(action)
+                       #self.qlearning.stop()
+                       """
+                       
+                       _,cx,cy,angle_orientation = self.perception(cv_image)
+                       next_state = self.qlearning.getState(cx)
+                       reward = self.qlearning.reward_function(cx,angle_orientation,self.qlearning.getSpeedAction(action))
+                       self.qlearning.functionQLearning(self.qlearning.current_state,next_state,action,reward)
+                       self.qlearning.current_state = next_state
+                       """
+                     
+ 
             else:
-                action = self.qlearning.chooseAction(state)
-
-
-               
-
-
-
-        elif (self.qlearning.extended_state.landed_state == STATE_IN_LANDING):
-            self.qlearning.has_armed = False
-            self.qlearning.has_taken_off = False
-
-        """
-       
-
-        if(self.qlearning.extended_state.landed_state == 1):
-            self.qlearning.reset_env()
-        elif(self.qlearning.extended_state.landed_state == 2):
-            out_image = self.perception(cv_image)
-            self.drawStates(out_image)
-
-            self.counter_time =  self.counter_time + (time.time() - self.t1)
-
-            if(not self.isfirst):
-                self.fps = calculate_fps(self.t1,self.list)
-                self.isfirst = True
-
-            #--Update each 0.8 seconds
-            if(self.counter_time > 0.8):
-                self.fps = calculate_fps(self.t1,self.list)
-                self.counter_time = 0.0
-        
-            cv2.putText(
-                    cv_image, 
-                    text = "FPS: " + str(int((self.fps))),
-                    org=(0, 15),
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.5,
-                    color=(255, 255, 255),
-                    thickness=2,
-                    lineType=cv2.LINE_AA
-                )
-
-
-
-            cv2.imshow('Image',out_image)
-            cv2.waitKey(3)
-        """
-
-
-
-            
+                
+                self.qlearning.end_program = True
 
 if __name__ == '__main__':
     rospy.init_node("RL_node_py")
