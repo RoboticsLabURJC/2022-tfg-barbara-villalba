@@ -23,6 +23,7 @@ import sys
 import math
 import random
 
+
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
 ROUTE_MODEL = "/home/bb6/YOLOP/weights/yolop-320-320.onnx"
@@ -48,7 +49,6 @@ ARMING_CLIENT = "/mavros/cmd/arming"
 SET_MODE_CLIENT = "/mavros/set_mode"
 TAKE_OFF_CLIENT = "/mavros/cmd/takeoff"
 SET_HOME_CLIENT = "/mavros/cmd/set_home"
-SET_MODE_CLIENT = "/mavros/set_mode"
 
 OFFBOARD = "OFFBOARD"
 
@@ -90,7 +90,10 @@ ACTIONS = [
     [0.2, -0.09],
     [0.3, -0.08],
     [0.3, -0.07],
+    [0.4, -0.07],
     [0.5, -0.06],
+    [0.6, -0.06],
+    [0.7, -0.06],
     [0.8, 0.05],
     [1.0, -0.04],
     [1.3, -0.03],
@@ -120,7 +123,7 @@ class QLearning:
     
         self.QTable = np.zeros((len(STATES),len(ACTIONS)))  
 
-        self.MAX_EPISODES = 1
+        self.MAX_EPISODES = 10
         self.epsilon = 0.5
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.5 #--Between 0-1.
@@ -130,7 +133,8 @@ class QLearning:
         self.is_first_episode = False
         self.n_episode = 0
 
-        self.current_state = 0
+        self.current_state_q = 0
+        self.states = 0
 
         self.local_raw_pub = rospy.Publisher(LOCAL_VEL_PUB, Twist, queue_size=10)
 
@@ -146,8 +150,21 @@ class QLearning:
         self.arm_cmd = CommandBoolRequest()
         self.arm_cmd.value = True
 
-        self.set_mode = SetModeRequest()
-        self.set_mode.custom_mode = 'AUTO.RTL'
+        self.set_mode_return = SetModeRequest()
+        self.set_mode_return.custom_mode = 'AUTO.RTL'
+
+        self.set_mode_takeoff = SetModeRequest()
+        self.set_mode_takeoff.custom_mode = 'AUTO.TAKEOFF'
+
+        self.set_mode_offboard = SetModeRequest()
+        self.set_mode_offboard.custom_mode = 'OFFBOARD'
+
+        self.set_mode_hold = SetModeRequest()
+        self.set_mode_hold.custom_mode = 'AUTO.LOITER'
+
+
+
+
 
         self.current_state = State()
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb)
@@ -165,11 +182,14 @@ class QLearning:
         self.distance_z = 0.0
 
         self.velocity = Twist()
+        self.velocity.linear.x = 0.0
+        self.velocity.angular.z = 0.0
 
         self.last_req = 0.0
         self.has_armed = False
+        self.has_return = False
         self.has_taken_off = False
-        self.end_program = False
+        self.pepe = False
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -199,12 +219,13 @@ class QLearning:
 
         #--Exploration
         if n < self.epsilon:
-            id_action = random.randint(0, len(ACTIONS) - 1)
-            return ACTIONS[id_action]
+            id_action = np.random.choice(len(ACTIONS))
+            return ACTIONS[id_action],id_action
         
         #--Explotation
         else:
-            return np.argmax(self.QTable[state, :])
+            id_action = np.argmax(self.QTable[state,:])
+            return ACTIONS[id_action],id_action
         
 
     def getSpeedAction(self,id_action):
@@ -215,7 +236,7 @@ class QLearning:
 
 
     def functionQLearning(self,state,next_state,action,reward):
-        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, :]) - self.QTable[state, action])
+        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, action]) - self.QTable[state, action])
 
 
     def check_to_fly(self):
@@ -226,26 +247,31 @@ class QLearning:
 
     def take_off(self):
 
-       
-
         if self.check_to_fly():
-            self.set_mode.custom_mode = 'AUTO.TAKEOFF'
-            if (self.set_mode_client.call(self.set_mode).mode_sent is True and self.has_taken_off is False):
+            if (self.set_mode_client.call(self.set_mode_takeoff).mode_sent is True and self.has_taken_off is False):
                 rospy.loginfo("TAKE OFF") 
                 self.has_taken_off = True
 
 
     
     def return_home_position(self):
-        
-        if (self.set_home_client.call(self.set_home_position)):
-            rospy.loginfo("He cambiado la posicion de casa") 
 
-        if (self.set_mode_client.call(self.set_mode).mode_sent is True):
-            rospy.loginfo("RETURN MODE") 
-            self.has_return = True
+        if(self.has_return is False):
+        
+            if (self.set_home_client.call(self.set_home_position)):
+                rospy.loginfo("He cambiado la posicion de casa") 
+
+            if (self.set_mode_client.call(self.set_mode_return).mode_sent is True):
+                rospy.loginfo("RETURN MODE") 
+                self.has_return = True
 
     def execute_action(self,action):
+
+        
+        
+        if(self.set_mode_client.call(self.set_mode_offboard).mode_sent is True):
+            rospy.loginfo("OFFBOARD MODE")
+        
 
 
         self.velocity.linear.x = action[0]
@@ -253,11 +279,16 @@ class QLearning:
         #self.local_raw_pub.publish(self.velocity)
 
     def stop(self):
+
+        if(self.set_mode_client.call(self.set_mode_offboard).mode_sent is True):
+            rospy.loginfo("OFFBOARD MODE")
         
         self.velocity.linear.x = 0
         self.velocity.angular.z = 0
+        self.local_raw_pub.publish(self.velocity)
 
-    def reward_function(self,cx,angle,speed):
+    def reward_function(self,cx,angle):
+        print(cx,angle)
         error_lane_center = (WIDTH/2 - cx)*(X_PER_PIXEL/WIDTH)
 
         #--Weight for each component 
@@ -288,6 +319,7 @@ class QLearning:
 class QLearningTraining:
     def __init__(self):
         self.bridge = CvBridge()
+        self.tiempo_ultimo_callback = time.time()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img)
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
@@ -339,11 +371,6 @@ class QLearningTraining:
 
         self.qlearning = QLearning()
 
-
-
-
-
- 
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         """
         Resize image for model onnx
@@ -840,65 +867,166 @@ class QLearningTraining:
         global n_episodes,n_steps
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-        print(n_episodes)
-
-
-        if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND and self.qlearning.end_program is False):
-            self.qlearning.take_off()
-
-        elif(self.qlearning.extended_state.landed_state == STATE_IN_AIR):
-            print("STATE_IN_AIR")
-
-            if(n_episodes < self.qlearning.MAX_EPISODES):
-               self.qlearning.is_beggin_episode()
-
-               if(self.qlearning.begin_episode):
-                   print("begin_episode")
-                   
-                   if(self.qlearning.is_first_episode is False):
-                    _,cx,cy,angle_orientation = self.perception(cv_image)
-                    self.qlearning.current_state = self.qlearning.getState(cx)
-                    print("first_episode")
-                    self.qlearning.is_first_episode = True
-
-                   
-                   if((self.qlearning.current_state == STATE_TERMINAL_LEFT or self.qlearning.current_state == STATE_TERMINAL_RIGHT) or (n_steps > 1)):
-                       self.qlearning.stop()
-                       self.qlearning.return_home_position()
-                       self.qlearning.has_armed = False
-                       self.qlearning.has_taken_off = False
-                       self.qlearning.begin_episode = False
-                       self.qlearning.is_first_episode = False
-                    
-                   else:
-                       n_steps += 1
-                       action = self.qlearning.chooseAction(self.qlearning.current_state)
-                      
-                       self.qlearning.execute_action(action)
-                       #self.qlearning.stop()
-                       """
-                       
-                       _,cx,cy,angle_orientation = self.perception(cv_image)
-                       next_state = self.qlearning.getState(cx)
-                       reward = self.qlearning.reward_function(cx,angle_orientation,self.qlearning.getSpeedAction(action))
-                       self.qlearning.functionQLearning(self.qlearning.current_state,next_state,action,reward)
-                       self.qlearning.current_state = next_state
-                       """
-                     
- 
-            else:
+        
+        
+        if(self.qlearning.states == 0):
+            if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND):
+                self.qlearning.take_off()
                 
-                self.qlearning.end_program = True
+            elif(self.qlearning.extended_state.landed_state == STATE_IN_AIR):
+                self.qlearning.states = 1
+                print("State 0 --> 1" + " State: " + str(self.qlearning.states))
+               
+        
+        if(self.qlearning.states == 1):
+            
+            self.qlearning.states = 2
+            print("State 1 --> 2" + " State: " + str(self.qlearning.states))
+
+        """
+       
+
+        if(self.qlearning.states == 2):
+            
+            if(n_episodes < self.qlearning.MAX_EPISODES):
+                n_episodes += 1
+                
+                self.qlearning.states = 3
+                print("State 2 --> 3" + " State: " + str(self.qlearning.states) )
+            else:
+               
+                self.qlearning.states = 6
+                print("State 2 ---> 6" + " State: " + str(self.qlearning.states) )
+
+
+        if(self.qlearning.states == 3):
+            _,cx,cy,angle_orientation = self.perception(cv_image)
+            self.qlearning.current_state_q = self.qlearning.getState(cx)
+           
+            self.qlearning.states = 4
+            print("State 3 ---> 4" + " State: " + str(self.qlearning.states) )
+           
+
+
+        if(self.qlearning.states == 4):
+            
+            if(n_steps < 10):
+                print("Episodio: " + str(n_episodes) + " Steps: " + str(n_steps))
+                n_steps +=1
+               
+                self.qlearning.states = 5
+                print("State 4 ---> 5" + " State: " + str(self.qlearning.states) )
+            else:
+                print("State 4 ---> 2" + " State: " + str(self.qlearning.states) )
+                self.qlearning.states = 2
+                n_steps = 0
+
+
+
+        if(self.qlearning.states == 5):
+            print(self.qlearning.current_state_q)
+            if(self.qlearning.current_state_q == STATE_TERMINAL_LEFT or self.qlearning.current_state_q == STATE_TERMINAL_RIGHT):
+                #self.qlearning.stop()
+                self.qlearning.return_home_position()
+                if (self.qlearning.set_mode_client.call(self.qlearning.set_mode_hold).mode_sent is True):
+                    rospy.loginfo("HOLD")
+                print("State 5 ---> 0" + " State: " + str(self.qlearning.states))
+                self.qlearning.states = 0
+                
+
+            else:
+               
+                action,id_action = self.qlearning.chooseAction(self.qlearning.current_state_q)
+                self.qlearning.execute_action(action)
+                _,cx,cy,orientation_angle = self.perception(cv_image)
+                reward = self.qlearning.reward_function(cx,orientation_angle)
+                next_state = self.qlearning.getState(cx)
+                #print(self.qlearning.current_state_q,next_state,id_action,reward)
+                #self.qlearning.functionQLearning(self.qlearning.current_state_q,next_state,id_action,reward)
+                self.qlearning.current_state_q = next_state
+                print("State 5 ---> 4")
+                self.qlearning.states = 4
+                
+
+
+
+        if(self.qlearning.states == 6):
+            self.qlearning.stop()
+            self.qlearning.return_home_position()
+            
+          
+            self.qlearning.states = 7
+
+
+        if(self.qlearning.states == 7):
+            if(self.qlearning.extended_state.landed_state == STATE_ON_GROUND):
+                if (self.qlearning.set_mode_client.call(self.qlearning.set_mode_hold).mode_sent is True):
+                    rospy.loginfo("HOLD")
+
+                self.qlearning.states = 8
+
+
+
+        if(self.qlearning.states == 8):
+
+            print("Finalizado el programa")
+            print(self.qlearning.QTable)
+            self.qlearning.states = 9
+        
+
+        
+        frecuencia = 1.0 / (tiempo_actual - self.tiempo_ultimo_callback)
+        rospy.loginfo("Frecuencia: %s Hz", frecuencia)
+        self.tiempo_ultimo_callback = tiempo_actual
+        """
+        
 
 if __name__ == '__main__':
     rospy.init_node("RL_node_py")
     
     control = QLearningTraining()
-   
+
+    rate = rospy.Rate(5)
+
+    last_req = rospy.Time.now()
+
+    counter_action = 0
+
+    """
+      
     try:
         rospy.spin()
     except KeyboardInterrupt:
         print("Parado")
+    """ 
+
+    while (not rospy.is_shutdown()):
+        #print(control.qlearning.velocity.linear.x)
+
+        if(control.qlearning.states == 2):
+            if (control.qlearning.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
+                if (control.qlearning.set_mode_client.call(control.qlearning.set_mode_offboard).mode_sent is True):
+                    rospy.loginfo("OFFBOARD enabled")
+            
+        
+            if (control.qlearning.current_state.mode == OFFBOARD):
+                if(counter_action < len(ACTIONS)):
+                    control.qlearning.velocity.linear.x = ACTIONS[counter_action][0]
+                    control.qlearning.velocity.angular.z = ACTIONS[counter_action][1]
+                    counter_action +=1
+                else:
+                    counter_action = 0
+
+            control.qlearning.local_raw_pub.publish(control.qlearning.velocity)
+        rate.sleep()
+
+
+
+
+   
+
+
+ 
 
 
     
