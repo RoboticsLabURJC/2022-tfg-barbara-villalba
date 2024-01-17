@@ -80,8 +80,8 @@ n_steps = 0
 
 
 STATES = [(i, i+20) for i in range(60, 240, 20)]
-STATES.insert(0,(0,60))
-STATES.append((240,320))
+#STATES.insert(0,(0,60))
+#STATES.append((240,320))
 
 
 
@@ -89,30 +89,28 @@ STATES.append((240,320))
 
 #--Speeds and rate speeds
 ACTIONS = [
-    [1.0, -0.1],
-    [1.0, -0.09],
-    [1.0, -0.08],
-    [1.0, -0.07],
-    [1.0, -0.07],
-    [1.0, -0.06],
-    [1.0, -0.06],
-    [1.0, -0.06],
-    [1.0, 0.05],
-    [1.0, -0.04],
-    [1.0, -0.03],
-    [1.0, -0.02],
-    [1.0, -0.01],
-    [1.0, 0.0],
-    [1.0, 0.01],
-    [1.0, 0.02],
-    [1.0, 0.03],
-    [1.0, 0.04],
-    [1.0, 0.05],
-    [1.0, 0.06],
-    [1.0, 0.07],
-    [1.0, 0.08],
-    [1.0, 0.09],
-    [1.0, 0.1],
+    [1.0,-0.01 ,-0.1],
+    [1.0,-0.01 ,-0.09],
+    [1.0,-0.01 ,-0.08],
+    [1.0,-0.02 ,-0.07],
+    [1.0,-0.02 ,-0.07],
+    [1.0,-0.05 ,-0.06],
+    [1.0,-0.06 ,0.05],
+    [1.0,-0.08 ,-0.04],
+    [1.0,-0.09 ,-0.03],
+    [1.0,-0.09 ,-0.02],
+    [1.0,-0.1 ,-0.01],
+    [1.0,0.0,0.0],
+    [1.0,0.1, 0.01],
+    [1.0,0.09, 0.02],
+    [1.0,0.09, 0.03],
+    [1.0,0.08, 0.04],
+    [1.0,0.06, 0.05],
+    [1.0,0.05, 0.06],
+    [1.0,0.02, 0.07],
+    [1.0,0.01, 0.08],
+    [1.0,0.01, 0.09],
+    [1.0,0.01 ,0.1],
 ]
 
 def calculate_fps(t1,list_fps):
@@ -128,7 +126,7 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 1
+        self.MAX_EPISODES = 10
         self.epsilon = 0.95
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.5 #--Between 0-1.
@@ -175,10 +173,11 @@ class QLearning:
 
         self.set_home_position = CommandHomeRequest()
         self.set_home_position.current_gps = False
-        self.set_home_position.yaw = 42.0
+        self.set_home_position.yaw = 41.0
         self.set_home_position.latitude = 47.6416705
         self.set_home_position.longitude =  -122.1405088
         self.set_home_position.altitude =  101.36056744315884
+      
 
         self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
         self.distance_z = 0.0
@@ -323,6 +322,7 @@ class QLearning:
         self.velocity.linear.x = action[0]
         self.velocity.angular.z = action[1]
         self.local_raw_pub.publish(self.velocity)
+        self.prev_error_height = qlearning.error
      
 
     def stop(self):
@@ -338,13 +338,12 @@ class QLearning:
     def reward_function(self,cx,angle):
         
         reward = 0
-        if ((is_not_detected_left) or (is_not_detected_right)) or (angle > 6.0 )or (cx == -1):
+        error_lane_center = (WIDTH/2 - cx)
+        if ((is_not_detected_left) or (is_not_detected_right)) or (angle > 6.0 )or (cx == -1) or (abs(error_lane_center) > 45.0):
             #print(is_not_detected_left,is_not_detected_right,angle,cx)
-            reward = -20
+            reward = -100
 
         else:
-            error_lane_center = (WIDTH/2 - cx)
-
 
             reward = (1/(abs(error_lane_center) + 1)) + angle
 
@@ -411,6 +410,8 @@ class Perception():
 
         self.prev_distance = None
         self.prev_density = None
+
+        self.address = ""
 
        
 
@@ -720,6 +721,15 @@ class Perception():
         # Convertir a grados
         angle_in_degrees = math.degrees(angle_in_radians)
 
+        cross_product_z = PAx * PBy - PAy * PBx
+
+        if (cross_product_z < 0 and angle_in_degrees > 1):
+            self.address = "LEFT"
+            
+        elif(cross_product_z > 0 and angle_in_degrees > 1):
+            self.address = "RIGHT"
+            
+
         return angle_in_degrees
 
     
@@ -905,6 +915,8 @@ class Perception():
 
 
     def calculate_lane(self,cv_image):
+
+        global is_not_detected_left,is_not_detected_right
         out_img = None
         cx = 0
         cy = 0
@@ -918,9 +930,17 @@ class Perception():
             cx = -1
             cy = -1 
             orientation_angle = -1 
+            is_not_detected_left = True
+            is_not_detected_right = True
+
         
         else:
             out_img,cx,cy,orientation_angle = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
+
+            if(cx == -1):
+                is_not_detected_left = True
+                is_not_detected_right = True
+
         
         return out_img,cx,cy,orientation_angle
         
@@ -933,6 +953,7 @@ class Perception():
         
         
 if __name__ == '__main__':
+    
     rospy.init_node("RL_node_py")
     
     perception = Perception()
@@ -948,17 +969,45 @@ if __name__ == '__main__':
     list_ep_epsilon = []
     list_ep_accumulate_reward = []
 
+    error = 0
 
     for id_episode in range(qlearning.MAX_EPISODES):
-        print("Beggin episode : " + str(id_episode) + "Value epsilon: " + str(qlearning.epsilon))
         qlearning.reset_env()
         _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
         
+        angle_error = 0.0 - angle_orientation
+        print(angle_error)
+        while(abs(angle_error) > 0.1):
+            qlearning.height_velocity_controller()
+            if(qlearning.set_mode_client.call(qlearning.set_mode_offboard).mode_sent is True):
+                rospy.loginfo("OFFBOARD MODE")
+            
+            qlearning.velocity.angular.z = (0.1 * angle_error)
+            qlearning.local_raw_pub.publish(qlearning.velocity)
+            qlearning.prev_error_height = qlearning.error
+            _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            angle_error = abs(0.0 - angle_orientation)
+
+        angle_error = 0.0
+
+        qlearning.stop()
+        
+
+        print("Corregido")
+       
+       
+        print("Beggin episode : " + str(id_episode) + "Value epsilon: " + str(qlearning.epsilon))
+        qlearning.reset_env()
+        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+
+        error = (WIDTH/2 - cx)
+        
         
         current_state = qlearning.getState(cx,angle_orientation)
-        #print(cx,current_state)
+        #print(error)
 
-        while (current_state > 0 and current_state < 10):
+        while (abs(error) < 45.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
+            #print(error)
             action,id_action = qlearning.chooseAction(current_state)
             qlearning.execute_action(action)
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
@@ -970,7 +1019,8 @@ if __name__ == '__main__':
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
             n_steps += 1
-            qlearning.prev_error_height = qlearning.error
+            
+            error = (WIDTH/2 - cx) 
             cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
             cv2.imshow("image",out_image)
             cv2.waitKey(3)
@@ -997,7 +1047,7 @@ if __name__ == '__main__':
                qlearning.has_armed = False
                qlearning.has_taken_off = False
         print("on ground")
-
+    
 
 with open('/home/bb6/pepe_ws/src/qlearning/trainings/1/episodes-iterations.csv', 'w') as file:
     wtr = csv.writer(file, delimiter= ' ')
@@ -1017,6 +1067,7 @@ df = pd.DataFrame(qlearning.QTable)
 
 
 df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/1/q_table.csv")
+
 
 
 
