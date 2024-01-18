@@ -89,28 +89,28 @@ STATES = [(i, i+20) for i in range(60, 240, 20)]
 
 #--Speeds and rate speeds
 ACTIONS = [
-    [1.0,-0.01 ,-0.1],
-    [1.0,-0.01 ,-0.09],
-    [1.0,-0.01 ,-0.08],
-    [1.0,-0.02 ,-0.07],
-    [1.0,-0.02 ,-0.07],
-    [1.0,-0.05 ,-0.06],
-    [1.0,-0.06 ,0.05],
-    [1.0,-0.08 ,-0.04],
-    [1.0,-0.09 ,-0.03],
-    [1.0,-0.09 ,-0.02],
-    [1.0,-0.1 ,-0.01],
+    [1.0,-0.010 ,-0.1],
+    [1.0,-0.010 ,-0.09],
+    [1.0,-0.010 ,-0.08],
+    [1.0,-0.011 ,-0.07],
+    [1.0,-0.012 ,-0.07],
+    [1.0,-0.013 ,-0.06],
+    [1.0,-0.014 ,0.05],
+    [1.0,-0.015 ,-0.04],
+    [1.0,-0.016 ,-0.03],
+    [1.0,-0.018 ,-0.02],
+    [1.0,-0.02 ,-0.01],
     [1.0,0.0,0.0],
-    [1.0,0.1, 0.01],
-    [1.0,0.09, 0.02],
-    [1.0,0.09, 0.03],
-    [1.0,0.08, 0.04],
-    [1.0,0.06, 0.05],
-    [1.0,0.05, 0.06],
-    [1.0,0.02, 0.07],
-    [1.0,0.01, 0.08],
-    [1.0,0.01, 0.09],
-    [1.0,0.01 ,0.1],
+    [1.0,0.018, 0.01],
+    [1.0,0.016, 0.02],
+    [1.0,0.015, 0.03],
+    [1.0,0.014, 0.04],
+    [1.0,0.013, 0.05],
+    [1.0,0.012, 0.06],
+    [1.0,0.011, 0.07],
+    [1.0,0.010, 0.08],
+    [1.0,0.010, 0.09],
+    [1.0,0.010 ,0.1],
 ]
 
 def calculate_fps(t1,list_fps):
@@ -126,7 +126,7 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 10
+        self.MAX_EPISODES = 50
         self.epsilon = 0.95
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.5 #--Between 0-1.
@@ -192,7 +192,7 @@ class QLearning:
         self.has_taken_off = False
         self.pepe = False
 
-        self.KP_v = 0.009
+        self.KP_v = 0.01
         self.KD_v = 0.7
 
         self.prev_error_height = 0
@@ -212,16 +212,11 @@ class QLearning:
     def getState(self,cx,angle_orientation):
        
         state = None
-
-        if is_not_detected_left == True or is_not_detected_right == True:
+        print(abs(160 - cx))
+        if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 42.0):
             state = len(STATES) - 1
             
-        
-        elif angle_orientation > 6:
-            state = len(STATES) - 1
-           
-
-        elif(angle_orientation < 6 ):
+        else:
             for id_state in range(len(STATES)):
                 if cx >= STATES[id_state][0] and cx <= STATES[id_state][1]: 
                     state = id_state
@@ -258,7 +253,9 @@ class QLearning:
         #print(self.QTable[state, action])
         #print(np.argmax(self.QTable[next_state, action]))
         self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, action]) - self.QTable[state, action])
+        
         self.accumulatedReward += reward
+        #print(self.accumulatedReward,reward)
 
     def check_to_fly(self):
         if (self.arming_client.call(self.arm_cmd).success is True and self.has_armed is False):
@@ -320,9 +317,10 @@ class QLearning:
         self.height_velocity_controller()
 
         self.velocity.linear.x = action[0]
-        self.velocity.angular.z = action[1]
+        self.velocity.linear.y = action[1]
+        self.velocity.angular.z = action[2]
         self.local_raw_pub.publish(self.velocity)
-        self.prev_error_height = qlearning.error
+        self.prev_error_height = self.error
      
 
     def stop(self):
@@ -331,6 +329,7 @@ class QLearning:
             rospy.loginfo("OFFBOARD MODE")
         
         self.velocity.linear.x = 0
+        self.velocity.linear.y = 0
         self.velocity.linear.z = 0
         self.velocity.angular.z = 0
         self.local_raw_pub.publish(self.velocity)
@@ -339,24 +338,20 @@ class QLearning:
         
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
-        if ((is_not_detected_left) or (is_not_detected_right)) or (angle > 6.0 )or (cx == -1) or (abs(error_lane_center) > 45.0):
+        error_angle_orientation = 0.0 - angle
+        if ((is_not_detected_left) or (is_not_detected_right)) or (cx == -1) or (abs(error_lane_center) > 42.0):
             #print(is_not_detected_left,is_not_detected_right,angle,cx)
             reward = -100
 
         else:
+            
 
-            reward = (1/(abs(error_lane_center) + 1)) + angle
+            reward = 0.5 * (1 / (1 + abs(error_lane_center))) + 0.5 * (1 / (1 + abs(error_angle_orientation)))
+            
+
 
         return reward
 
-    def is_beggin_episode(self):
-        global n_episodes
-        if(self.begin_episode is False):
-            n_episodes += 1
-            self.begin_episode = True
-
-
-    
 class Perception():
     def __init__(self):
         self.bridge = CvBridge()
@@ -971,6 +966,7 @@ if __name__ == '__main__':
 
     error = 0
 
+
     for id_episode in range(qlearning.MAX_EPISODES):
         qlearning.reset_env()
         _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
@@ -982,11 +978,16 @@ if __name__ == '__main__':
             if(qlearning.set_mode_client.call(qlearning.set_mode_offboard).mode_sent is True):
                 rospy.loginfo("OFFBOARD MODE")
             
-            qlearning.velocity.angular.z = (0.1 * angle_error)
+            if perception.address == "LEFT":
+                qlearning.velocity.angular.z = abs((0.1 * angle_error))
+            else:
+                 qlearning.velocity.angular.z = (0.1 * angle_error)
+
             qlearning.local_raw_pub.publish(qlearning.velocity)
             qlearning.prev_error_height = qlearning.error
             _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            angle_error = abs(0.0 - angle_orientation)
+            angle_error = 0.0 - angle_orientation
+            print(angle_error)
 
         angle_error = 0.0
 
@@ -995,9 +996,7 @@ if __name__ == '__main__':
 
         print("Corregido")
        
-       
         print("Beggin episode : " + str(id_episode) + "Value epsilon: " + str(qlearning.epsilon))
-        qlearning.reset_env()
         _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
         error = (WIDTH/2 - cx)
@@ -1006,7 +1005,7 @@ if __name__ == '__main__':
         current_state = qlearning.getState(cx,angle_orientation)
         #print(error)
 
-        while (abs(error) < 45.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
+        while (abs(error) < 42.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
             #print(error)
             action,id_action = qlearning.chooseAction(current_state)
             qlearning.execute_action(action)
@@ -1015,12 +1014,13 @@ if __name__ == '__main__':
             reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx,angle_orientation)
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
-            #print(current_state,next_state)
+            print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
             n_steps += 1
             
             error = (WIDTH/2 - cx) 
+            print("Error: " + str(error))
             cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
             cv2.imshow("image",out_image)
             cv2.waitKey(3)
@@ -1049,24 +1049,24 @@ if __name__ == '__main__':
         print("on ground")
     
 
-with open('/home/bb6/pepe_ws/src/qlearning/trainings/1/episodes-iterations.csv', 'w') as file:
-    wtr = csv.writer(file, delimiter= ' ')
-    wtr.writerows(list_ep_it)
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-iterations.csv', 'w') as file:
+        wtr = csv.writer(file, delimiter= ' ')
+        wtr.writerows(list_ep_it)
 
 
-with open('/home/bb6/pepe_ws/src/qlearning/trainings/1/episodes-epsilon.csv', 'w') as file:
-    wtr = csv.writer(file, delimiter= ' ')
-    wtr.writerows(list_ep_epsilon)
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-epsilon.csv', 'w') as file:
+        wtr = csv.writer(file, delimiter= ' ')
+        wtr.writerows(list_ep_epsilon)
 
-with open('/home/bb6/pepe_ws/src/qlearning/trainings/1/episodes-accumulated-reward.csv', 'w') as file:
-    wtr = csv.writer(file, delimiter= ' ')
-    wtr.writerows(list_ep_accumulate_reward) 
-
-
-df = pd.DataFrame(qlearning.QTable)
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-accumulated-reward.csv', 'w') as file:
+        wtr = csv.writer(file, delimiter= ' ')
+        wtr.writerows(list_ep_accumulate_reward) 
 
 
-df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/1/q_table.csv")
+    df = pd.DataFrame(qlearning.QTable)
+
+
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/q_table.csv")
 
 
 
