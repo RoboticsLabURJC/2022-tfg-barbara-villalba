@@ -75,8 +75,9 @@ vy_lineal = 0
 vz_angular = 0
 vz_lineal = 0
 
-n_episodes = 0
 n_steps = 0
+
+state = 0
 
 
 STATES = [(i, i+20) for i in range(60, 240, 20)]
@@ -126,7 +127,7 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 50
+        self.MAX_EPISODES = 100
         self.epsilon = 0.95
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.5 #--Between 0-1.
@@ -198,8 +199,12 @@ class QLearning:
         self.prev_error_height = 0
         self.error = 0
 
+        self.lastTime = 0.0
+
     def state_cb(self, msg):
         self.current_state = msg
+
+        self.lastTime = time.time()
 
     def extended_state_cb(self,msg):
         self.extended_state = msg
@@ -211,17 +216,16 @@ class QLearning:
 
     def getState(self,cx,angle_orientation):
        
-        state = None
-        print(abs(160 - cx))
+        state_ = None
         if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 42.0):
-            state = len(STATES) - 1
+            state_ = len(STATES) - 1
             
         else:
             for id_state in range(len(STATES)):
                 if cx >= STATES[id_state][0] and cx <= STATES[id_state][1]: 
-                    state = id_state
+                    state_ = id_state
                  
-        return state
+        return state_
         
 
     def chooseAction(self,state):
@@ -271,13 +275,7 @@ class QLearning:
                 self.has_taken_off = True
 
 
-    def reset_env(self):
-        self.take_off()
-
-        while self.has_taken_off:
-            if(self.extended_state.landed_state == STATE_IN_AIR):
-                self.has_taken_off = False
-
+   
     def return_home_position(self):
 
         if(self.has_return is False):
@@ -289,12 +287,6 @@ class QLearning:
                 rospy.loginfo("RETURN MODE") 
                 self.has_return = True
 
-        while self.has_return:
-            if(self.extended_state.landed_state == STATE_ON_GROUND):
-                if (self.set_mode_client.call(self.set_mode_hold).mode_sent is True):
-                    rospy.loginfo("HOLD")
-                    self.has_return = False
-                    self.pepe = True
 
 
     def height_velocity_controller(self):
@@ -351,6 +343,46 @@ class QLearning:
 
 
         return reward
+    
+    def is_exit_lane(self,error):
+
+        
+        if(abs(error) < 42.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
+           return False
+       
+        else:
+           return True
+    
+
+    def algorithm(self,error,perception,current_state):
+        global n_steps,state
+
+       
+        while(not self.is_exit_lane(error)):
+            if time.time() - self.lastTime > 5.0:
+                state = 5
+                break
+            action,id_action = qlearning.chooseAction(current_state)
+            qlearning.execute_action(action)
+            out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            perception.drawStates(out_image)
+            reward = qlearning.reward_function(cx,angle_orientation)
+            next_state = qlearning.getState(cx,angle_orientation)
+            qlearning.functionQLearning(current_state,next_state,id_action,reward)
+            print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
+            current_state = next_state
+            #print(current_state > 0 and current_state < 10)
+            n_steps += 1
+            
+            error = (WIDTH/2 - cx) 
+            print("Error: " + str(error))
+            cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
+            cv2.imshow("image",out_image)
+            cv2.waitKey(3)
+
+        state = 4
+
+
 
 class Perception():
     def __init__(self):
@@ -944,6 +976,31 @@ class Perception():
         
 
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
+
+
+    def correct_initial_position(self,angle_error,qlearning):
+        global state
+
+        while(abs(angle_error) > 0.1):
+            if time.time() - self.lastTime > 5.0:
+                state = 5
+                break
+            qlearning.height_velocity_controller()
+            if(qlearning.set_mode_client.call(qlearning.set_mode_offboard).mode_sent is True):
+                rospy.loginfo("OFFBOARD MODE")
+        
+            if perception.address == "LEFT":
+                qlearning.velocity.angular.z = abs((0.1 * angle_error))
+            else:
+                qlearning.velocity.angular.z = (0.1 * angle_error)
+
+            qlearning.local_raw_pub.publish(qlearning.velocity)
+            qlearning.prev_error_height = qlearning.error
+            _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            angle_error = 0.0 - angle_orientation
+            
+        state = 2
+
         
         
         
@@ -958,95 +1015,100 @@ if __name__ == '__main__':
     cy = 0
     angle_orientation = 0
     current_state = 0
-    n_steps = 0
 
     list_ep_it = []
     list_ep_epsilon = []
     list_ep_accumulate_reward = []
 
     error = 0
+    n_episode = 0
 
+    rate = rospy.Rate(20)
+    primera_vez = False
 
-    for id_episode in range(qlearning.MAX_EPISODES):
-        qlearning.reset_env()
-        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-        
-        angle_error = 0.0 - angle_orientation
-        print(angle_error)
-        while(abs(angle_error) > 0.1):
-            qlearning.height_velocity_controller()
-            if(qlearning.set_mode_client.call(qlearning.set_mode_offboard).mode_sent is True):
-                rospy.loginfo("OFFBOARD MODE")
-            
-            if perception.address == "LEFT":
-                qlearning.velocity.angular.z = abs((0.1 * angle_error))
-            else:
-                 qlearning.velocity.angular.z = (0.1 * angle_error)
+   
+    while (not rospy.is_shutdown()):
+        try:
+            if time.time() - qlearning.lastTime > 5.0:
+                break
 
-            qlearning.local_raw_pub.publish(qlearning.velocity)
-            qlearning.prev_error_height = qlearning.error
-            _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            angle_error = 0.0 - angle_orientation
-            print(angle_error)
-
-        angle_error = 0.0
-
-        qlearning.stop()
-        
-
-        print("Corregido")
-       
-        print("Beggin episode : " + str(id_episode) + "Value epsilon: " + str(qlearning.epsilon))
-        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-
-        error = (WIDTH/2 - cx)
-        
-        
-        current_state = qlearning.getState(cx,angle_orientation)
-        #print(error)
-
-        while (abs(error) < 42.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
-            #print(error)
-            action,id_action = qlearning.chooseAction(current_state)
-            qlearning.execute_action(action)
-            out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            perception.drawStates(out_image)
-            reward = qlearning.reward_function(cx,angle_orientation)
-            next_state = qlearning.getState(cx,angle_orientation)
-            qlearning.functionQLearning(current_state,next_state,id_action,reward)
-            print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
-            current_state = next_state
-            #print(current_state > 0 and current_state < 10)
-            n_steps += 1
-            
-            error = (WIDTH/2 - cx) 
-            print("Error: " + str(error))
-            cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
-            cv2.imshow("image",out_image)
-            cv2.waitKey(3)
+            if(state == 0):
+                if(qlearning.extended_state.landed_state == STATE_ON_GROUND):
+                    qlearning.take_off()
                 
-        cv2.destroyAllWindows()
-        qlearning.stop()
-        qlearning.return_home_position()
-        print("ID_EPISODE: " + str(id_episode) + " N_STEPS: " + str(n_steps))
-        list_ep_it.append([id_episode,n_steps])
-        list_ep_epsilon.append([id_episode,qlearning.epsilon])
-        list_ep_accumulate_reward.append([id_episode,qlearning.accumulatedReward])
+                elif(qlearning.extended_state.landed_state == STATE_IN_AIR):
+                    state = 1
 
-        qlearning.epsilon = max(0.01, qlearning.epsilon - 0.01)
+            if(state == 1):
+                _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+                angle_error = 0.0 - angle_orientation
 
-        n_steps = 0
-        qlearning.accumulatedReward = 0
-        
-        print("END EPISODE")
-        print(list_ep_it)
-        while qlearning.pepe:
-            #print("waiting disarmed")
-            if(qlearning.current_state.armed is False):
-               qlearning.pepe = False 
-               qlearning.has_armed = False
-               qlearning.has_taken_off = False
-        print("on ground")
+                perception.correct_initial_position(angle_error,qlearning)
+
+            if(state == 2):
+
+                if(n_episode < qlearning.MAX_EPISODES):
+                    n_episode += 1
+                    state = 3
+                else:
+                    state = 5
+            
+            if(state == 3):
+
+                _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+
+                error = (WIDTH/2 - cx)
+                current_state = qlearning.getState(cx,angle_orientation)
+                qlearning.algorithm(error,perception,current_state)
+                
+            if(state == 4):
+
+                if(not primera_vez):
+                    cv2.destroyAllWindows()
+                    qlearning.stop()
+                    qlearning.return_home_position()
+                    primera_vez = True
+
+                else:
+                    if(qlearning.extended_state.landed_state == STATE_ON_GROUND and qlearning.current_state.armed is False):
+                        if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
+                            rospy.loginfo("HOLD")
+                        qlearning.has_armed = False
+                        qlearning.has_taken_off = False
+                        qlearning.has_return = False
+                        primera_vez = False
+
+                        list_ep_it.append([n_episode,n_steps])
+                        list_ep_epsilon.append([n_episode,qlearning.epsilon])
+                        list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
+                        state = 0
+                        qlearning.epsilon = max(0.01, qlearning.epsilon - 0.01)
+                        print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
+                        n_steps = 0
+                        qlearning.accumulatedReward = 0
+                        
+                        
+
+
+            if(state == 5):
+                break
+
+            rate.sleep()
+
+        except rospy.ROSInterruptException:
+            print("Interrumpido C")
+            break
+
+        except rospy.service.ServiceException:
+            print("Parado el servicio")
+            break
+
+        except KeyboardInterrupt:
+            print("Control C")
+            break
+
+    
+    print("Ha acabado")
     
 
     with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-iterations.csv', 'w') as file:
@@ -1067,12 +1129,4 @@ if __name__ == '__main__':
 
 
     df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/q_table.csv")
-
-
-
-
-
-
-
-
 
