@@ -1,14 +1,13 @@
 #! /usr/bin/env python3
 import torch
 import rospy
-from sensor_msgs.msg import Image,PointCloud2
+from sensor_msgs.msg import Image,PointCloud2,NavSatFix
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
 import time
 import onnxruntime as ort
 from sklearn.cluster import DBSCAN
-from numba import jit
 import matplotlib.pyplot as plt
 from scipy.ndimage import binary_dilation
 from yolop.msg import MassCentre
@@ -69,11 +68,6 @@ is_not_detected_right = False
 cx_global = 0.0
 cy_global = 0.0
 
-frames_ = 0  
-
-vy_lineal = 0
-vz_angular = 0
-vz_lineal = 0
 
 n_steps = 0
 
@@ -90,28 +84,28 @@ STATES = [(i, i+20) for i in range(60, 240, 20)]
 
 #--Speeds and rate speeds
 ACTIONS = [
-    [1.0,-0.010 ,-0.1],
-    [1.0,-0.010 ,-0.09],
-    [1.0,-0.010 ,-0.08],
-    [1.0,-0.011 ,-0.07],
-    [1.0,-0.012 ,-0.07],
-    [1.0,-0.013 ,-0.06],
-    [1.0,-0.014 ,0.05],
-    [1.0,-0.015 ,-0.04],
-    [1.0,-0.016 ,-0.03],
-    [1.0,-0.018 ,-0.02],
-    [1.0,-0.02 ,-0.01],
-    [1.0,0.0,0.0],
-    [1.0,0.018, 0.01],
-    [1.0,0.016, 0.02],
-    [1.0,0.015, 0.03],
-    [1.0,0.014, 0.04],
-    [1.0,0.013, 0.05],
-    [1.0,0.012, 0.06],
-    [1.0,0.011, 0.07],
-    [1.0,0.010, 0.08],
-    [1.0,0.010, 0.09],
-    [1.0,0.010 ,0.1],
+    [-0.010 ,-0.1],
+    [-0.010 ,-0.09],
+    [-0.010 ,-0.08],
+    [-0.011 ,-0.07],
+    [-0.012 ,-0.07],
+    [-0.013 ,-0.06],
+    [-0.014 ,0.05],
+    [-0.015 ,-0.04],
+    [-0.016 ,-0.03],
+    [-0.018 ,-0.02],
+    [-0.02 ,-0.01],
+    [0.0,0.0],
+    [0.018, 0.01],
+    [0.016, 0.02],
+    [0.015, 0.03],
+    [0.014, 0.04],
+    [0.013, 0.05],
+    [0.012, 0.06],
+    [0.011, 0.07],
+    [0.010, 0.08],
+    [0.010, 0.09],
+    [0.010 ,0.1],
 ]
 
 def calculate_fps(t1,list_fps):
@@ -127,10 +121,10 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 100
+        self.MAX_EPISODES = 150
         self.epsilon = 0.95
-        self.alpha = 0.4 #--Between 0-1. 
-        self.gamma = 0.5 #--Between 0-1.
+        self.alpha = 0.5 #--Between 0-1. 
+        self.gamma = 0.6 #--Between 0-1.
         self.episodes = [0,0]
         self.end_episode = False
         self.begin_episode = False
@@ -167,14 +161,16 @@ class QLearning:
         self.set_mode_hold.custom_mode = 'AUTO.LOITER'
 
         self.current_state = State()
+        self.localization_gps = NavSatFix()
         
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb)
+        self.localization_gps_sub = rospy.Subscriber("/mavros/global_position/global",NavSatFix,callback=self.localization_gps_cb)
         self.extended_state = ExtendedState()
         self.extend_state_sub = rospy.Subscriber(EXTENDED_STATE,ExtendedState,callback=self.extended_state_cb)
 
         self.set_home_position = CommandHomeRequest()
         self.set_home_position.current_gps = False
-        self.set_home_position.yaw = 41.0
+        self.set_home_position.yaw = 39.0
         self.set_home_position.latitude = 47.6416705
         self.set_home_position.longitude =  -122.1405088
         self.set_home_position.altitude =  101.36056744315884
@@ -200,6 +196,10 @@ class QLearning:
         self.error = 0
 
         self.lastTime = 0.0
+
+
+    def localization_gps_cb(self,msg):
+        self.localization_gps = msg
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -301,9 +301,8 @@ class QLearning:
     def execute_action(self,action):
 
         
-        if(self.set_mode_client.call(self.set_mode_offboard).mode_sent is True):
-            rospy.loginfo("OFFBOARD MODE")
-
+        self.set_mode_client.call(self.set_mode_offboard)
+            
         
         #print("Correct heigh")
         self.height_velocity_controller()
@@ -317,8 +316,8 @@ class QLearning:
 
     def stop(self):
 
-        if(self.set_mode_client.call(self.set_mode_offboard).mode_sent is True):
-            rospy.loginfo("OFFBOARD MODE")
+        self.set_mode_client.call(self.set_mode_offboard)
+            
         
         self.velocity.linear.x = 0
         self.velocity.linear.y = 0
@@ -352,20 +351,37 @@ class QLearning:
        
         else:
            return True
+        
+
+    def is_finish_route(self):
+
+        if(self.localization_gps.latitude == 47.6426689 and self.localization_gps.longitude == -122.1407929 and self.localization_gps.altitude == 101.96691264883958):
+            return True
+        
+        else:
+            return False
+
+        
     
 
     def algorithm(self,error,perception,current_state):
         global n_steps,state
 
        
-        while(not self.is_exit_lane(error)):
+        while(not self.is_exit_lane(error) and (not self.is_finish_route())):
+            print("Time: " +str(time.time() - self.lastTime))
             if time.time() - self.lastTime > 5.0:
                 state = 5
                 break
             action,id_action = qlearning.chooseAction(current_state)
             qlearning.execute_action(action)
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            perception.drawStates(out_image)
+
+            if (out_image is not None):
+                perception.drawStates(out_image)
+                cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
+                cv2.imshow("image",out_image)
+                cv2.waitKey(3)
             reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx,angle_orientation)
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
@@ -376,9 +392,8 @@ class QLearning:
             
             error = (WIDTH/2 - cx) 
             print("Error: " + str(error))
-            cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
-            cv2.imshow("image",out_image)
-            cv2.waitKey(3)
+            
+           
 
         state = 4
 
@@ -982,12 +997,12 @@ class Perception():
         global state
 
         while(abs(angle_error) > 0.1):
-            if time.time() - self.lastTime > 5.0:
+            if time.time() - qlearning.lastTime > 5.0:
                 state = 5
                 break
             qlearning.height_velocity_controller()
-            if(qlearning.set_mode_client.call(qlearning.set_mode_offboard).mode_sent is True):
-                rospy.loginfo("OFFBOARD MODE")
+            qlearning.set_mode_client.call(qlearning.set_mode_offboard)
+               
         
             if perception.address == "LEFT":
                 qlearning.velocity.angular.z = abs((0.1 * angle_error))
@@ -1029,9 +1044,6 @@ if __name__ == '__main__':
    
     while (not rospy.is_shutdown()):
         try:
-            if time.time() - qlearning.lastTime > 5.0:
-                break
-
             if(state == 0):
                 if(qlearning.extended_state.landed_state == STATE_ON_GROUND):
                     qlearning.take_off()
@@ -1058,6 +1070,7 @@ if __name__ == '__main__':
                 _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
                 error = (WIDTH/2 - cx)
+                print("Error antes de hacer avanzar, en la correccion" + str(error))
                 current_state = qlearning.getState(cx,angle_orientation)
                 qlearning.algorithm(error,perception,current_state)
                 
@@ -1077,18 +1090,20 @@ if __name__ == '__main__':
                         qlearning.has_taken_off = False
                         qlearning.has_return = False
                         primera_vez = False
+                        is_not_detected_left = False
+                        is_not_detected_right = False
 
                         list_ep_it.append([n_episode,n_steps])
                         list_ep_epsilon.append([n_episode,qlearning.epsilon])
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
                         state = 0
-                        qlearning.epsilon = max(0.01, qlearning.epsilon - 0.01)
+                        qlearning.epsilon = max(0.00, qlearning.epsilon - 0.01)
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
                         n_steps = 0
                         qlearning.accumulatedReward = 0
-                        
-                        
 
+                        if(n_episode ==  qlearning.MAX_EPISODES):
+                            state = 5
 
             if(state == 5):
                 break
@@ -1109,18 +1124,19 @@ if __name__ == '__main__':
 
     
     print("Ha acabado")
+    print(qlearning.QTable)
     
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-iterations.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-iterations.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-epsilon.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-accumulated-reward.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward) 
 
@@ -1128,5 +1144,5 @@ if __name__ == '__main__':
     df = pd.DataFrame(qlearning.QTable)
 
 
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/q_table.csv")
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/6/q_table.csv")
 
