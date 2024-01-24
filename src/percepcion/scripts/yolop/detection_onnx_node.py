@@ -61,7 +61,19 @@ vy_lineal = 0
 vz_angular = 0
 vz_lineal = 0
 
-STATES = [(i, i+20) for i in range(60, 240, 20)]
+STATES = [
+    (100, 110),
+    (111, 121),
+    (122, 132),
+    (133, 143),
+    (144, 154),
+    (155, 165),
+    (166, 176),
+    (177, 187),
+    (188, 198),
+]
+
+print(len(STATES))
 
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
@@ -611,9 +623,9 @@ class ImageSubscriber:
 
             
 
-            cv2.circle(cvimage, (self.cx,self.cy), radius=5, color=(0, 0, 0),thickness=-1)
+            cv2.circle(cvimage, (self.cx,self.cy), radius=3, color=(0, 0, 0),thickness=-1)
             
-            cv2.line(cvimage,(160,320),(160,180),(0,0,0),3)
+            #cv2.line(cvimage,(160,320),(160,180),(0,0,0),)
                
                 
 
@@ -630,18 +642,23 @@ class ImageSubscriber:
         for i in range(len(STATES)):
             for x in STATES[i]:
                 sp = (x, 0)
-                ep = (x, imageH)
-                cv2.line(out_image, sp, ep, (255,255,255), thickness)
+                ep = (x, 320)
+                redVal = int(i * 20)
+                greenVal = int(155 - (i * 20))
+                blueVal = int(255 - (i * 20))
+                cv2.line(out_image, sp, ep, (redVal,greenVal,blueVal), thickness)
                 cv2.putText(
                     out_image,
                     "S" + str(int(i)),
-                    (STATES[i][0] + 5, 20),
+                    (STATES[i][0] + 2, 20),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.3,
-                    (255, 255, 255),
+                    0.2,
+                    (redVal, greenVal, blueVal),
                     1,
                     cv2.LINE_AA,
                 )
+
+
     
 
 
@@ -656,7 +673,9 @@ class ImageSubscriber:
         left_clusters,right_clusters,img_cluster,img = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
 
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
-        #self.drawStates(out_img)
+        self.drawStates(out_img)
+        
+    
        
       
         cv2.line(img_cluster,(160,320),(160,0),(255,0,255),3)
@@ -704,7 +723,7 @@ class ImageSubscriber:
         
        
         cv2.imshow('Clusters',img)
-        cv2.imshow('YOLOP',image_resize)
+        cv2.imshow('image',out_img)
 
         # Press `q` to exit.
         cv2.waitKey(3)
@@ -801,7 +820,7 @@ if __name__ == '__main__':
     set_mode = SetModeRequest()
     set_mode.custom_mode = 'OFFBOARD'
 
-    rate = rospy.Rate(20)
+    rate = rospy.Rate(10)
 
 
     last_req = rospy.Time.now()
@@ -818,6 +837,11 @@ if __name__ == '__main__':
 
     while (not rospy.is_shutdown()):
         #print((WIDTH/2 - image_viewer.cx)*(X_PER_PIXEL/WIDTH))
+        print("Centre lane: " + str(image_viewer.cx))
+        for id_state in range(len(STATES)):
+                if image_viewer.cx >= STATES[id_state][0] and image_viewer.cx <= STATES[id_state][1]: 
+                    state_ = id_state
+                    print("State: " + str(state_))
       
        
         """

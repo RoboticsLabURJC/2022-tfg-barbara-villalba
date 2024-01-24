@@ -73,14 +73,19 @@ n_steps = 0
 
 state = 0
 
+STATES = [
+    (100, 110),
+    (111, 121),
+    (122, 132),
+    (133, 143),
+    (144, 154),
+    (155, 165),
+    (166, 176),
+    (177, 187),
+    (188, 198),
+]
 
-STATES = [(i, i+20) for i in range(60, 240, 20)]
-#STATES.insert(0,(0,60))
-#STATES.append((240,320))
-
-
-
-
+"""
 
 #--Speeds and rate speeds
 ACTIONS = [
@@ -108,6 +113,33 @@ ACTIONS = [
     [0.010 ,0.1],
 ]
 
+"""
+ACTIONS = [
+    [0.95 ,-0.1],
+    [0.95 ,-0.09],
+    [0.96 ,-0.08],
+    [0.96 ,-0.07],
+    [0.97 ,-0.06],
+    [0.97 ,0.05],
+    [0.98 ,-0.04],
+    [0.98 ,-0.03],
+    [0.99 ,-0.02],
+    [0.99,-0.01],
+    [1.0,0.0],
+    [0.99, 0.01],
+    [0.99, 0.02],
+    [0.98, 0.03],
+    [0.98, 0.04],
+    [0.97, 0.05],
+    [0.97, 0.06],
+    [0.96, 0.07],
+    [0.96, 0.08],
+    [0.95, 0.09],
+    [0.95 ,0.1],
+
+]
+
+
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
         list_fps.append(fps)
@@ -121,15 +153,10 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 150
+        self.MAX_EPISODES = 1
         self.epsilon = 0.95
         self.alpha = 0.5 #--Between 0-1. 
         self.gamma = 0.6 #--Between 0-1.
-        self.episodes = [0,0]
-        self.end_episode = False
-        self.begin_episode = False
-        self.is_first_episode = False
-        self.n_episode = 0
 
         self.current_state_q = 0
         self.states = 0
@@ -168,12 +195,36 @@ class QLearning:
         self.extended_state = ExtendedState()
         self.extend_state_sub = rospy.Subscriber(EXTENDED_STATE,ExtendedState,callback=self.extended_state_cb)
 
+        
         self.set_home_position = CommandHomeRequest()
         self.set_home_position.current_gps = False
-        self.set_home_position.yaw = 39.0
-        self.set_home_position.latitude = 47.6416705
-        self.set_home_position.longitude =  -122.1405088
-        self.set_home_position.altitude =  101.36056744315884
+
+        self.FIRST_LOCALIZATION = 1
+        self.SECOND_LOCALIZATION = 2
+
+
+
+        """
+        LOCALIZATION GPS 2
+        yaw: 7.5
+        latitude: 47.641977
+        longitude: -122.1402614
+        altitude: 99.93487272033067
+
+        """
+
+        """
+        yaw: -80.0
+        LOCALIZATION GPS 3
+        latitude: 47.6424258
+        longitude: -122.1404547
+        altitude: 99.94147849127997
+
+
+        """
+
+
+        
       
 
         self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
@@ -279,6 +330,28 @@ class QLearning:
     def return_home_position(self):
 
         if(self.has_return is False):
+
+            number_localization_gps = random.randint(1,3)
+
+        
+            if(number_localization_gps == self.FIRST_LOCALIZATION):
+                self.set_home_position.yaw = 32.0
+                self.set_home_position.latitude = 47.6416699
+                self.set_home_position.longitude =  -122.1405066
+                self.set_home_position.altitude =  99.78857091437675
+
+            elif(number_localization_gps == self.SECOND_LOCALIZATION):
+                self.set_home_position.yaw = 7.5
+                self.set_home_position.latitude = 47.641977
+                self.set_home_position.longitude =  -122.1402614
+                self.set_home_position.altitude =  99.93487272033067
+
+            else: 
+                self.set_home_position.yaw = -80.0
+                self.set_home_position.latitude = 47.6424258
+                self.set_home_position.longitude =  -122.1404547
+                self.set_home_position.altitude =  99.94147849127997
+
         
             if (self.set_home_client.call(self.set_home_position)):
                 rospy.loginfo("He cambiado la posicion de casa") 
@@ -308,8 +381,8 @@ class QLearning:
         self.height_velocity_controller()
 
         self.velocity.linear.x = action[0]
-        self.velocity.linear.y = action[1]
-        self.velocity.angular.z = action[2]
+        #self.velocity.linear.y = action[0]
+        self.velocity.angular.z = action[1]
         self.local_raw_pub.publish(self.velocity)
         self.prev_error_height = self.error
      
@@ -330,8 +403,8 @@ class QLearning:
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
-        if ((is_not_detected_left) or (is_not_detected_right)) or (cx == -1) or (abs(error_lane_center) > 42.0):
-            #print(is_not_detected_left,is_not_detected_right,angle,cx)
+        if (self.is_exit_lane(error_lane_center) or (cx == -1)):
+
             reward = -100
 
         else:
@@ -377,6 +450,7 @@ class QLearning:
             qlearning.execute_action(action)
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
+
             if (out_image is not None):
                 perception.drawStates(out_image)
                 cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
@@ -384,7 +458,7 @@ class QLearning:
                 cv2.waitKey(3)
             reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx,angle_orientation)
-            qlearning.functionQLearning(current_state,next_state,id_action,reward)
+            #qlearning.functionQLearning(current_state,next_state,id_action,reward)
             print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
@@ -1097,7 +1171,8 @@ if __name__ == '__main__':
                         list_ep_epsilon.append([n_episode,qlearning.epsilon])
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
                         state = 0
-                        qlearning.epsilon = max(0.00, qlearning.epsilon - 0.01)
+
+                        qlearning.epsilon = max(0.0, qlearning.epsilon * 0.999)
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
                         n_steps = 0
                         qlearning.accumulatedReward = 0
@@ -1122,21 +1197,22 @@ if __name__ == '__main__':
             print("Control C")
             break
 
-    
+"""
+
     print("Ha acabado")
     print(qlearning.QTable)
     
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-iterations.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-iterations.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-epsilon.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-accumulated-reward.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward) 
 
@@ -1144,5 +1220,6 @@ if __name__ == '__main__':
     df = pd.DataFrame(qlearning.QTable)
 
 
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/6/q_table.csv")
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/q_table.csv")
+"""
 
