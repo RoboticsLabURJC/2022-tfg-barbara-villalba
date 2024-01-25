@@ -24,6 +24,7 @@ import math
 import random
 import csv
 import pandas as pd
+import airsim
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -115,7 +116,7 @@ ACTIONS = [
 
 """
 ACTIONS = [
-    [0.95 ,-0.1],
+    [0.95 ,-0.1],    
     [0.95 ,-0.09],
     [0.96 ,-0.08],
     [0.96 ,-0.07],
@@ -150,10 +151,11 @@ class QLearning:
     def __init__(self):
     
         self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
+        print(len(STATES) + 1)
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 1
+        self.MAX_EPISODES = 300
         self.epsilon = 0.95
         self.alpha = 0.5 #--Between 0-1. 
         self.gamma = 0.6 #--Between 0-1.
@@ -201,6 +203,10 @@ class QLearning:
 
         self.FIRST_LOCALIZATION = 1
         self.SECOND_LOCALIZATION = 2
+
+        self.client_airsim = airsim.MultirotorClient(ip="192.168.2.16")
+        self.client_airsim.confirmConnection()
+        self.client_airsim.enableApiControl(True)
 
 
 
@@ -269,12 +275,18 @@ class QLearning:
        
         state_ = None
         if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 42.0):
-            state_ = len(STATES) - 1
+            state_ = len(STATES) 
+
             
         else:
             for id_state in range(len(STATES)):
+                
                 if cx >= STATES[id_state][0] and cx <= STATES[id_state][1]: 
                     state_ = id_state
+
+            if(state_ == None):
+                state_ = len(STATES)
+
                  
         return state_
         
@@ -332,6 +344,7 @@ class QLearning:
         if(self.has_return is False):
 
             number_localization_gps = random.randint(1,3)
+            print("Return localization: " + str(number_localization_gps))
 
         
             if(number_localization_gps == self.FIRST_LOCALIZATION):
@@ -410,7 +423,7 @@ class QLearning:
         else:
             
 
-            reward = 0.5 * (1 / (1 + abs(error_lane_center))) + 0.5 * (1 / (1 + abs(error_angle_orientation)))
+            reward = 0.5 * (1 / (1 + abs(error_lane_center)))
             
 
 
@@ -446,26 +459,35 @@ class QLearning:
             if time.time() - self.lastTime > 5.0:
                 state = 5
                 break
+
+
             action,id_action = qlearning.chooseAction(current_state)
+
             qlearning.execute_action(action)
+            time.sleep(0.01)
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
-
+            self.client_airsim.simPause(True)
+            #print("Pausado el simulador")
+            t1 = time.time()
             if (out_image is not None):
                 perception.drawStates(out_image)
-                cv2.circle(out_image,(cx,280),5,(0,0,0),-1)
+                cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
                 cv2.imshow("image",out_image)
                 cv2.waitKey(3)
             reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx,angle_orientation)
-            #qlearning.functionQLearning(current_state,next_state,id_action,reward)
+            qlearning.functionQLearning(current_state,next_state,id_action,reward)
+            self.client_airsim.simPause(False)
+            #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
+            #print("Reanudado el simulador")
             print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
             n_steps += 1
             
             error = (WIDTH/2 - cx) 
-            print("Error: " + str(error))
+            #print("Error: " + str(error))
             
            
 
@@ -586,7 +608,7 @@ class Perception():
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
-                    points_cluster = np.vstack((points_cluster,punto*2))
+                    points_cluster = np.vstack((points_cluster,punto*15))
                   
                     coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
                     
@@ -1172,7 +1194,7 @@ if __name__ == '__main__':
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
                         state = 0
 
-                        qlearning.epsilon = max(0.0, qlearning.epsilon * 0.999)
+                        qlearning.epsilon = max(0.0, qlearning.epsilon - 0.005)
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
                         n_steps = 0
                         qlearning.accumulatedReward = 0
@@ -1197,22 +1219,22 @@ if __name__ == '__main__':
             print("Control C")
             break
 
-"""
+
 
     print("Ha acabado")
     print(qlearning.QTable)
     
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-iterations.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-iterations.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-epsilon.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-accumulated-reward.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward) 
 
@@ -1220,6 +1242,6 @@ if __name__ == '__main__':
     df = pd.DataFrame(qlearning.QTable)
 
 
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/22-enero/q_table.csv")
-"""
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/q_table.csv")
+
 
