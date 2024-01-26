@@ -86,37 +86,11 @@ STATES = [
     (188, 198),
 ]
 
-"""
+STATE_TERMINAL = 9
 
 #--Speeds and rate speeds
 ACTIONS = [
-    [-0.010 ,-0.1],
-    [-0.010 ,-0.09],
-    [-0.010 ,-0.08],
-    [-0.011 ,-0.07],
-    [-0.012 ,-0.07],
-    [-0.013 ,-0.06],
-    [-0.014 ,0.05],
-    [-0.015 ,-0.04],
-    [-0.016 ,-0.03],
-    [-0.018 ,-0.02],
-    [-0.02 ,-0.01],
-    [0.0,0.0],
-    [0.018, 0.01],
-    [0.016, 0.02],
-    [0.015, 0.03],
-    [0.014, 0.04],
-    [0.013, 0.05],
-    [0.012, 0.06],
-    [0.011, 0.07],
-    [0.010, 0.08],
-    [0.010, 0.09],
-    [0.010 ,0.1],
-]
-
-"""
-ACTIONS = [
-    [0.95 ,-0.1],    
+    [0.95 ,-0.1],
     [0.95 ,-0.09],
     [0.96 ,-0.08],
     [0.96 ,-0.07],
@@ -125,7 +99,7 @@ ACTIONS = [
     [0.98 ,-0.04],
     [0.98 ,-0.03],
     [0.99 ,-0.02],
-    [0.99,-0.01],
+    [0.99  , -0.01],
     [1.0,0.0],
     [0.99, 0.01],
     [0.99, 0.02],
@@ -136,9 +110,61 @@ ACTIONS = [
     [0.96, 0.07],
     [0.96, 0.08],
     [0.95, 0.09],
-    [0.95 ,0.1],
+    [0.95,0.1],
+]
+
+"""
+
+#--Speeds and rate speeds
+ACTIONS = [
+    [0.95,-0.010 ,-0.1],
+    [0.95,-0.010 ,-0.09],
+    [0.96,-0.010 ,-0.08],
+    [0.96,-0.011 ,-0.07],
+    [0.97,-0.013 ,-0.06],
+    [0.97,-0.014 ,0.05],
+    [0.98,-0.015 ,-0.04],
+    [0.98,-0.016 ,-0.03],
+    [0.99,-0.018 ,-0.02],
+    [0.99,-0.02 ,-0.01],
+    [1.0,0.0,0.0],
+    [0.99,0.018, 0.01],
+    [0.99,0.016, 0.02],
+    [0.98,0.015, 0.03],
+    [0.98,0.014, 0.04],
+    [0.97,0.013, 0.05],
+    [0.97,0.012, 0.06],
+    [0.96,0.011, 0.07],
+    [0.96,0.010, 0.08],
+    [0.95,0.010, 0.09],
+    [0.95,0.010 ,0.1],
+]
+ACTIONS = [
+    [0.95,-0.15],    
+    [0.95,-0.14],
+    [0.96,-0.13],
+    [0.96,-0.12],
+    [0.97,-0.1],
+    [0.97,-0.09],
+    [0.98,-0.08],
+    [0.98,-0.06],
+    [0.99,-0.04],
+    [0.99,-0.02],
+    [1.0,0.0],
+    [0.99, 0.02],
+    [0.99, 0.04],
+    [0.98, 0.06],
+    [0.98, 0.08],
+    [0.97, 0.09],
+    [0.97, 0.1],
+    [0.96, 0.12],
+    [0.96, 0.13],
+    [0.95, 0.14],
+    [0.95 ,0.15],
 
 ]
+"""
+
 
 
 def calculate_fps(t1,list_fps):
@@ -151,7 +177,6 @@ class QLearning:
     def __init__(self):
     
         self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
-        print(len(STATES) + 1)
         self.accumulatedReward = 0
 
 
@@ -271,10 +296,10 @@ class QLearning:
         for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True):
             self.distance_z = point[0] 
 
-    def getState(self,cx,angle_orientation):
+    def getState(self,cx):
        
         state_ = None
-        if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 42.0):
+        if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 50.0) or (cx == -1):
             state_ = len(STATES) 
 
             
@@ -394,7 +419,7 @@ class QLearning:
         self.height_velocity_controller()
 
         self.velocity.linear.x = action[0]
-        #self.velocity.linear.y = action[0]
+        #self.velocity.linear.y = action[1]
         self.velocity.angular.z = action[1]
         self.local_raw_pub.publish(self.velocity)
         self.prev_error_height = self.error
@@ -416,7 +441,7 @@ class QLearning:
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
-        if (self.is_exit_lane(error_lane_center) or (cx == -1)):
+        if (self.is_exit_lane(error_lane_center,cx)):
 
             reward = -100
 
@@ -429,10 +454,10 @@ class QLearning:
 
         return reward
     
-    def is_exit_lane(self,error):
+    def is_exit_lane(self,error,cx):
 
         
-        if(abs(error) < 42.0) and ((is_not_detected_left is False ) or (is_not_detected_right is False)):
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(error) < 50.0):
            return False
        
         else:
@@ -450,11 +475,11 @@ class QLearning:
         
     
 
-    def algorithm(self,error,perception,current_state):
+    def algorithm(self,error,perception,current_state,centroid):
         global n_steps,state
 
        
-        while(not self.is_exit_lane(error) and (not self.is_finish_route())):
+        while(not self.is_exit_lane(error,centroid) and (not self.is_finish_route()) and (current_state != STATE_TERMINAL)):
             print("Time: " +str(time.time() - self.lastTime))
             if time.time() - self.lastTime > 5.0:
                 state = 5
@@ -476,7 +501,7 @@ class QLearning:
                 cv2.imshow("image",out_image)
                 cv2.waitKey(3)
             reward = qlearning.reward_function(cx,angle_orientation)
-            next_state = qlearning.getState(cx,angle_orientation)
+            next_state = qlearning.getState(cx)
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
             self.client_airsim.simPause(False)
             #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
@@ -487,6 +512,7 @@ class QLearning:
             n_steps += 1
             
             error = (WIDTH/2 - cx) 
+            centroid = cx
             #print("Error: " + str(error))
             
            
@@ -508,8 +534,8 @@ class Perception():
         self.bottom_right_base = [320,320]
         self.bottom_left  = [0, 320]
         self.bottom_right = [320,320]
-        self.top_left     = [0,180]
-        self.top_right    = [320, 180]
+        self.top_left     = [0,200]
+        self.top_right    = [320, 200]
         self.vertices = np.array([[self.bottom_left,self.top_left,self.top_right,self.bottom_right]], dtype=np.int32)
         self.point_cluster = np.ndarray
         self.kernel = np.array([[0,1,0], 
@@ -602,7 +628,7 @@ class Perception():
         """
 
         valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
-        punto = np.array([300, 0])
+        punto = np.array([290, 0])
 
         try:
             with warnings.catch_warnings():
@@ -665,7 +691,7 @@ class Perception():
         """
 
         valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
-        punto = np.array([320,319])
+        punto = np.array([290,319])
 
         try:
             with warnings.catch_warnings():
@@ -1167,8 +1193,8 @@ if __name__ == '__main__':
 
                 error = (WIDTH/2 - cx)
                 print("Error antes de hacer avanzar, en la correccion" + str(error))
-                current_state = qlearning.getState(cx,angle_orientation)
-                qlearning.algorithm(error,perception,current_state)
+                current_state = qlearning.getState(cx)
+                qlearning.algorithm(error,perception,current_state,cx)
                 
             if(state == 4):
 
@@ -1223,18 +1249,18 @@ if __name__ == '__main__':
 
     print("Ha acabado")
     print(qlearning.QTable)
-    
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-iterations.csv', 'w') as file:
+
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-iterations.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-epsilon.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-accumulated-reward.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward) 
 
@@ -1242,6 +1268,6 @@ if __name__ == '__main__':
     df = pd.DataFrame(qlearning.QTable)
 
 
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/25-enero/q_table.csv")
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/q_table.csv")
 
 
