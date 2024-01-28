@@ -75,20 +75,45 @@ n_steps = 0
 state = 0
 
 STATES = [
-    (100, 110),
-    (111, 121),
-    (122, 132),
-    (133, 143),
-    (144, 154),
-    (155, 165),
-    (166, 176),
-    (177, 187),
-    (188, 198),
+    (110, 120),
+    (121, 131),
+    (132, 142),
+    (143, 153),
+    (154, 164),
+    (165, 175),
+    (176, 186),
+    (187, 197),
 ]
 
-STATE_TERMINAL = 9
+STATE_TERMINAL = len(STATES)
 
 #--Speeds and rate speeds
+ACTIONS = [
+    [1.45 ,-0.1],
+    [1.45 ,-0.09],
+    [1.46 ,-0.08],
+    [1.46 ,-0.07],
+    [1.47 ,-0.06],
+    [1.47 ,0.05],
+    [1.48 ,-0.04],
+    [1.48,-0.03],
+    [1.49,-0.02],
+    [1.49, -0.01],
+    [1.50,0.0],
+    [1.49, 0.01],
+    [1.49, 0.02],
+    [1.48, 0.03],
+    [1.48, 0.04],
+    [1.47, 0.05],
+    [1.47, 0.06],
+    [1.46, 0.07],
+    [1.46, 0.08],
+    [1.45, 0.09],
+    [1.45,0.1],
+]
+
+"""
+#Experimentos 26 enero
 ACTIONS = [
     [0.95 ,-0.1],
     [0.95 ,-0.09],
@@ -112,8 +137,6 @@ ACTIONS = [
     [0.95, 0.09],
     [0.95,0.1],
 ]
-
-"""
 
 #--Speeds and rate speeds
 ACTIONS = [
@@ -177,10 +200,11 @@ class QLearning:
     def __init__(self):
     
         self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
+        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,20))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 300
+        self.MAX_EPISODES = 50
         self.epsilon = 0.95
         self.alpha = 0.5 #--Between 0-1. 
         self.gamma = 0.6 #--Between 0-1.
@@ -299,7 +323,7 @@ class QLearning:
     def getState(self,cx):
        
         state_ = None
-        if (is_not_detected_left == True or is_not_detected_right == True) or (abs(160 - cx) >= 50.0) or (cx == -1):
+        if (is_not_detected_left == True or is_not_detected_right == True) or (cx == -1):
             state_ = len(STATES) 
 
             
@@ -324,11 +348,13 @@ class QLearning:
         #--Exploration
         if n < self.epsilon:
             id_action = np.random.choice(len(ACTIONS))
+            print("Exploration: Action id:  " + str(id_action))
             return ACTIONS[id_action],id_action
         
         #--Explotation
         else:
             id_action = np.argmax(self.QTable[state,:])
+            print("Explotation: Action id:  " + str(id_action))
             return ACTIONS[id_action],id_action
         
 
@@ -344,7 +370,7 @@ class QLearning:
         #print("Table, State: " + str(state) + " Action: " + str(action) + "Next_State: " + str(next_state))
         #print(self.QTable[state, action])
         #print(np.argmax(self.QTable[next_state, action]))
-        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state, action]) - self.QTable[state, action])
+        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.argmax(self.QTable[next_state]) - self.QTable[state, action])
         
         self.accumulatedReward += reward
         #print(self.accumulatedReward,reward)
@@ -441,14 +467,14 @@ class QLearning:
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
-        if (self.is_exit_lane(error_lane_center,cx)):
+        if (self.is_exit_lane(error,cx)):
 
             reward = -100
 
         else:
             
 
-            reward = 0.5 * (1 / (1 + abs(error_lane_center)))
+            reward = (1 / (1 + abs(error_lane_center)))
             
 
 
@@ -457,7 +483,7 @@ class QLearning:
     def is_exit_lane(self,error,cx):
 
         
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(error) < 50.0):
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False) and (abs(error) <= 45)):
            return False
        
         else:
@@ -466,7 +492,8 @@ class QLearning:
 
     def is_finish_route(self):
 
-        if(self.localization_gps.latitude == 47.6426689 and self.localization_gps.longitude == -122.1407929 and self.localization_gps.altitude == 101.96691264883958):
+        if(self.localization_gps.latitude >= 47.6426 and self.localization_gps.longitude >= -122.1407 and self.localization_gps.altitude >= 101.9669):
+            print("Has acabado el recorrido")
             return True
         
         else:
@@ -506,7 +533,7 @@ class QLearning:
             self.client_airsim.simPause(False)
             #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
             #print("Reanudado el simulador")
-            print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
+            #print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
             n_steps += 1
@@ -1115,10 +1142,10 @@ class Perception():
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
 
 
-    def correct_initial_position(self,angle_error,qlearning):
+    def correct_initial_position(self,error,qlearning):
         global state
 
-        while(abs(angle_error) > 0.1):
+        while(abs(error) > 0):
             if time.time() - qlearning.lastTime > 5.0:
                 state = 5
                 break
@@ -1127,15 +1154,19 @@ class Perception():
                
         
             if perception.address == "LEFT":
-                qlearning.velocity.angular.z = abs((0.1 * angle_error))
+                qlearning.velocity.angular.z = abs((0.009 * error))
             else:
-                qlearning.velocity.angular.z = (0.1 * angle_error)
+                qlearning.velocity.angular.z = (0.009 * error)
 
             qlearning.local_raw_pub.publish(qlearning.velocity)
             qlearning.prev_error_height = qlearning.error
             _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            angle_error = 0.0 - angle_orientation
-            
+            error  = WIDTH/2 - cx
+            print(error)
+        
+        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+        error  = WIDTH/2 - cx
+        print("Error of final: " + str(error))
         state = 2
 
         
@@ -1175,9 +1206,10 @@ if __name__ == '__main__':
 
             if(state == 1):
                 _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-                angle_error = 0.0 - angle_orientation
+                #angle_error = 0.0 - angle_orientation
+                error = (WIDTH/2 - cx)
 
-                perception.correct_initial_position(angle_error,qlearning)
+                perception.correct_initial_position(error,qlearning)
 
             if(state == 2):
 
@@ -1220,7 +1252,7 @@ if __name__ == '__main__':
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
                         state = 0
 
-                        qlearning.epsilon = max(0.0, qlearning.epsilon - 0.005)
+                        qlearning.epsilon = max(0.0, qlearning.epsilon - 0.002375)
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
                         n_steps = 0
                         qlearning.accumulatedReward = 0
@@ -1246,21 +1278,19 @@ if __name__ == '__main__':
             break
 
 
-
     print("Ha acabado")
     print(qlearning.QTable)
-
-
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-iterations.csv', 'w') as file:
+    
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-enero/episodes-iterations.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-enero/episodes-epsilon.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-enero/episodes-accumulated-reward.csv', 'w') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward) 
 
@@ -1268,6 +1298,8 @@ if __name__ == '__main__':
     df = pd.DataFrame(qlearning.QTable)
 
 
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/26-enero/q_table.csv")
+    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/29-enero/q_table.csv")
+    
+ 
 
 
