@@ -202,13 +202,14 @@ class QLearning:
     
         
         
-        #self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
+        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 200
-        self.epsilon = 0.6559999999999997
+        self.MAX_EPISODES = 5
+        self.epsilon = 0.95
+
 
 
 
@@ -243,6 +244,9 @@ class QLearning:
 
         self.set_mode_hold = SetModeRequest()
         self.set_mode_hold.custom_mode = 'AUTO.LOITER'
+
+        self.set_mode_land = SetModeRequest()
+        self.set_mode_land.custom_mode = 'AUTO.LAND'
 
         self.current_state = State()
         self.localization_gps = NavSatFix()
@@ -309,7 +313,9 @@ class QLearning:
 
 
     def localization_gps_cb(self,msg):
+
         self.localization_gps = msg
+        
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -333,7 +339,7 @@ class QLearning:
                     state_ = id_state
 
         if(state_ == None):
-                print("Estado frontera")
+                #print("Estado frontera")
                 state_ = STATE_TERMINAL 
 
 
@@ -391,40 +397,63 @@ class QLearning:
                 self.has_taken_off = True
 
 
+    def land(self):
+        if (self.set_mode_client.call(self.set_mode_land).mode_sent is True):
+                rospy.loginfo("Land") 
+                
+
+
    
-    def return_home_position(self):
-
-        if(self.has_return is False):
-
-            number_localization_gps = random.randint(1,3)
-            print("Return localization: " + str(number_localization_gps))
+    def reset_position(self):
 
         
-            if(number_localization_gps == self.FIRST_LOCALIZATION):
-                self.set_home_position.yaw = 32.0
-                self.set_home_position.latitude = 47.6416699
-                self.set_home_position.longitude =  -122.1405066
-                self.set_home_position.altitude =  99.78857091437675
 
-            elif(number_localization_gps == self.SECOND_LOCALIZATION):
-                self.set_home_position.yaw = 7.5
-                self.set_home_position.latitude = 47.641977
-                self.set_home_position.longitude =  -122.1402614
-                self.set_home_position.altitude =  99.93487272033067
+        number_position = random.randint(1,3)
+        x = 0
+        y = 0
+        z = 0
 
-            else: 
-                self.set_home_position.yaw = -80.0
-                self.set_home_position.latitude = 47.6424258
-                self.set_home_position.longitude =  -122.1404547
-                self.set_home_position.altitude =  99.94147849127997
-
+        pitch = 0.0
+        yaw = 0.0
+        roll = 0.0
         
-            if (self.set_home_client.call(self.set_home_position)):
-                rospy.loginfo("He cambiado la posicion de casa") 
 
-            if (self.set_mode_client.call(self.set_mode_return).mode_sent is True):
-                rospy.loginfo("RETURN MODE") 
-                self.has_return = True
+    
+        if(number_position == self.FIRST_LOCALIZATION):
+            x = 0.0042578126303851604
+            y = -0.008479003794491291
+            z = -0.2734218239784241
+
+            yaw =  0.5250219330319704
+        
+
+        elif(number_position == self.SECOND_LOCALIZATION):
+            x = 28.493175506591797
+            y = 16.92218589782715
+            z = -0.2761923372745514
+
+            yaw =  0.2228621193016977
+        
+           
+
+        else: 
+            x = 52.03059387207031
+            y = 21.48541259765625
+            z = -0.2765296697616577
+
+            yaw =  0.10057752672224413
+
+
+        position = airsim.Vector3r(x,y,z)
+        orientation = airsim.to_quaternion(pitch,roll,yaw)
+        pose = airsim.Pose(position,orientation)
+
+        self.client_airsim.simSetVehiclePose(pose, True,"PX4")
+        self.client_airsim.enableApiControl(True)
+        self.client_airsim.armDisarm(False)
+        print("Reinicie")
+
+        time.sleep(1)
 
 
 
@@ -472,7 +501,7 @@ class QLearning:
         error_angle_orientation = 0.0 - angle
         if (self.is_exit_lane(error_lane_center,cx,error_angle_orientation)):
             exit = True
-            reward = -100
+            reward = -10
 
         else:
 
@@ -487,8 +516,8 @@ class QLearning:
     def is_exit_lane(self,error,cx,angle_error):
 
         
-        print((abs(angle_error)<= 7.8))
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and ((abs(error) < 42) and (abs(angle_error)<= 7.8)):
+        
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and ((abs(error) < 42) and (abs(angle_error)<= 7.0)):
            return False
        
         else:
@@ -498,7 +527,9 @@ class QLearning:
 
     def is_finish_route(self):
 
-        if(self.localization_gps.latitude >= 47.6426 and self.localization_gps.longitude >= -122.1407 and self.localization_gps.altitude >= 101.9669):
+        print(self.localization_gps.latitude,self.localization_gps.longitude,self.localization_gps.altitude)
+        print(self.localization_gps.latitude >= 47.6426689,self.localization_gps.longitude >= -122.1407929,self.localization_gps.altitude >= 101.3139425)
+        if(self.localization_gps.latitude >= 47.6426689 and self.localization_gps.longitude >= -122.1407929 and self.localization_gps.altitude >= 101.3139425):
             print("Has acabado el recorrido")
             return True
         
@@ -537,7 +568,7 @@ class QLearning:
             next_state = qlearning.getState(cx)
 
             if(not exit and next_state == STATE_TERMINAL):
-                reward = -50
+                reward = -5
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
             self.client_airsim.simPause(False)
             #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
@@ -551,7 +582,7 @@ class QLearning:
             error_angle = 0.0 - angle_orientation
             centroid = cx
             #print("Centroide: " + str(cx))
-            print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
+            #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
            
 
@@ -1209,10 +1240,10 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 150
+    n_episode = 0
 
     rate = rospy.Rate(20)
-    primera_vez = False
+    is_landing = False
     t_initial = time.time()
     t_counter_ep = 0
 
@@ -1254,20 +1285,23 @@ if __name__ == '__main__':
                 
             if(state == 4):
 
-                if(not primera_vez):
+                if(not is_landing):
                     cv2.destroyAllWindows()
                     qlearning.stop()
-                    qlearning.return_home_position()
-                    primera_vez = True
+                    if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
+                            rospy.loginfo("HOLD")
+                    qlearning.land()
+                    is_landing = True
 
                 else:
                     if(qlearning.extended_state.landed_state == STATE_ON_GROUND and qlearning.current_state.armed is False):
                         if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
                             rospy.loginfo("HOLD")
+
+                        qlearning.reset_position()
                         qlearning.has_armed = False
                         qlearning.has_taken_off = False
-                        qlearning.has_return = False
-                        primera_vez = False
+                        is_landing = False
                         is_not_detected_left = False
                         is_not_detected_right = False
                         exit = False
@@ -1310,7 +1344,10 @@ if __name__ == '__main__':
         except RuntimeError:
             print("Se produjo un error runtime")
             break
-        
+        except AttributeError:
+            print("Se produjo un error attributeError")
+            break
+
 
     print("Ha acabado")  
     print("Tiempo de entrenamiento: " + str(time.time() - t_initial))
@@ -1319,7 +1356,8 @@ if __name__ == '__main__':
 
     
     
-   
+    """
+    
     with open('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
@@ -1338,6 +1376,7 @@ if __name__ == '__main__':
 
 
     df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv")
+    """
     
     
       
