@@ -25,6 +25,8 @@ import random
 import csv
 import pandas as pd
 import airsim
+import datetime
+import os
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -202,19 +204,20 @@ class QLearning:
     
         
         
-        self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 5
-        self.epsilon = 0.95
+        self.MAX_EPISODES = 200
+        self.epsilon_initial = 0.95
+        self.epsilon = 0.7043571428571428
 
 
 
 
         self.alpha = 0.4 #--Between 0-1. 
-        self.gamma = 0.6 #--Between 0-1.
+        self.gamma = 0.7 #--Between 0-1.
 
         self.current_state_q = 0
         self.states = 0
@@ -310,6 +313,9 @@ class QLearning:
         self.error = 0
 
         self.lastTime = 0.0
+
+        self.CENTER_WEIGHT = 0.5 
+        self.ORIENTATION_WEIGHT = 0.5
 
 
     def localization_gps_cb(self,msg):
@@ -499,6 +505,7 @@ class QLearning:
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
+        
         if (self.is_exit_lane(error_lane_center,cx,error_angle_orientation)):
             exit = True
             reward = -10
@@ -506,7 +513,7 @@ class QLearning:
         else:
 
             
-            reward = (1 / (1 + abs(error_lane_center)))
+            reward = (self.CENTER_WEIGHT*(1 / (1 + abs(error_lane_center)))) + (self.ORIENTATION_WEIGHT*(1/(1 + abs(error_angle_orientation))))
             
             
 
@@ -1240,12 +1247,14 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 0
+    n_episode = 180
 
     rate = rospy.Rate(20)
     is_landing = False
     t_initial = time.time()
     t_counter_ep = 0
+
+    
 
    
     while (not rospy.is_shutdown()):
@@ -1290,10 +1299,14 @@ if __name__ == '__main__':
                     qlearning.stop()
                     if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
                             rospy.loginfo("HOLD")
+                    time.sleep(2)
                     qlearning.land()
+                    time.sleep(1)
+                    
                     is_landing = True
 
                 else:
+                    time.sleep(8)
                     if(qlearning.extended_state.landed_state == STATE_ON_GROUND and qlearning.current_state.armed is False):
                         if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
                             rospy.loginfo("HOLD")
@@ -1306,17 +1319,21 @@ if __name__ == '__main__':
                         is_not_detected_right = False
                         exit = False
 
+                        print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon))
+                        if(n_episode < 700):
+                            qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / 700))
+                        else:
+                            qlearning.epsilon = 0
+                        print("Tiempo por episodio: " + str(time.time() - t_episode))
+                        t_counter_ep +=time.time() - t_episode
+                        
+                        
                         list_ep_it.append([n_episode,n_steps])
                         list_ep_epsilon.append([n_episode,qlearning.epsilon])
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
-                        state = 0
-
-                        qlearning.epsilon = max(0.0, qlearning.epsilon - 0.002)
-                        print("Tiempo por episodio: " + str(time.time() - t_episode))
-                        t_counter_ep +=time.time() - t_episode
-                        print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps))
                         n_steps = 0
                         qlearning.accumulatedReward = 0
+                        state = 0
 
                         if(n_episode ==  qlearning.MAX_EPISODES):
                             state = 5
@@ -1352,31 +1369,34 @@ if __name__ == '__main__':
     print("Ha acabado")  
     print("Tiempo de entrenamiento: " + str(time.time() - t_initial))
     print("Media de tiempo por episodio: " + str(t_counter_ep/qlearning.MAX_EPISODES))
-    print(qlearning.QTable)   
+    print(qlearning.QTable)  
+
+
 
     
+    fecha = datetime.datetime.now().strftime('%d-%B')
+
     
-    """
+    carpeta = f'/home/bb6/pepe_ws/src/qlearning/trainings/{fecha}'
+
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/episodes-iterations.csv', 'a') as file:
+    os.makedirs(carpeta, exist_ok=True)
+
+    with open(f'{carpeta}/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/episodes-epsilon.csv', 'a') as file:
+    with open(f'{carpeta}/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/episodes-accumulated-reward.csv', 'a') as file:
+    with open(f'{carpeta}/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
-        wtr.writerows(list_ep_accumulate_reward) 
-
+        wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
-
-
-    df.to_csv("/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv")
-    """
+    df.to_csv(f'{carpeta}/q_table.csv')
+    
     
     
       
