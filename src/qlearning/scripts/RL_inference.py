@@ -127,7 +127,7 @@ class QLearning:
         
         
         #self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/31-enero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
@@ -329,8 +329,8 @@ class QLearning:
 
     def is_finish_route(self):
 
-        print(self.localization_gps.latitude,self.localization_gps.longitude,self.localization_gps.altitude)
-        print(self.localization_gps.latitude >= 47.6426689,self.localization_gps.longitude >= -122.1407929,self.localization_gps.altitude >= 101.3139425)
+        #print(self.localization_gps.latitude,self.localization_gps.longitude,self.localization_gps.altitude)
+        #print(self.localization_gps.latitude >= 47.6426689,self.localization_gps.longitude >= -122.1407929,self.localization_gps.altitude >= 101.3139425)
         if(self.localization_gps.latitude >= 47.6426689 and self.localization_gps.longitude >= -122.1407929 and self.localization_gps.altitude >= 101.3139425):
             print("Has acabado el recorrido")
             return True
@@ -1001,6 +1001,8 @@ if __name__ == '__main__':
     is_landing = False
     t_initial = time.time()
     t_counter_ep = 0
+    acciones_contador = {}
+    total_acciones = 0
 
     while (not rospy.is_shutdown()):
         try:
@@ -1022,11 +1024,8 @@ if __name__ == '__main__':
            
             if(state == 2):
 
+                
                 out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-
-                #error = (WIDTH/2 - cx)
-                #error_angle = 0.0 - angle_orientation
-                #print("Error antes de hacer avanzar, en la correccion" + str(error))
                 current_state = qlearning.getState(cx)
                 if current_state != -1:
 
@@ -1043,9 +1042,35 @@ if __name__ == '__main__':
 
                     else:
 
-                 
+                        t1 = time.time()
                         action_idx = np.argmax(qlearning.QTable[current_state, :])
                         qlearning.execute_action(ACTIONS[action_idx])
+
+                        print("Time inference: " + str(time.time() - t1))
+
+                        # Registra la acción
+                        if action_idx in acciones_contador:
+                            acciones_contador[action_idx] += 1
+                        else:
+                            acciones_contador[action_idx] = 1
+
+                        total_acciones += 1
+
+
+
+
+                        """
+                        
+                        total_acciones = len(ACTIONS)
+                        porcentaje_acciones = [ACTIONS.count(accion) / total_acciones * 100 for accion in ACTIONS]
+
+                        acciones_str = [("A" + str(accion)) for accion in ACTIONS]
+
+                        print(acciones_str,porcentaje_acciones)
+                        pepe.append([acciones_str, porcentaje_acciones])
+                        """
+
+                        
 
 
                 else:
@@ -1079,7 +1104,30 @@ if __name__ == '__main__':
             break
 
 
-    print("Ha acabado")  
+    print("Ha acabado")
+
+ 
+    # Convierte el diccionario a un DataFrame de pandas
+    df = pd.DataFrame(list(acciones_contador.items()), columns=['Accion', 'Veces'])
+
+    # Calcula el porcentaje
+    df['Porcentaje'] = (df['Veces'] / total_acciones) * 100
+
+    # Guarda el DataFrame en un archivo CSV
+    df.to_csv('/home/bb6/pepe_ws/acciones.csv', index=False)
+
+
+    """
+    
+    with open('acciones.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Accion", "Porcentaje"])  
+
+        for accion, porcentaje in pepe:
+            writer.writerow([accion, porcentaje])
+    """
+
+
 
 
     

@@ -115,84 +115,6 @@ ACTIONS = [
     [1.45,1.5 * 0.1],
 ]
 
-"""
-#Experimentos 26 enero
-ACTIONS = [
-    [0.95 ,-0.1],
-    [0.95 ,-0.09],
-    [0.96 ,-0.08],
-    [0.96 ,-0.07],
-    [0.97 ,-0.06],
-    [0.97 ,0.05],
-    [0.98 ,-0.04],
-    [0.98 ,-0.03],
-    [0.99 ,-0.02],
-    [0.99  , -0.01],
-    [1.0,0.0],
-    [0.99, 0.01],
-    [0.99, 0.02],
-    [0.98, 0.03],
-    [0.98, 0.04],
-    [0.97, 0.05],
-    [0.97, 0.06],
-    [0.96, 0.07],
-    [0.96, 0.08],
-    [0.95, 0.09],
-    [0.95,0.1],
-]
-
-#--Speeds and rate speeds
-ACTIONS = [
-    [0.95,-0.010 ,-0.1],
-    [0.95,-0.010 ,-0.09],
-    [0.96,-0.010 ,-0.08],
-    [0.96,-0.011 ,-0.07],
-    [0.97,-0.013 ,-0.06],
-    [0.97,-0.014 ,0.05],
-    [0.98,-0.015 ,-0.04],
-    [0.98,-0.016 ,-0.03],
-    [0.99,-0.018 ,-0.02],
-    [0.99,-0.02 ,-0.01],
-    [1.0,0.0,0.0],
-    [0.99,0.018, 0.01],
-    [0.99,0.016, 0.02],
-    [0.98,0.015, 0.03],
-    [0.98,0.014, 0.04],
-    [0.97,0.013, 0.05],
-    [0.97,0.012, 0.06],
-    [0.96,0.011, 0.07],
-    [0.96,0.010, 0.08],
-    [0.95,0.010, 0.09],
-    [0.95,0.010 ,0.1],
-]
-ACTIONS = [
-    [0.95,-0.15],    
-    [0.95,-0.14],
-    [0.96,-0.13],
-    [0.96,-0.12],
-    [0.97,-0.1],
-    [0.97,-0.09],
-    [0.98,-0.08],
-    [0.98,-0.06],
-    [0.99,-0.04],
-    [0.99,-0.02],
-    [1.0,0.0],
-    [0.99, 0.02],
-    [0.99, 0.04],
-    [0.98, 0.06],
-    [0.98, 0.08],
-    [0.97, 0.09],
-    [0.97, 0.1],
-    [0.96, 0.12],
-    [0.96, 0.13],
-    [0.95, 0.14],
-    [0.95 ,0.15],
-
-]
-"""
-
-
-
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
         list_fps.append(fps)
@@ -204,14 +126,14 @@ class QLearning:
     
         
         
-        #self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.QTable = np.zeros((len(STATES) + 1,len(ACTIONS)))
+        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 800
+        self.MAX_EPISODES = 1
         self.epsilon_initial = 0.95
-        self.epsilon = 0.4057857142857143
+        self.epsilon = 0
 
 
 
@@ -551,6 +473,8 @@ class QLearning:
 
        
         while(not self.is_exit_lane(error,centroid,error_angle) and (not self.is_finish_route()) and (current_state != STATE_TERMINAL)):
+            t0 = time.time()
+            
             #print("Time: " +str(time.time() - self.lastTime))
             if time.time() - self.lastTime > 5.0:
                 state = 5
@@ -565,7 +489,7 @@ class QLearning:
 
             self.client_airsim.simPause(True)
             #print("Pausado el simulador")
-            t1 = time.time()
+            #t1 = time.time()
             if (out_image is not None):
                 perception.drawStates(out_image)
                 cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
@@ -588,6 +512,9 @@ class QLearning:
             error = (WIDTH/2 - cx) 
             error_angle = 0.0 - angle_orientation
             centroid = cx
+            t1 = time.time()
+
+        print("FPS train: " + str(1/(t1- t0)))
             #print("Centroide: " + str(cx))
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
@@ -1228,8 +1155,6 @@ class Perception():
         state = 2
 
         
-        
-        
 if __name__ == '__main__':
     
     rospy.init_node("RL_node_py")
@@ -1247,12 +1172,14 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 400
+    n_episode = 0
 
     rate = rospy.Rate(20)
     is_landing = False
     t_initial = time.time()
     t_counter_ep = 0
+
+    t2 = 0.0
 
     
 
@@ -1290,11 +1217,14 @@ if __name__ == '__main__':
                 error_angle = 0.0 - angle_orientation
                 #print("Error antes de hacer avanzar, en la correccion" + str(error))
                 current_state = qlearning.getState(cx)
+                t2 = time.time()
                 qlearning.algorithm(error,perception,current_state,cx,error_angle)
                 
             if(state == 4):
-
+                
+               
                 if(not is_landing):
+                    print("Tiempo final: " + str(time.time() - t2))
                     cv2.destroyAllWindows()
                     qlearning.stop()
                     if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
@@ -1334,6 +1264,7 @@ if __name__ == '__main__':
                         n_steps = 0
                         qlearning.accumulatedReward = 0
                         state = 0
+                        
 
                         if(n_episode ==  qlearning.MAX_EPISODES):
                             state = 5
@@ -1382,6 +1313,8 @@ if __name__ == '__main__':
     
     #os.makedirs(carpeta, exist_ok=True)
 
+    """
+   
     with open('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
@@ -1396,6 +1329,7 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(qlearning.QTable)
     df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv')
+    """
     
     
     
