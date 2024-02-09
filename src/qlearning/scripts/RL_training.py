@@ -132,14 +132,14 @@ class QLearning:
     
         
         
-        self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/03-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 300
+        self.MAX_EPISODES = 500
         self.epsilon_initial = 0.95
-        self.epsilon = 0.95
+        self.epsilon = 0.5457222222222222
 
 
 
@@ -154,7 +154,6 @@ class QLearning:
 
         rospy.wait_for_service(SET_HOME_CLIENT)
         self.set_home_client = rospy.ServiceProxy(SET_HOME_CLIENT, CommandHome)
-
         rospy.wait_for_service(SET_MODE_CLIENT)
         self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
 
@@ -442,8 +441,8 @@ class QLearning:
     
     def is_exit_lane(self,error,cx,angle_error):
 
-        print(abs(angle_error))
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 9.0):
+        #print(abs(angle_error))
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 8.2):
            return False
        
         else:
@@ -492,7 +491,7 @@ class QLearning:
             
             
 
-            self.client_airsim.simPause(True)
+            #self.client_airsim.simPause(True)
             #print("Pausado el simulador")
             #t1 = time.time()
            
@@ -503,7 +502,7 @@ class QLearning:
                 cv2.waitKey(3)
            
 
-
+           
             #t4 = time.time()    
             reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx)
@@ -518,6 +517,7 @@ class QLearning:
             current_state = next_state
             #print(current_state > 0 and current_state < 10)
             n_steps += 1
+           
             
             error = (WIDTH/2 - cx) 
             error_angle = 0.0 - angle_orientation
@@ -656,23 +656,23 @@ class Perception():
                     self.list_left_coeff_a.append(coefficients[0])
                     self.list_left_coeff_b.append(coefficients[1])
                     self.list_left_coeff_c.append(coefficients[2])
-#
-                    a = np.mean(self.list_left_coeff_a[-10:])
-                    b = np.mean(self.list_left_coeff_b[-10:])
-                    c = np.mean(self.list_left_coeff_c[-10:])
+##
+                    a = np.mean(self.list_left_coeff_a[-5:])
+                    b = np.mean(self.list_left_coeff_b[-5:])
+                    c = np.mean(self.list_left_coeff_c[-5:])
 
                     mean_coeff = np.array([a,b,c])
                 
                     #coefficients_left_global = mean_coeff
 
                     self.counter_it_left += 1
-
+#
                     if(self.counter_it_left  > 5):
                       self.list_left_coeff_a.clear()
                       self.list_left_coeff_b.clear()
                       self.list_left_coeff_c.clear()
-                    
                       self.counter_it_left = 0
+                      
 
                     self.left_fit = coefficients
                 except np.RankWarning:
@@ -719,15 +719,15 @@ class Perception():
                     self.list_right_coeff_a.append(coefficients[0])
                     self.list_right_coeff_b.append(coefficients[1])
                     self.list_right_coeff_c.append(coefficients[2])
-#
-                    a = np.mean(self.list_right_coeff_a[-10:])
-                    b = np.mean(self.list_right_coeff_b[-10:])
-                    c = np.mean(self.list_right_coeff_c[-10:])
+##
+                    a = np.mean(self.list_right_coeff_a[-5:])
+                    b = np.mean(self.list_right_coeff_b[-5:])
+                    c = np.mean(self.list_right_coeff_c[-5:])
 #
                     mean_coeff = np.array([a,b,c])
 
 
-                    coefficients_right_global = mean_coeff
+                    #coefficients_right_global = mean_coeff
 
                     self.counter_it_right += 1
 
@@ -771,9 +771,9 @@ class Perception():
         right_clusters = []
         center = np.array([200,160])
         #interest_point = np.array((180,160))
-       
+        counter_right_points = 0
+        counter_left_points = 0
 
-        final_left_clusters = []
         final_right_clusters = []
 
         img = cv_image.copy()
@@ -798,12 +798,14 @@ class Perception():
                 # Check if the centroid is within the desired lane
                 if centroid[1] < 160:  # left lane
                     left_clusters.append(points_cluster)
+                    print("Izquierda: " + str(len(points_cluster)))
+                    img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
                 elif centroid[1] > 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
                     #print(centroid)
                     cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
-                    img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
-
+                    img[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
+                    print("Derecha: " + str(len(points_cluster)))
                
             # Now, among the closest clusters, select the one with the highest density
            
@@ -821,13 +823,14 @@ class Perception():
             
             for points_cluster in left_clusters:
                
-
+                counter_left_points +=len(points_cluster)
                 #color = self.colors[cluster % len(self.colors)]
                 cv_image[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
                 #cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
             
             for points_cluster, centroid in right_clusters:
                
+                counter_right_points +=len(points_cluster)
                 final_right_clusters.append(points_cluster)
                 
                 #color = self.colors[cluster % len(self.colors)]
@@ -835,7 +838,8 @@ class Perception():
                 #
             
            
-            if (len(left_clusters) == 0  or len(final_right_clusters) == 0):
+            if (counter_left_points == 0  or counter_right_points == 0):
+                
                 return None,None,-1
             
             else:
@@ -843,6 +847,8 @@ class Perception():
                 return left_clusters,final_right_clusters,0
         
         else:
+            print("No hay puntos en la calle")
+            print(left_clusters,right_clusters)
             return None,None,-1
 
     def draw_region(self,img):
@@ -1003,6 +1009,7 @@ class Perception():
         img = np.expand_dims(img, 0)  # (1, 3,320,320)
 
         self.t1 = time.time()
+        
         # inference: (1,n,6) (1,2,640,640) (1,2,640,640)
         _, da_seg_out, ll_seg_out = self.ort_session.run(
             ['det_out', 'drive_area_seg', 'lane_line_seg'],
@@ -1127,6 +1134,7 @@ class Perception():
         #print("Clustering: " + str(1 / (time.time() - self.t1)))
 
         if state_clusters == -1:
+            
             print("Error en clustering")
             cx = -1
             cy = -1 
@@ -1195,7 +1203,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 0
+    n_episode = 382
 
     rate = rospy.Rate(20)
     is_landing = False
@@ -1223,12 +1231,17 @@ if __name__ == '__main__':
                 error = (WIDTH/2 - cx)
 
                 perception.correct_initial_position(error,qlearning)
+                qlearning.stop()
+                if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
+                        rospy.loginfo("HOLD")
+                time.sleep(2)
 
             if(state == 2):
 
                 if(n_episode < qlearning.MAX_EPISODES):
                     n_episode += 1
                     state = 3
+                    time.sleep(5)
                 else:
                     state = 5
             
@@ -1288,6 +1301,7 @@ if __name__ == '__main__':
                         n_steps = 0
                         qlearning.accumulatedReward = 0
                         state = 0
+                        time.sleep(8)
                         
 
                         if(n_episode ==  qlearning.MAX_EPISODES):
@@ -1316,9 +1330,12 @@ if __name__ == '__main__':
         except RuntimeError:
             print("Se produjo un error runtime")
             break
+        
+        
         except AttributeError:
             print("Se produjo un error attributeError")
             break
+        
 
 
     print("Ha acabado")  
@@ -1338,22 +1355,21 @@ if __name__ == '__main__':
     #os.makedirs(carpeta, exist_ok=True)
 
     
-   
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-iterations.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-epsilon.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-accumulated-reward.csv', 'w') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
     df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/q_table.csv')
-    
+  
     
     
     
