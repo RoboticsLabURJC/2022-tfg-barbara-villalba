@@ -137,9 +137,9 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 500
+        self.MAX_EPISODES = 900
         self.epsilon_initial = 0.95
-        self.epsilon = 0.5457222222222222
+        self.epsilon = 0.21005555555555555
 
 
 
@@ -180,6 +180,8 @@ class QLearning:
 
         self.current_state = State()
         self.localization_gps = NavSatFix()
+        self.latitud = 0.0
+        self.longitud = 0.0
         
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb)
         self.localization_gps_sub = rospy.Subscriber("/mavros/global_position/global",NavSatFix,callback=self.localization_gps_cb)
@@ -197,7 +199,13 @@ class QLearning:
         self.client_airsim.confirmConnection()
         self.client_airsim.enableApiControl(True)
 
+        #--Points to road final
+        self.point_A_vertex = [47.642184,-122.140238]
+        self.point_B_vertex = [47.642187,-122.140186]
+        self.point_C_vertex = [47.642198,-122.140241]
+        self.point_D_vertex = [47.642201,-122.140188]
 
+       
 
         """
         LOCALIZATION GPS 2
@@ -248,6 +256,18 @@ class QLearning:
     def localization_gps_cb(self,msg):
 
         self.localization_gps = msg
+
+        parte_entera = int(self.localization_gps.latitude)
+        parte_decimal = int((self.localization_gps.latitude - parte_entera) * 1e6)  # Multiplicamos por 1e6 para obtener los 6 dígitos decimales
+        # Combinamos la parte entera y la parte decimal sin el último dígito
+        self.latitude = parte_entera + parte_decimal / 1e6
+
+        parte_entera2 = int(self.localization_gps.longitude)
+        parte_decimal2 = int((self.localization_gps.longitude - parte_entera2) * 1e6)  # Multiplicamos por 1e6 para obtener los 6 dígitos decimales
+        # Combinamos la parte entera y la parte decimal sin el último dígito
+        self.longitude = parte_entera2 + parte_decimal2 / 1e6
+        
+
         
 
     def state_cb(self, msg):
@@ -288,10 +308,12 @@ class QLearning:
         #--Exploration
         if n < self.epsilon:
             id_action = np.random.choice(len(ACTIONS))
+            print("Exploracion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         #--Explotation
         else:
             id_action = np.argmax(self.QTable[state,:])
+            print("Explotacion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         
     def functionQLearning(self,state,next_state,action,reward):
@@ -324,12 +346,7 @@ class QLearning:
         if (self.set_mode_client.call(self.set_mode_land).mode_sent is True):
                 rospy.loginfo("Land") 
                 
-
-
-   
     def reset_position(self):
-
-        
 
         number_position = random.randint(1,2)
         x = 0
@@ -442,7 +459,7 @@ class QLearning:
     def is_exit_lane(self,error,cx,angle_error):
 
         #print(abs(angle_error))
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 8.2):
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 7.5):
            return False
        
         else:
@@ -454,9 +471,26 @@ class QLearning:
 
         #print(self.localization_gps.latitude,self.localization_gps.longitude,self.localization_gps.altitude)
         #print(self.localization_gps.latitude >= 47.6426689,self.localization_gps.longitude >= -122.1407929,self.localization_gps.altitude >= 101.3139425)
+        """
+       
         if(self.localization_gps.latitude >= 47.642141 and self.localization_gps.longitude >= -122.1402203 and self.localization_gps.altitude >= 101.5238980):
             print("Has acabado el recorrido")
             return True
+        """
+        
+        print("Latitud: " + str(self.latitude) + " , Longitud: " + str(self.longitude))
+        print(self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0],self.point_B_vertex[0] <= self.latitude <=  self.point_D_vertex[0],
+              self.point_B_vertex[1] >= self.longitude  >= self.point_A_vertex[1],self.point_D_vertex[1] >= self.longitude >= self.point_C_vertex[1])
+        
+        if (self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0]) and \
+           (self.point_B_vertex[0] <= self.latitude <= self.point_D_vertex[0]) and \
+           (self.point_B_vertex[1] >= self.longitude >=self.point_A_vertex[1]) and \
+           (self.point_D_vertex[1] >= self.longitude >=self.point_C_vertex[1]):
+            print("El punto P está dentro del rectángulo.")
+            print("¡Recorrido completado! El dron está dentro del rectángulo.")
+            return True
+
+       
         
         else:
             return False
@@ -478,9 +512,10 @@ class QLearning:
             if time.time() - self.lastTime > 5.0:
                 state = 5
                 break
-            
 
-           
+            #_,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            #current_state = qlearning.getState(cx)
+            
             action,id_action = qlearning.chooseAction(current_state)
 
             qlearning.execute_action(action)
@@ -1203,7 +1238,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 382
+    n_episode = 700
 
     rate = rospy.Rate(20)
     is_landing = False
