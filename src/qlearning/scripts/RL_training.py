@@ -137,9 +137,9 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 900
+        self.MAX_EPISODES = 1200
         self.epsilon_initial = 0.95
-        self.epsilon = 0.21005555555555555
+        self.epsilon = 0
 
 
 
@@ -559,7 +559,7 @@ class QLearning:
             centroid = cx
             t1 = time.time()
 
-        print("FPS train: " + str(1/(t1 - t0)))
+        #print("FPS train: " + str(1/(t1 - t0)))
             #print("Centroide: " + str(cx))
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
@@ -1238,7 +1238,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 700
+    n_episode = 1156
 
     rate = rospy.Rate(20)
     is_landing = False
@@ -1247,9 +1247,6 @@ if __name__ == '__main__':
 
     t2 = 0.0
 
-    
-
-   
     while (not rospy.is_shutdown()):
         try:
             if(state == 0):
@@ -1258,7 +1255,8 @@ if __name__ == '__main__':
                     qlearning.take_off()
                 
                 elif(qlearning.extended_state.landed_state == STATE_IN_AIR):
-                    state = 1
+                    time.sleep(2)
+                    state = 2
 
             if(state == 1):
                 _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
@@ -1336,7 +1334,7 @@ if __name__ == '__main__':
                         n_steps = 0
                         qlearning.accumulatedReward = 0
                         state = 0
-                        time.sleep(8)
+                        time.sleep(10)
                         
 
                         if(n_episode ==  qlearning.MAX_EPISODES):
