@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import torch
 import rospy
-from sensor_msgs.msg import Image,PointCloud2,NavSatFix
+from sensor_msgs.msg import Image,PointCloud2,NavSatFix,Imu
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
@@ -27,6 +27,7 @@ import pandas as pd
 import airsim
 import datetime
 import os
+from tf.transformations import euler_from_quaternion
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -137,12 +138,9 @@ class QLearning:
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 100
+        self.MAX_EPISODES = 1400
         self.epsilon_initial = 0.95
-        self.epsilon = 0.8528888888888888
-
-
-
+        self.epsilon = 0
 
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.7 #--Between 0-1.
@@ -174,6 +172,9 @@ class QLearning:
 
         self.set_mode_hold = SetModeRequest()
         self.set_mode_hold.custom_mode = 'AUTO.LOITER'
+
+        self.set_mode_position = SetModeRequest()
+        self.set_mode_position.custom_mode = 'POSCTL'
 
         self.set_mode_land = SetModeRequest()
         self.set_mode_land.custom_mode = 'AUTO.LAND'
@@ -571,6 +572,7 @@ class Perception():
         self.bridge = CvBridge()
         self.tiempo_ultimo_callback = time.time()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img)
+        self.imu_sub = rospy.Subscriber("/mavros/imu/data", Imu, self.imu_callback)
         self.cv_image = Image()
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
@@ -579,8 +581,8 @@ class Perception():
         self.bottom_right_base = [320,320]
         self.bottom_left  = [0, 320]
         self.bottom_right = [320,320]
-        self.top_left     = [0,200]
-        self.top_right    = [320, 200]
+        self.top_left     = [0,170]
+        self.top_right    = [320, 170]
         self.vertices = np.array([[self.bottom_left,self.top_left,self.top_right,self.bottom_right]], dtype=np.int32)
         self.point_cluster = np.ndarray
         self.kernel = np.array([[0,1,0], 
@@ -621,8 +623,30 @@ class Perception():
         self.prev_density = None
 
         self.address = ""
+        self.roll = 0.0
+        self.pitch = 0.0
 
-       
+
+    def imu_callback(self,data):
+        quaternion = (
+        data.orientation.x,
+        data.orientation.y,
+        data.orientation.z,
+        data.orientation.w
+       )
+
+        # Convierte los cuaterniones a ángulos de Euler (roll, pitch, yaw)
+        roll, pitch, yaw = euler_from_quaternion(quaternion)
+
+        # Ahora `roll` contiene el ángulo de balanceo en radianes
+        # Puedes convertirlo a grados si lo prefieres
+        roll = roll * 180.0 / np.pi
+        self.roll = roll
+        pitch = pitch * 180.0 / np.pi
+        self.pitch = pitch
+
+
+
 
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         """
@@ -1189,6 +1213,31 @@ class Perception():
 
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
 
+        """
+       
+        height, width = cv_image.shape[:2]
+
+        # Punto alrededor del cual se va a rotar la imagen
+        # En este caso, vamos a rotar alrededor del centro de la imagen
+        point = (width // 2, height // 2)
+    
+        # Calcula la matriz de rotación para el ángulo dado
+        rotation_matrix = cv2.getRotationMatrix2D(point, self.roll, 1.0)
+    
+        # Rota la imagen
+        cv_image = cv2.warpAffine(cv_image, rotation_matrix, (width, height))
+
+        # Define los puntos de origen y destino para la transformación de perspectiva
+        src_points = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
+        dst_points = np.float32([[0, height], [width, height], [self.pitch, 0], [width-self.pitch, 0]])
+
+        # Calcula la matriz de transformación de perspectiva
+        perspective_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+
+        # Aplica la transformación de perspectiva para compensar el pitch
+        self.cv_image = cv2.warpPerspective(cv_image, perspective_matrix, (width, height))
+        """
+
 
     def correct_initial_position(self,error,qlearning):
         global state
@@ -1236,7 +1285,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 91
+    n_episode = 1366
 
     rate = rospy.Rate(0.06)
     is_landing = False
@@ -1246,6 +1295,8 @@ if __name__ == '__main__':
     t2 = 0.0
 
     while (not rospy.is_shutdown()):
+       
+        
         try:
             if(state == 0):
                 t_episode = time.time()
@@ -1253,7 +1304,7 @@ if __name__ == '__main__':
                     qlearning.take_off()
                 
                 elif(qlearning.extended_state.landed_state == STATE_IN_AIR):
-                    #time.sleep(2)
+                    
                     state = 1
 
             if(state == 1):
@@ -1272,7 +1323,7 @@ if __name__ == '__main__':
                 if(n_episode < qlearning.MAX_EPISODES):
                     n_episode += 1
                     state = 3
-                    #time.sleep(5)
+                    time.sleep(5)
                 else:
                     state = 5
             
@@ -1367,6 +1418,7 @@ if __name__ == '__main__':
             print("Se produjo un error attributeError")
             break
         
+        
 
 
     print("Ha acabado")  
@@ -1385,7 +1437,8 @@ if __name__ == '__main__':
     
     #os.makedirs(carpeta, exist_ok=True)
 
-    
+   
+   
     with open('/home/bb6/pepe_ws/src/qlearning/trainings/14-febrero/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
@@ -1400,6 +1453,7 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(qlearning.QTable)
     df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/14-febrero/q_table.csv')
+     
   
     
     
