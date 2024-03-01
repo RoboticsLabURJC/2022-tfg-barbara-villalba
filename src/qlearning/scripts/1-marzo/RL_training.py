@@ -139,14 +139,14 @@ class QLearning:
     
         
         
-        #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
+        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 1400
+        self.MAX_EPISODES = 50
         self.epsilon_initial = 0.95
-        self.epsilon = 0
+        self.epsilon = 0.95
 
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.7 #--Between 0-1.
@@ -455,7 +455,7 @@ class QLearning:
         else:
 
             
-            reward = (1 / (1 + abs(error_lane_center)))
+            reward = 0.7*(1 / (1 + abs(error_lane_center))) + 0.3*(1 / (1 + abs(error_angle_orientation)))
             
             
 
@@ -1278,7 +1278,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 1350
+    n_episode = 0
 
     rate = rospy.Rate(20)
     is_landing = False
@@ -1425,20 +1425,20 @@ if __name__ == '__main__':
 
 
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/episodes-iterations.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/episodes-epsilon.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/episodes-accumulated-reward.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/q_table.csv')
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/q_table.csv')
    
   
     
