@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import torch
 import rospy
-from sensor_msgs.msg import Image,PointCloud2,NavSatFix,Imu
+from sensor_msgs.msg import Image,PointCloud2,NavSatFix
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
@@ -27,9 +27,7 @@ import pandas as pd
 import airsim
 import datetime
 import os
-from tf.transformations import euler_from_quaternion
 import threading
-from statistics import mean
 
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
@@ -100,53 +98,49 @@ STATES = [
 
 STATE_TERMINAL = len(STATES)
 
-ACTIONS = [
-    [2.45 ,2.5*-0.1],
-    [2.45 ,2.5*-0.09],
-    [2.46 ,2.5*-0.08],
-    [2.46 ,2.5*-0.07],
-    [2.47 ,2.5*-0.06],
-    [2.47 ,2.5*-0.05],
-    [2.48 ,2.5*-0.04],
-    [2.48 ,2.5*-0.03],
-    [2.49 ,2.5*-0.02],
-    [2.49 ,2.5 * -0.01],
-    [2.5,0.0],
-    [2.49, 2.5 * 0.01],
-    [2.49, 2.5 * 0.02],
-    [2.48, 2.5 * 0.03],
-    [2.48, 2.5 * 0.04],
-    [2.47, 2.5 * 0.05],
-    [2.47, 2.5 * 0.06],
-    [2.46, 2.5 * 0.07],
-    [2.46, 2.5 * 0.08],
-    [2.45, 2.5 * 0.09],
-    [2.45,2.5 * 0.1],
-]
+ACTIONS = []
 
-t_count_yolop = []
-t_count_clustering = []
-t_count_regresion = []
+#speeds_actions = np.arange(1.45,2.0, 0.05, dtype=float)
+#angular_speeds_actions = np.flip(np.arange(0.015,0.15,0.015, dtype=float))
+speeds_actions = np.arange(1.45,1.8, 0.035, dtype=float)
+angular_speeds_actions = np.flip(np.arange(0.015,0.15,0.015, dtype=float))
 
-def calculate_fps(t1,list_fps):
-        fps = 1/(time.time() - t1)
-        list_fps.append(fps)
-        return sum(list_fps)/len(list_fps)
+for i in range(len(speeds_actions)):
+
+    if(i == len(speeds_actions ) - 1):
+        ACTIONS.append([round(speeds_actions[i],3), 0.0])
+
+    elif(i < len(speeds_actions ) - 2):
+        ACTIONS.append([round(speeds_actions[i],3), round(-angular_speeds_actions[i],3)])
+
+        
+for i in reversed (range(len(speeds_actions))):
+    if(i < len(speeds_actions ) - 2):
+        ACTIONS.append([round(speeds_actions[i],3), round(angular_speeds_actions[i],3)])
+
+MAX_EXPLORATIONS = 900
 
 
 class QLearning:
     def __init__(self):
     
-        
-        
         self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/24-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
 
 
-        self.MAX_EPISODES = 50
+        self.MAX_EPISODES = rospy.get_param('~max_episodes')
         self.epsilon_initial = 0.95
-        self.epsilon = 0.95
+
+        n_episode = rospy.get_param('~n_episode')
+
+        if(n_episode == 0):
+            self.epsilon = 0.95
+        elif(n_episode == MAX_EXPLORATIONS):
+            self.epsilon = 0
+        else:
+            self.epsilon_initial - ((n_episode + 1) * (self.epsilon_initial / MAX_EXPLORATIONS))
+
 
         self.alpha = 0.4 #--Between 0-1. 
         self.gamma = 0.7 #--Between 0-1.
@@ -178,9 +172,6 @@ class QLearning:
 
         self.set_mode_hold = SetModeRequest()
         self.set_mode_hold.custom_mode = 'AUTO.LOITER'
-
-        self.set_mode_position = SetModeRequest()
-        self.set_mode_position.custom_mode = 'POSCTL'
 
         self.set_mode_land = SetModeRequest()
         self.set_mode_land.custom_mode = 'AUTO.LAND'
@@ -248,13 +239,16 @@ class QLearning:
         self.has_taken_off = False
         self.pepe = False
 
-        self.KP_v = 0.8
-        self.KD_v = 0.9
+        self.KP_v = 0.01
+        self.KD_v = 0.7
 
         self.prev_error_height = 0
         self.error = 0
 
         self.lastTime = 0.0
+
+        self.CENTER_WEIGHT = 0.5 
+        self.ORIENTATION_WEIGHT = 0.5
 
 
     def localization_gps_cb(self,msg):
@@ -286,7 +280,6 @@ class QLearning:
     def lidar_cb(self,cloud_msg):
         z_points = [point[0] for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True)]
         self.distance_z = sum(z_points) / len(z_points) 
-            
 
     def getState(self,cx):
        
@@ -297,7 +290,7 @@ class QLearning:
                     state_ = id_state
 
         if(state_ == None):
-                print("Estado frontera")
+                #print("Estado frontera")
                 state_ = STATE_TERMINAL 
 
 
@@ -313,12 +306,12 @@ class QLearning:
         #--Exploration
         if n < self.epsilon:
             id_action = np.random.choice(len(ACTIONS))
-            #print("Exploracion,Accion : " + str(id_action))
+            print("Exploracion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         #--Explotation
         else:
             id_action = np.argmax(self.QTable[state,:])
-            #print("Explotacion,Accion : " + str(id_action))
+            print("Explotacion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         
     def functionQLearning(self,state,next_state,action,reward):
@@ -361,6 +354,8 @@ class QLearning:
         pitch = 0.0
         yaw = 0.0
         roll = 0.0
+        
+
     
         if(number_position == self.FIRST_LOCALIZATION):
             x = 0.0042578126303851604
@@ -368,9 +363,9 @@ class QLearning:
             z = -0.2734218239784241
 
             yaw =  0.5250219330319704
-       
-       
-        else:
+        
+
+        elif(number_position == self.SECOND_LOCALIZATION):
             x = 28.493175506591797
             y = 16.92218589782715
             z = -0.2761923372745514
@@ -405,12 +400,9 @@ class QLearning:
     def height_velocity_controller(self):
         
         self.error = round((2.80 - self.distance_z),2)
-        #print("error", self.error)
         derr = self.error - self.prev_error_height
 
-        self.velocity.linear.z = (self.KP_v * self.error) + (self.KD_v * derr)
-        self.prev_error_height = self.error
-        #print("Velocity: " + str(self.velocity.linear.z))
+        self.velocity.linear.z = (self.KP_v * self.error) + (self.KD_v * self.prev_error_height)
         
 
 
@@ -427,7 +419,7 @@ class QLearning:
         #self.velocity.linear.y = action[1]
         self.velocity.angular.z = action[1]
         self.local_raw_pub.publish(self.velocity)
-        
+        self.prev_error_height = self.error
      
 
     def stop(self):
@@ -455,7 +447,7 @@ class QLearning:
         else:
 
             
-            reward = 0.7*(1 / (1 + abs(error_lane_center))) + 0.3*(1 / (1 + abs(error_angle_orientation)))
+            reward = (1 / (1 + abs(error_lane_center)))
             
             
 
@@ -482,20 +474,18 @@ class QLearning:
         if(self.localization_gps.latitude >= 47.642141 and self.localization_gps.longitude >= -122.1402203 and self.localization_gps.altitude >= 101.5238980):
             print("Has acabado el recorrido")
             return True
-
+        """
+        
         print("Latitud: " + str(self.latitude) + " , Longitud: " + str(self.longitude))
         print(self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0],self.point_B_vertex[0] <= self.latitude <=  self.point_D_vertex[0],
               self.point_B_vertex[1] >= self.longitude  >= self.point_A_vertex[1],self.point_D_vertex[1] >= self.longitude >= self.point_C_vertex[1])
-        """
-        
-        
         
         if (self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0]) and \
            (self.point_B_vertex[0] <= self.latitude <= self.point_D_vertex[0]) and \
            (self.point_B_vertex[1] >= self.longitude >=self.point_A_vertex[1]) and \
            (self.point_D_vertex[1] >= self.longitude >=self.point_C_vertex[1]):
-           
-            print("¡Recorrido completado! El dron ha llegado al final.")
+            print("El punto P está dentro del rectángulo.")
+            print("¡Recorrido completado! El dron está dentro del rectángulo.")
             return True
 
        
@@ -507,17 +497,29 @@ class QLearning:
     
 
     def algorithm(self,error,perception,current_state,centroid,error_angle):
-        global n_steps,state,is_not_detected_right,is_not_detected_left
-      
+        global n_steps,state,is_not_detected_left,is_not_detected_right
+
+
+       
         while(not self.is_exit_lane(error,centroid,error_angle) and (not self.is_finish_route()) and (current_state != STATE_TERMINAL)):
             t0 = time.time()
-
-            action,id_action = qlearning.chooseAction(current_state)
             
-            qlearning.execute_action(action)
-     
-            time.sleep(0.05)
+            #print("Time: " +str(time.time() - self.lastTime))
+            
+           
+            if time.time() - self.lastTime > 5.0:
+                state = 5
+                break
 
+            #_,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            #current_state = qlearning.getState(cx)
+            
+            action,id_action = qlearning.chooseAction(current_state)
+
+            qlearning.execute_action(action)
+            
+            
+            time.sleep(0.05)
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
             if(cx == -1):
@@ -533,20 +535,29 @@ class QLearning:
                 is_not_detected_left = False
                 is_not_detected_right = False
                 out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            
+            
 
             self.client_airsim.simPause(True)
-            
-            reward = qlearning.reward_function(cx,angle_orientation)
+            #print("Pausado el simulador")
+            #t1 = time.time()
            
             
+
+           
+            #t4 = time.time()    
+            reward = qlearning.reward_function(cx,angle_orientation)
             next_state = qlearning.getState(cx)
-            
+
+           
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
-
+            #t5 = time.time()
             self.client_airsim.simPause(False)
-
+            #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
+            #print("Reanudado el simulador")
+            #print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
             current_state = next_state
-
+            #print(current_state > 0 and current_state < 10)
             n_steps += 1
            
             
@@ -554,16 +565,15 @@ class QLearning:
             error_angle = 0.0 - angle_orientation
             centroid = cx
             t1 = time.time()
-            
 
             if (out_image is not None):
                 perception.drawStates(out_image)
                 cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
                 cv2.imshow("image",out_image)
                 cv2.waitKey(3)
-            
+           
 
-        #print("FPS train: " + str(1/(t1 - t0)) + "Time: " + str((t1 - t0)))
+        print("FPS train: " + str(1/(t1 - t0)))
             #print("Centroide: " + str(cx))
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
@@ -578,7 +588,6 @@ class Perception():
         self.bridge = CvBridge()
         self.tiempo_ultimo_callback = time.time()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img)
-        #self.imu_sub = rospy.Subscriber("/mavros/imu/data", Imu, self.imu_callback)
         self.cv_image = Image()
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
@@ -629,10 +638,8 @@ class Perception():
         self.prev_density = None
 
         self.address = ""
-        self.roll = 0.0
-        self.pitch = 0.0
 
-
+       
 
     def resize_unscale(self,img, new_shape=(640, 640), color=114):
         """
@@ -840,14 +847,14 @@ class Perception():
                 # Check if the centroid is within the desired lane
                 if centroid[1] < 160:  # left lane
                     left_clusters.append(points_cluster)
-                    #print("Izquierda: " + str(len(points_cluster)))
+                    print("Izquierda: " + str(len(points_cluster)))
                     img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
                 elif centroid[1] > 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
                     #print(centroid)
                     cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
                     img[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
-                    #print("Derecha: " + str(len(points_cluster)))
+                    print("Derecha: " + str(len(points_cluster)))
                
             # Now, among the closest clusters, select the one with the highest density
            
@@ -1057,7 +1064,7 @@ class Perception():
             ['det_out', 'drive_area_seg', 'lane_line_seg'],
             input_feed={"images": img}
         )
-        
+        #print(1/(time.time() - self.t1))
 
         images = []
 
@@ -1074,7 +1081,9 @@ class Perception():
 
 
         return images
-
+    
+    
+        
     def calculate_margins_points(self,left_clusters,right_clusters,cvimage,img_da_seg):
         
             
@@ -1098,7 +1107,6 @@ class Perception():
 
 
                 if (points_line_right is None or points_line_left is None):
-                   
                     print("Error en la regresion")
                     cx = -1 
                     cy = -1
@@ -1160,20 +1168,19 @@ class Perception():
 
     def calculate_lane(self,cv_image):
 
-        global is_not_detected_left,is_not_detected_right,t_count_yolop,t_count_clustering,t_count_regresion
+        global is_not_detected_left,is_not_detected_right
         out_img = None
         cx = 0
         cy = 0
         orientation_angle = 0
         images_yolop = self.infer_yolop(cv_image)
-        #t_count_yolop.append(time.time() - self.t1)
+        #print("Tiempo YOLOP: " + str(1/(time.time() - self.t1)))
         mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
         
-        #t_clustering = time.time()
         left_clusters,right_clusters,state_clusters = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
        
-        #t_count_clustering.append(time.time() - t_clustering)
+        #print("Clustering: " + str(1 / (time.time() - self.t1)))
 
         if state_clusters == -1:
             
@@ -1186,11 +1193,11 @@ class Perception():
 
         
         else:
-            #t_regresion = time.time()
+           
             out_img,cx,cy,orientation_angle = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
             
-            #t_count_regresion.append(time.time() - t_regresion)
-            
+
+            #print("Regresion + interpolate + centroid: " + str(1/(time.time() - self.t1)))
         return out_img,cx,cy,orientation_angle
         
         
@@ -1198,31 +1205,6 @@ class Perception():
         
 
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-
-        """
-       
-        height, width = cv_image.shape[:2]
-
-        # Punto alrededor del cual se va a rotar la imagen
-        # En este caso, vamos a rotar alrededor del centro de la imagen
-        point = (width // 2, height // 2)
-    
-        # Calcula la matriz de rotación para el ángulo dado
-        rotation_matrix = cv2.getRotationMatrix2D(point, self.roll, 1.0)
-    
-        # Rota la imagen
-        cv_image = cv2.warpAffine(cv_image, rotation_matrix, (width, height))
-
-        # Define los puntos de origen y destino para la transformación de perspectiva
-        src_points = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
-        dst_points = np.float32([[0, height], [width, height], [self.pitch, 0], [width-self.pitch, 0]])
-
-        # Calcula la matriz de transformación de perspectiva
-        perspective_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
-
-        # Aplica la transformación de perspectiva para compensar el pitch
-        self.cv_image = cv2.warpPerspective(cv_image, perspective_matrix, (width, height))
-        """
 
 
     def correct_initial_position(self,error,qlearning):
@@ -1242,7 +1224,7 @@ class Perception():
                 qlearning.velocity.angular.z = (0.009 * error)
 
             qlearning.local_raw_pub.publish(qlearning.velocity)
-            #qlearning.prev_error_height = qlearning.error
+            qlearning.prev_error_height = qlearning.error
             _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
             error  = WIDTH/2 - cx
             #print(error)
@@ -1252,18 +1234,16 @@ class Perception():
         #print("Error of final: " + str(error))
         state = 2
 
-
 def spin():
     rospy.spin() 
 
+        
 if __name__ == '__main__':
     
     rospy.init_node("RL_node_py")
 
     thread_spin = threading.Thread(target=spin)
     thread_spin.start()
-
-
     
     perception = Perception()
     qlearning = QLearning()
@@ -1278,7 +1258,7 @@ if __name__ == '__main__':
     list_ep_accumulate_reward = []
 
     error = 0
-    n_episode = 0
+    n_episode = rospy.get_param('~n_episode')
 
     rate = rospy.Rate(20)
     is_landing = False
@@ -1288,8 +1268,6 @@ if __name__ == '__main__':
     t2 = 0.0
 
     while (not rospy.is_shutdown()):
-       
-        
         try:
             if(state == 0):
                 t_episode = time.time()
@@ -1297,7 +1275,7 @@ if __name__ == '__main__':
                     qlearning.take_off()
                 
                 elif(qlearning.extended_state.landed_state == STATE_IN_AIR):
-                    time.sleep(5)
+                    time.sleep(2)
                     state = 1
 
             if(state == 1):
@@ -1361,13 +1339,9 @@ if __name__ == '__main__':
                         is_not_detected_right = False
                         exit = False
 
-                        #print("YOLOP: " + str(mean(t_count_yolop)))
-                        #print("Clustering: " + str(mean(t_count_clustering)))
-                        #print("Regression: " + str(mean(t_count_regresion)))
-                        #print("Perception FPS: " + str(1/(mean(t_count_yolop) + mean(t_count_clustering) + mean(t_count_regresion))))
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon))
-                        if(n_episode < 900):
-                            qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / 900))
+                        if(n_episode < MAX_EXPLORATIONS):
+                            qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / MAX_EXPLORATIONS))
                         else:
                             qlearning.epsilon = 0
                         print("Tiempo por episodio: " + str(time.time() - t_episode))
@@ -1415,35 +1389,39 @@ if __name__ == '__main__':
             print("Se produjo un error attributeError")
             break
         
-        
 
-    thread_spin.join()        
+
     print("Ha acabado")  
     print("Tiempo de entrenamiento: " + str(time.time() - t_initial))
     print("Media de tiempo por episodio: " + str(t_counter_ep/qlearning.MAX_EPISODES))
     print(qlearning.QTable)  
 
 
+
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-iterations.csv', 'a') as file:
+    #fecha = datetime.datetime.now().strftime('%d-%B')
+
+    
+    #carpeta = f'/home/bb6/pepe_ws/src/qlearning/trainings/{fecha}'
+
+    
+    #os.makedirs(carpeta, exist_ok=True)
+
+    
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-epsilon.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/episodes-accumulated-reward.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/1-marzo/q_table.csv')
-   
-  
-    
-
-     
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/q_table.csv')
   
     
     
@@ -1452,5 +1430,4 @@ if __name__ == '__main__':
    
     
  
-
 
