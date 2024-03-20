@@ -69,6 +69,8 @@ coefficients_right_global = np.array([])
 is_not_detected_left = False
 is_not_detected_right = False
 
+is_first = False
+
 cx_global = 0.0
 cy_global = 0.0
 
@@ -98,25 +100,40 @@ STATES = [
 
 STATE_TERMINAL = len(STATES)
 
+def build_actions():
+
+    left_angular_speeds = angular_speeds[:10]
+    right_angular_speeds = np.flip(angular_speeds[-10:])
+    central_angular_speed = angular_speeds[10]
+    speeds = speeds_actions[:10]
+    central_speed = speeds_actions[10]
+
+    for i in range(len(speeds)):
+        #print(round(speeds[i],2),round(right_angular_speeds[i],2))
+        ACTIONS.append([round(speeds[i],3),round(left_angular_speeds[i],3)])
+
+    ACTIONS.append([round(central_speed,3),0.0])
+
+    for  i in reversed (range(len(speeds))):
+        ACTIONS.append([round(speeds[i],3),round(right_angular_speeds[i],3)])
+
+    
+
 ACTIONS = []
+speeds_actions = np.linspace(1.45,2.45,11, dtype=float)
+angular_speeds = np.linspace(-0.25, 0.25, 21)
+#speeds_actions = np.linspace(1.45,1.9,11, dtype=float)
+#angular_speeds = np.flip(np.linspace(0.015, 0.15, 10))
+
+build_actions()
 
 #speeds_actions = np.arange(1.45,2.0, 0.05, dtype=float)
 #angular_speeds_actions = np.flip(np.arange(0.015,0.15,0.015, dtype=float))
-speeds_actions = np.arange(1.45,1.8, 0.035, dtype=float)
-angular_speeds_actions = np.flip(np.arange(0.015,0.15,0.015, dtype=float))
+#speeds_actions = np.arange(1.45,1.8, 0.035, dtype=float)
+#angular_speeds_actions = np.flip(np.arange(0.015,0.15,0.015, dtype=float))
 
-for i in range(len(speeds_actions)):
+print(ACTIONS)
 
-    if(i == len(speeds_actions ) - 1):
-        ACTIONS.append([round(speeds_actions[i],3), 0.0])
-
-    elif(i < len(speeds_actions ) - 2):
-        ACTIONS.append([round(speeds_actions[i],3), round(-angular_speeds_actions[i],3)])
-
-        
-for i in reversed (range(len(speeds_actions))):
-    if(i < len(speeds_actions ) - 2):
-        ACTIONS.append([round(speeds_actions[i],3), round(angular_speeds_actions[i],3)])
 
 MAX_EXPLORATIONS = 900
 
@@ -124,10 +141,10 @@ MAX_EXPLORATIONS = 900
 class QLearning:
     def __init__(self):
     
-        self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/07-febrero/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
-
+         
 
         self.MAX_EPISODES = rospy.get_param('~max_episodes')
         self.epsilon_initial = 0.95
@@ -136,10 +153,10 @@ class QLearning:
 
         if(n_episode == 0):
             self.epsilon = 0.95
-        elif(n_episode == MAX_EXPLORATIONS):
+        elif(n_episode >= MAX_EXPLORATIONS):
             self.epsilon = 0
         else:
-            self.epsilon_initial - ((n_episode + 1) * (self.epsilon_initial / MAX_EXPLORATIONS))
+            self.epsilon = self.epsilon_initial - ((n_episode + 1) * (self.epsilon_initial / MAX_EXPLORATIONS))
 
 
         self.alpha = 0.4 #--Between 0-1. 
@@ -301,18 +318,24 @@ class QLearning:
     def chooseAction(self,state):
 
         n = random.uniform(0, 1)
+        is_exploration = False
        
-
+        print("Numero random para escoger la accion: " + str(n))
         #--Exploration
         if n < self.epsilon:
             id_action = np.random.choice(len(ACTIONS))
-            print("Exploracion,Accion : " + str(id_action))
+            is_exploration = True
+            print("Exploracion: " + str(is_exploration))
+            #print("Exploracion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         #--Explotation
         else:
             id_action = np.argmax(self.QTable[state,:])
-            print("Explotacion,Accion : " + str(id_action))
+            print("Exploracion: " + str(is_exploration))
+            #print("Explotacion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
+        
+
         
     def functionQLearning(self,state,next_state,action,reward):
 
@@ -321,7 +344,7 @@ class QLearning:
         #print(np.argmax(self.QTable[next_state, action]))
 
         self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.max(self.QTable[next_state]) - self.QTable[state, action])
-        print("QTable[" + str(state) + "," + str(action) + "] : " + str(self.QTable[state, action]) + "reward: " + str(reward))
+        #print("QTable[" + str(state) + "," + str(action) + "] : " + str(self.QTable[state, action]) + "reward: " + str(reward))
         
         self.accumulatedReward += reward
         #print(self.accumulatedReward,reward)
@@ -434,14 +457,14 @@ class QLearning:
         self.local_raw_pub.publish(self.velocity)
 
     def reward_function(self,cx,angle):
-        global exit
+       
         
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
         
         if (self.is_exit_lane(error_lane_center,cx,error_angle_orientation)):
-            exit = True
+            
             reward = -10
 
         else:
@@ -456,36 +479,29 @@ class QLearning:
     
     def is_exit_lane(self,error,cx,angle_error):
 
-        #print(abs(angle_error))
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 7.5):
-           return False
+        status = False
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 7.2):
+          
+           status = False
        
         else:
-           print("Me sali")
-           return True
+           
+           status = True
+
+
+        if(is_first):
+            print("Fuera del carril: " + str(status))
+        return status
         
 
     def is_finish_route(self):
 
-        #print(self.localization_gps.latitude,self.localization_gps.longitude,self.localization_gps.altitude)
-        #print(self.localization_gps.latitude >= 47.6426689,self.localization_gps.longitude >= -122.1407929,self.localization_gps.altitude >= 101.3139425)
-        """
-       
-        if(self.localization_gps.latitude >= 47.642141 and self.localization_gps.longitude >= -122.1402203 and self.localization_gps.altitude >= 101.5238980):
-            print("Has acabado el recorrido")
-            return True
-        """
-        
-        print("Latitud: " + str(self.latitude) + " , Longitud: " + str(self.longitude))
-        print(self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0],self.point_B_vertex[0] <= self.latitude <=  self.point_D_vertex[0],
-              self.point_B_vertex[1] >= self.longitude  >= self.point_A_vertex[1],self.point_D_vertex[1] >= self.longitude >= self.point_C_vertex[1])
-        
         if (self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0]) and \
            (self.point_B_vertex[0] <= self.latitude <= self.point_D_vertex[0]) and \
            (self.point_B_vertex[1] >= self.longitude >=self.point_A_vertex[1]) and \
            (self.point_D_vertex[1] >= self.longitude >=self.point_C_vertex[1]):
-            print("El punto P está dentro del rectángulo.")
-            print("¡Recorrido completado! El dron está dentro del rectángulo.")
+           
+            print("¡Recorrido completado!")
             return True
 
        
@@ -497,24 +513,20 @@ class QLearning:
     
 
     def algorithm(self,error,perception,current_state,centroid,error_angle):
-        global n_steps,state,is_not_detected_left,is_not_detected_right
-
-
-       
-        while(not self.is_exit_lane(error,centroid,error_angle) and (not self.is_finish_route()) and (current_state != STATE_TERMINAL)):
-            t0 = time.time()
+        global n_steps,state,is_not_detected_left,is_not_detected_right,is_first
+        is_first = True
+        while(not self.is_exit_lane(error,centroid,error_angle) and (not self.is_finish_route())):
+            #t0 = time.time()
             
             #print("Time: " +str(time.time() - self.lastTime))
-            
-           
-            if time.time() - self.lastTime > 5.0:
-                state = 5
-                break
 
-            #_,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            #current_state = qlearning.getState(cx)
             
             action,id_action = qlearning.chooseAction(current_state)
+            print("Estado: "+ str(current_state))
+            print("Accion: "+str(id_action))
+     
+            print("Valor actual de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
+            print("Error centroide: " + str(error))
 
             qlearning.execute_action(action)
             
@@ -525,11 +537,11 @@ class QLearning:
             if(cx == -1):
                 print("Error por la percepción")
                 init = time.time()
-                rate_aux = rospy.Rate(30)
+                #rate_aux = rospy.Rate(30)
                 while (time.time() - init <= 0.5):
                     self.height_velocity_controller()
                     self.local_raw_pub.publish(self.velocity)
-                    rate_aux.sleep()
+                    #rate_aux.sleep()
                         
 
                 is_not_detected_left = False
@@ -542,15 +554,18 @@ class QLearning:
             #print("Pausado el simulador")
             #t1 = time.time()
            
-            
 
-           
-            #t4 = time.time()    
+            #t4 = time.time()
+            is_first = False    
             reward = qlearning.reward_function(cx,angle_orientation)
+            print("Recompensa: " + str(reward))
             next_state = qlearning.getState(cx)
 
            
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
+            print("Valor nuevo de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
+            print("Valor de maximo de Q en el siguiente estado MaxQ(S" + str(next_state) + "): " + str(np.max(self.QTable[next_state])))
+            print("------------------------------------------------------")
             #t5 = time.time()
             self.client_airsim.simPause(False)
             #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
@@ -564,16 +579,64 @@ class QLearning:
             error = (WIDTH/2 - cx) 
             error_angle = 0.0 - angle_orientation
             centroid = cx
-            t1 = time.time()
+            #t1 = time.time()
 
             if (out_image is not None):
                 perception.drawStates(out_image)
+                cv2.putText(
+                        out_image, 
+                        text = "V: " + str(action[0]),
+                        org=(0, 15),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
+                        color=(255, 255, 255),
+                        thickness=2,
+                        lineType=cv2.LINE_AA
+                )
+                cv2.putText(
+                        out_image, 
+                        text = "W: " + str(action[1]),
+                        org=(0, 45),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
+                        color=(255, 255, 255),
+                        thickness=2,
+                        lineType=cv2.LINE_AA
+                )
+                cv2.putText(
+                        out_image, 
+                        text = "Action: " + str(id_action),
+                        org=(0, 85),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
+                        color=(255, 255, 255),
+                        thickness=2,
+                        lineType=cv2.LINE_AA
+                )
+
+                cv2.putText(
+                        out_image, 
+                        text = "State: " + str(current_state),
+                        org=(0, 65),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
+                        color=(255, 255, 255),
+                        thickness=2,
+                        lineType=cv2.LINE_AA
+                )
+
+
+
                 cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
                 cv2.imshow("image",out_image)
                 cv2.waitKey(3)
+
+                
+                is_first = True
+                input("Press Enter to continue...")
            
 
-        print("FPS train: " + str(1/(t1 - t0)))
+        #print("FPS train: " + str(1/(t1 - t0)))
             #print("Centroide: " + str(cx))
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
@@ -847,14 +910,14 @@ class Perception():
                 # Check if the centroid is within the desired lane
                 if centroid[1] < 160:  # left lane
                     left_clusters.append(points_cluster)
-                    print("Izquierda: " + str(len(points_cluster)))
+                    #print("Izquierda: " + str(len(points_cluster)))
                     img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
                 elif centroid[1] > 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
                     #print(centroid)
                     cv2.circle(cv_image, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
                     img[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
-                    print("Derecha: " + str(len(points_cluster)))
+                    #print("Derecha: " + str(len(points_cluster)))
                
             # Now, among the closest clusters, select the one with the highest density
            
@@ -1218,10 +1281,9 @@ class Perception():
             qlearning.set_mode_client.call(qlearning.set_mode_offboard)
                
         
-            if perception.address == "LEFT":
-                qlearning.velocity.angular.z = abs((0.009 * error))
-            else:
-                qlearning.velocity.angular.z = (0.009 * error)
+            
+            qlearning.velocity.angular.z = (0.009 * error)
+           
 
             qlearning.local_raw_pub.publish(qlearning.velocity)
             qlearning.prev_error_height = qlearning.error
@@ -1242,8 +1304,8 @@ if __name__ == '__main__':
     
     rospy.init_node("RL_node_py")
 
-    thread_spin = threading.Thread(target=spin)
-    thread_spin.start()
+    #thread_spin = threading.Thread(target=spin)
+    #thread_spin.start()
     
     perception = Perception()
     qlearning = QLearning()
@@ -1314,7 +1376,7 @@ if __name__ == '__main__':
                 
                
                 if(not is_landing):
-                    print("Tiempo final: " + str(time.time() - t2))
+                    #print("Tiempo final: " + str(time.time() - t2))
                     cv2.destroyAllWindows()
                     qlearning.stop()
                     if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
@@ -1344,7 +1406,7 @@ if __name__ == '__main__':
                             qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / MAX_EXPLORATIONS))
                         else:
                             qlearning.epsilon = 0
-                        print("Tiempo por episodio: " + str(time.time() - t_episode))
+                        #print("Tiempo por episodio: " + str(time.time() - t_episode))
                         t_counter_ep +=time.time() - t_episode
                         
                         
@@ -1384,7 +1446,7 @@ if __name__ == '__main__':
             print("Se produjo un error runtime")
             break
         
-        
+       
         except AttributeError:
             print("Se produjo un error attributeError")
             break
@@ -1395,6 +1457,7 @@ if __name__ == '__main__':
     print("Tiempo de entrenamiento: " + str(time.time() - t_initial))
     print("Media de tiempo por episodio: " + str(t_counter_ep/qlearning.MAX_EPISODES))
     print(qlearning.QTable)  
+    #thread_spin.join()
 
 
 
@@ -1407,21 +1470,25 @@ if __name__ == '__main__':
     
     #os.makedirs(carpeta, exist_ok=True)
 
+  
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-iterations.csv', 'a') as file:
+   
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-epsilon.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/episodes-accumulated-reward.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/6-marzo/q_table.csv')
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/q_table.csv')
+    
+   
   
     
     
