@@ -141,8 +141,8 @@ MAX_EXPLORATIONS = 900
 class QLearning:
     def __init__(self):
     
-        self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/20-marzo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
         self.MAX_ERROR_CENTRE = 30
         self.MIN_ERROR_CENTRE = 0
@@ -158,10 +158,11 @@ class QLearning:
         elif(n_episode >= MAX_EXPLORATIONS):
             self.epsilon = 0
         else:
-            self.epsilon = self.epsilon_initial - ((n_episode + 1) * (self.epsilon_initial / MAX_EXPLORATIONS))
+            self.epsilon = self.epsilon_initial - ((n_episode) * (self.epsilon_initial / MAX_EXPLORATIONS))
+            print(self.epsilon,n_episode)
 
 
-        self.alpha = 0.4 #--Between 0-1. 
+        self.alpha = 0.5 #--Between 0-1. 
         self.gamma = 0.7 #--Between 0-1.
 
         self.current_state_q = 0
@@ -464,8 +465,9 @@ class QLearning:
         reward = 0
         error_lane_center = (WIDTH/2 - cx)
         error_angle_orientation = 0.0 - angle
+        print(abs(error_angle_orientation))
         
-        if (self.is_exit_lane(error_lane_center,cx,error_angle_orientation)):
+        if (self.is_exit_lane(cx,error_angle_orientation)):
             
             reward = -10
 
@@ -484,7 +486,7 @@ class QLearning:
 
         return reward
     
-    def is_exit_lane(self,error,cx,angle_error):
+    def is_exit_lane(self,cx,angle_error):
 
         status = False
         if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(angle_error) < 7.2):
@@ -519,10 +521,18 @@ class QLearning:
         
     
 
-    def algorithm(self,error,perception,current_state,centroid,error_angle):
+    def algorithm(self,perception):
+
+        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+
+        error = (WIDTH/2 - cx)
+        error_angle = 0.0 - angle_orientation
+        #print("Error antes de hacer avanzar, en la correccion" + str(error))
+        current_state = self.getState(cx)
         global n_steps,state,is_not_detected_left,is_not_detected_right,is_first
         is_first = True
-        while(not self.is_exit_lane(error,centroid,error_angle) and (not self.is_finish_route())):
+
+        while(not self.is_exit_lane(cx,error_angle) and (not self.is_finish_route())):
             #t0 = time.time()
             
             #print("Time: " +str(time.time() - self.lastTime))
@@ -533,22 +543,26 @@ class QLearning:
             print("Accion: "+str(id_action))
      
             print("Valor actual de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
-            print("Error centroide: " + str(error))
+            
 
             qlearning.execute_action(action)
             
-            
             time.sleep(0.05)
-            out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            #print(cx)
 
+            out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+            print("Error del centro en pixeles: " + str((WIDTH/2 - cx)) + "Centroide: " + str(cx))
+            
+            
+            
             if(cx == -1):
                 print("Error por la percepción")
                 init = time.time()
-                #rate_aux = rospy.Rate(30)
+                rate_aux = rospy.Rate(30)
                 while (time.time() - init <= 0.5):
                     self.height_velocity_controller()
                     self.local_raw_pub.publish(self.velocity)
-                    #rate_aux.sleep()
+                    rate_aux.sleep()
                         
 
                 is_not_detected_left = False
@@ -585,7 +599,7 @@ class QLearning:
             
             error = (WIDTH/2 - cx) 
             error_angle = 0.0 - angle_orientation
-            centroid = cx
+            #centroid = cx
             #t1 = time.time()
 
             if (out_image is not None):
@@ -640,7 +654,7 @@ class QLearning:
 
                 
                 is_first = True
-                #input("Press Enter to continue...")
+              
            
 
         #print("FPS train: " + str(1/(t1 - t0)))
@@ -1311,8 +1325,8 @@ if __name__ == '__main__':
     
     rospy.init_node("RL_node_py")
 
-    #thread_spin = threading.Thread(target=spin)
-    #thread_spin.start()
+    thread_spin = threading.Thread(target=spin)
+    thread_spin.start()
     
     perception = Perception()
     qlearning = QLearning()
@@ -1369,15 +1383,10 @@ if __name__ == '__main__':
             
             if(state == 3):
 
-                _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-
-                error = (WIDTH/2 - cx)
-                error_angle = 0.0 - angle_orientation
-                #print("Error antes de hacer avanzar, en la correccion" + str(error))
-                current_state = qlearning.getState(cx)
+               
              
                 t2 = time.time()
-                qlearning.algorithm(error,perception,current_state,cx,error_angle)
+                qlearning.algorithm(perception)
                 
             if(state == 4):
                 
@@ -1409,10 +1418,7 @@ if __name__ == '__main__':
                         exit = False
 
                         print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon))
-                        if(n_episode < MAX_EXPLORATIONS):
-                            qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / MAX_EXPLORATIONS))
-                        else:
-                            qlearning.epsilon = 0
+                       
                         #print("Tiempo por episodio: " + str(time.time() - t_episode))
                         t_counter_ep +=time.time() - t_episode
                         
@@ -1420,6 +1426,10 @@ if __name__ == '__main__':
                         list_ep_it.append([n_episode,n_steps])
                         list_ep_epsilon.append([n_episode,qlearning.epsilon])
                         list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
+                        if(n_episode < MAX_EXPLORATIONS):
+                            qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / MAX_EXPLORATIONS))
+                        else:
+                            qlearning.epsilon = 0
                         n_steps = 0
                         qlearning.accumulatedReward = 0
                         state = 0
@@ -1479,24 +1489,20 @@ if __name__ == '__main__':
 
   
     
-    """
-    
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-iterations.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/20-marzo/episodes-iterations.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_it)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-epsilon.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/20-marzo/episodes-epsilon.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_epsilon)
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/episodes-accumulated-reward.csv', 'a') as file:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/20-marzo/episodes-accumulated-reward.csv', 'a') as file:
         wtr = csv.writer(file, delimiter= ' ')
         wtr.writerows(list_ep_accumulate_reward)
 
     df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/13-marzo/q_table.csv')
-    """
-    
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/20-marzo/q_table.csv')
    
   
     
