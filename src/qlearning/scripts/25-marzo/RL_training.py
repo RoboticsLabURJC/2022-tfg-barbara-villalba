@@ -161,7 +161,7 @@ class QLearning:
             print(self.epsilon,n_episode)
 
 
-        self.alpha = 0.45 #--Between 0-1. 
+        self.alpha = 0.5 #--Between 0-1. 
         self.gamma = 0.7 #--Between 0-1.
 
         self.current_state_q = 0
@@ -467,11 +467,10 @@ class QLearning:
 
         else:
 
-            if(abs(error_lane_center)) <= FACTOR:
+            
 
-                reward = 1 - (abs(error_lane_center)/(FACTOR))
-            else:
-                reward = -1
+            reward = 1 - (abs(error_lane_center)/(FACTOR))
+           
             
             
             #error_normalised = (abs(error_lane_center) - self.MIN_ERROR_CENTRE) / (self.MAX_ERROR_CENTRE - self.MIN_ERROR_CENTRE)
@@ -487,7 +486,7 @@ class QLearning:
     def is_exit_lane(self,cx,angle_error,error_lane_center,cx_prev):
 
         status = False
-        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(cx - cx_prev) < 14):
+        if (cx != -1) and ((is_not_detected_left is False ) or (is_not_detected_right is False)) and (abs(cx - cx_prev) <= 14):
           
            status = False
        
@@ -1367,7 +1366,7 @@ if __name__ == '__main__':
                     qlearning.take_off()
                 
                 elif(qlearning.extended_state.landed_state == STATE_IN_AIR):
-                    time.sleep(2)
+                    time.sleep(3)
                     state = 1
 
             if(state == 1):
@@ -1379,14 +1378,14 @@ if __name__ == '__main__':
                 qlearning.stop()
                 if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
                         rospy.loginfo("HOLD")
-                time.sleep(2)
+                time.sleep(3)
 
             if(state == 2):
 
                 if(n_episode < qlearning.MAX_EPISODES):
                     n_episode += 1
                     state = 3
-                    time.sleep(5)
+                    time.sleep(4)
                 else:
                     state = 5
             
@@ -1426,15 +1425,19 @@ if __name__ == '__main__':
                         is_not_detected_right = False
                         exit = False
 
-                        print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon))
+                        
                        
                         #print("Tiempo por episodio: " + str(time.time() - t_episode))
                         t_counter_ep +=time.time() - t_episode
                         
-                        
-                        list_ep_it.append([n_episode,n_steps])
-                        list_ep_epsilon.append([n_episode,qlearning.epsilon])
-                        list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
+                        if n_steps > 0:
+                            print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon))
+                            list_ep_it.append([n_episode,n_steps])
+                            list_ep_epsilon.append([n_episode,qlearning.epsilon])
+                            list_ep_accumulate_reward.append([n_episode,qlearning.accumulatedReward])
+
+                        if n_steps == 0:
+                            state = 5
                         if(n_episode < MAX_EXPLORATIONS):
                             qlearning.epsilon = qlearning.epsilon_initial - (n_episode * (qlearning.epsilon_initial / MAX_EXPLORATIONS))
                         else:
