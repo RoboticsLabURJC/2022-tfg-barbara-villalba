@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import torch
 import rospy
-from sensor_msgs.msg import Image,PointCloud2
+from sensor_msgs.msg import Image,PointCloud2,NavSatFix,Imu
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
@@ -22,6 +22,9 @@ import signal
 import sys
 import math
 import keyboard
+from tf.transformations import euler_from_quaternion
+from scipy.spatial import ConvexHull
+
 
 IMAGE_TOPIC = '/airsim_node/PX4/front_center_custom/Scene'
 
@@ -62,19 +65,29 @@ vz_angular = 0
 vz_lineal = 0
 
 STATES = [
-    (100, 110),
-    (111, 121),
-    (122, 132),
-    (133, 143),
-    (144, 154),
-    (155, 165),
-    (166, 176),
-    (177, 187),
-    (188, 198),
+    (77,87),
+    (88,98),
+    (99,109),
+    (110, 120),
+    (121, 131),
+    (132, 142),
+    (143, 153),
+    (154, 164),
+    (165, 175),
+    (176, 186),
+    (187, 197),
+    (198, 208),
+    (209, 219),
+    (220, 230),
 ]
 
 print(len(STATES))
 
+is_first = False
+
+is_exit_lane = False
+
+counter = 0
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
         list_fps.append(fps)
@@ -87,6 +100,7 @@ class ImageSubscriber:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback)
+        self.imu_sub = rospy.Subscriber("/mavros/imu/data", Imu, self.imu_callback)
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
         self.list = []
@@ -134,6 +148,25 @@ class ImageSubscriber:
         self.prev_density = None
 
         self.orientation_angle = 0.0
+        self.cx_prev = 0
+
+
+    def imu_callback(self,data):
+        quaternion = (
+        data.orientation.x,
+        data.orientation.y,
+        data.orientation.z,
+        data.orientation.w
+       )
+
+        # Convierte los cuaterniones a ángulos de Euler (roll, pitch, yaw)
+        roll, pitch, yaw = euler_from_quaternion(quaternion)
+
+        # Ahora `roll` contiene el ángulo de balanceo en radianes
+        # Puedes convertirlo a grados si lo prefieres
+        roll = roll * 180.0 / 3.14159
+
+        #print("Roll: ", roll)
 
 
  
@@ -231,7 +264,14 @@ class ImageSubscriber:
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
-        return line
+        m = (2*a*160 + b)
+
+        max_y_index = np.argmax(line[:,0])
+
+            
+        extrem_point_line = line[max_y_index]
+
+        return line,extrem_point_line,m
     
 
     def calculate_right_regression(self,points_cluster):
@@ -253,7 +293,7 @@ class ImageSubscriber:
             with warnings.catch_warnings():
                 warnings.filterwarnings('error')
                 try:
-                    points_cluster = np.vstack((points_cluster,punto))
+                    points_cluster = np.vstack((points_cluster,punto*2))
                     coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
 
                     self.list_right_coeff_a.append(coefficients[0])
@@ -283,11 +323,21 @@ class ImageSubscriber:
             print("He fallado")
           
         
+        
         values_fy = np.polyval(mean_coeff,valuesX).astype(int)
         fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
         line = np.array(fitLine_filtered)
 
-        return line
+        m = (2*a*160 + b)
+       
+
+        max_y_index = np.argmax(line[:,0])
+
+            
+        extrem_point_line = line[max_y_index]
+
+
+        return line,extrem_point_line,m
     
     def score_cluster(self,cluster, center):
         points_cluster, centroid = cluster
@@ -302,10 +352,11 @@ class ImageSubscriber:
        
         #--Convert image in points
         points_lane = np.column_stack(np.where(img > 0))
-        dbscan = DBSCAN(eps=10, min_samples=1,metric="euclidean")
+        
+        dbscan = DBSCAN(eps=1, min_samples=1,metric="euclidean")
         left_clusters = []
         right_clusters = []
-        center = np.array([200,160])
+        center = np.array([200,200])
         #interest_point = np.array((180,160))
        
 
@@ -313,19 +364,22 @@ class ImageSubscriber:
         final_right_clusters = []
 
         img = cv_image.copy()
+        counter_left_points = 0
         
-        
-       
-        
-
         if points_lane.size > 0:
             dbscan.fit(points_lane)
             labels = dbscan.labels_
 
-            # Ignore noise if present
+            #print("Labels: " + str(labels))
             clusters = set(labels)
+
+            """
+            
+            # Ignore noise if present
+            
             if -1 in clusters:
                 clusters.remove(-1)
+            """
           
           
                 
@@ -333,29 +387,32 @@ class ImageSubscriber:
                 points_cluster = points_lane[labels==cluster,:]
                 centroid = points_cluster.mean(axis=0).astype(int)
                 color = self.colors[cluster % len(self.colors)]
-                #img[points_cluster[:,0], points_cluster[:,1]] = color
-                #cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+                img[points_cluster[:,0], points_cluster[:,1]] = color
+                cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+
+                #print("Centroid: " + str(centroid[1]))
 
 
                 # Check if the centroid is within the desired lane
                 if centroid[1] < 160:  # left lane
-                    left_clusters.append(points_cluster)
-                    img[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
-                    cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+                    left_clusters.append((points_cluster,centroid))
+                    #img[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
+                    #print("Izquierda: " + str(len(points_cluster)))
+                    #cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
                 elif centroid[1] > 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
                     #print(centroid)
-                    cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
-                    img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
+                    #cv2.circle(img, (centroid[1], centroid[0]), 5, [0, 0, 0], -1)
+                    #img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
 
                
             # Now, among the closest clusters, select the one with the highest density
            
            
-            """
+        
             if left_clusters:
                 left_clusters = [max(left_clusters, key=lambda x: self.score_cluster(x, center))]
-            """
+            
             
             
             
@@ -364,10 +421,11 @@ class ImageSubscriber:
                 right_clusters = [max(right_clusters, key=lambda x: self.score_cluster(x, center))]
 
             
-            for points_cluster in left_clusters:
+            for points_cluster,centroid in left_clusters:
                
-
-                
+                final_left_clusters.append(points_cluster)
+                counter_left_points +=len(points_cluster)
+                #
                 
                 #color = self.colors[cluster % len(self.colors)]
                 cv_image[points_cluster[:,0], points_cluster[:,1]] = [0,255,0]
@@ -375,6 +433,8 @@ class ImageSubscriber:
             
             for points_cluster, centroid in right_clusters:
                
+                #print("Derecha: " + str(len(points_cluster)))
+                #print("----------------")
                 final_right_clusters.append(points_cluster)
                
                 
@@ -382,9 +442,13 @@ class ImageSubscriber:
                 cv_image[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
                 #
             
+            """
            
+            if (counter_left_points == 0):
+                print("No tengo puntos")
             
-            return left_clusters,final_right_clusters,cv_image,img
+             """
+            return final_left_clusters,final_right_clusters,cv_image,img
         
         else:
             return None,None
@@ -589,10 +653,10 @@ class ImageSubscriber:
         return images
     
     
-        
+    #-- En los numpys, [y,x]
     def calculate_margins_points(self,left_clusters,right_clusters,cvimage,img_da_seg):
         
-            
+            global is_first,is_exit_lane
             
             left = np.concatenate(left_clusters,axis=0)
             right = np.concatenate(right_clusters,axis=0)
@@ -602,10 +666,23 @@ class ImageSubscriber:
             cvimage[left[:,0],left[:,1]] = [0,0,255]
             cvimage[right[:,0],right[:,1]] = [0,255,0]
 
-            points_line_right =  self.calculate_right_regression(right)
-            points_line_left = self.calculate_left_regression(left)
+            points_line_right,extrem_point_line_right,m_right =  self.calculate_right_regression(right)
+            points_line_left,extrem_point_line_left,m_left = self.calculate_left_regression(left)
+
+            
+
+            #angle = np.arctan(abs((m_right - m_left) / (1 + m_left*m_right)))
+            
+            
+
+            cv2.circle(cvimage, (extrem_point_line_left[1],extrem_point_line_left[0]), radius=7, color=(0, 0, 0),thickness=-1)
+            cv2.circle(cvimage, (extrem_point_line_right[1],extrem_point_line_right[0]), radius=7, color=(0, 0, 0),thickness=-1)
 
 
+
+
+
+            
 
             img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
 
@@ -614,22 +691,68 @@ class ImageSubscriber:
 
             points_beetween_lines = self.interpolate_lines(cvimage,points_line_left,points_line_right)
 
+
+            #--Detect right turn
+            if (extrem_point_line_left[1] > 140 and extrem_point_line_right[1] > WIDTH/2):
+                is_exit_lane = True
+                cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+            #--Detect left turn
+            elif(extrem_point_line_left[1] < WIDTH/2 and extrem_point_line_right[1] < WIDTH/2):
+                is_exit_lane = True
+                cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+            else:
+
+               
+                max_y_index = np.argmin(points_line_right[:,0])
+                extrem_point_line2 = points_line_right[max_y_index]
+                
+                max_y_left_index = np.argmin(points_line_left[:,0])
+                extrem_point_left_line2 = points_line_left[max_y_left_index]
+
+                #print("Pendiente derecha: " + str((extrem_point_line_right[0] - extrem_point_line2[0])/(extrem_point_line2[1] - extrem_point_line2[1]) ))
+                #print("Pendiente izquierda: " + str((extrem_point_line_left[0] - extrem_point_left_line2[0])/(extrem_point_line_left[1] - extrem_point_left_line2[1]) ))
+
+                print(extrem_point_line2[1] - extrem_point_left_line2[1])
+
+                if(extrem_point_line2[1] - extrem_point_left_line2[1] >= 100):
+                    is_exit_lane = True
+                    cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+                else:
+                    is_exit_lane = False
+
+
+
+
+
             cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
 
             
             
             self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
+
+            if (is_first is False):
+                self.cx_prev = self.cx
+                is_first = True
+            
+
+
             self.orientation_angle = self.calculate_angle([self.cx,self.cy],[160,self.cy],cvimage)
 
             
 
-            cv2.circle(cvimage, (self.cx,self.cy), radius=3, color=(0, 0, 0),thickness=-1)
+            cv2.circle(cvimage, (self.cx,self.cy), radius=4, color=(0, 0, 0),thickness=-1)
+
+          
+
+            # Crea una imagen en blanco del tamaño que necesites
+            imagen = np.zeros((320, 320), dtype=np.uint8)
+
             
-            #cv2.line(cvimage,(160,320),(160,180),(0,0,0),)
+            #cv2.line(cvimage,(160,0),(160,320),(0,0,0),)
                
-                
-
-
             return cvimage
     
 
@@ -640,20 +763,18 @@ class ImageSubscriber:
         imageH = out_image.shape[0]
         
         for i in range(len(STATES)):
+           
             for x in STATES[i]:
                 sp = (x, 0)
-                ep = (x, 320)
-                redVal = int(i * 20)
-                greenVal = int(155 - (i * 20))
-                blueVal = int(255 - (i * 20))
-                cv2.line(out_image, sp, ep, (redVal,greenVal,blueVal), thickness)
+                ep = (x, imageH)
+                cv2.line(out_image, sp, ep, (255, 255, 255), thickness)
                 cv2.putText(
                     out_image,
                     "S" + str(int(i)),
-                    (STATES[i][0] + 2, 20),
+                    (STATES[i][0] + 3, 20),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.2,
-                    (redVal, greenVal, blueVal),
+                    (255,255,255),
                     1,
                     cv2.LINE_AA,
                 )
@@ -667,22 +788,31 @@ class ImageSubscriber:
 
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
         #cv_image = cv2.GaussianBlur(cv_image, (5, 5), 0)
+
+        t1 = time.time()
         images_yolop = self.infer_yolop(cv_image)
         mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
         left_clusters,right_clusters,img_cluster,img = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
 
+        
         out_img = self.calculate_margins_points(left_clusters,right_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
-        self.drawStates(out_img)
+        #print(1/(time.time() - t1))
+        #self.drawStates(out_img)
+        
         
     
-       
+        # Dibuja el contorno en la imagen
+        #cv2.drawContours(imagen, [contorno], -1, (255, 255, 255), 2)
+
+        # Muestra la imagen
+        
       
-        cv2.line(img_cluster,(160,320),(160,0),(255,0,255),3)
+        #cv2.line(img_cluster,(160,320),(160,0),(255,0,255),3)
         #cv2.line(img_cluster,(160,180),(160,320),(255,0,255),1)
 #
       #
-        #cv2.line(img_cluster,(85,180),(0,250),(0,255,255),2)
+        #
         #cv2.line(img_cluster,(210,180),(320,250),(0,255,255),2)
 #
         #cv2.line(img_cluster,(55,180),(0,230),(0,0,255),2)
@@ -692,8 +822,12 @@ class ImageSubscriber:
     
         image_resize = cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR) 
        
-        image_resize[images_yolop[0] == 1] = [255,0,0]
-        image_resize[images_yolop[1] == 1] = [0,255,0]
+        #mask_cvimage[images_yolop[0] == 1] = [255,0,0]
+        #mask_cvimage[images_yolop[1] == 1] = [0,255,0]
+
+        #points_lane = np.column_stack(np.where(images_yolop[1] > 0))
+        #print(points_lane)
+        #mask_cvimage[points_lane[0,:],points_lane[1,:]] = [255,0,0]
 
 
         #out_img = self.calculate_margins_points(dict_clusters,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR),images_yolop[0])
@@ -709,21 +843,11 @@ class ImageSubscriber:
             self.fps = calculate_fps(self.t1,self.list)
             self.counter_time = 0.0
 
-        cv2.putText(
-                out_img, 
-                text = "FPS: " + str(int((self.fps + frames_)/2)),
-                org=(0, 15),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5,
-                color=(255, 255, 255),
-                thickness=2,
-                lineType=cv2.LINE_AA
-            )
-
-        
-       
-        cv2.imshow('Clusters',img)
+        cv2.line(img,(0,200),(320,200),(0,255,255),2)
+        #cv2.imshow('image',mask_cvimage)
+        cv2.imshow('image_cluster',img_cluster)
         cv2.imshow('image',out_img)
+        
 
         # Press `q` to exit.
         cv2.waitKey(3)
@@ -736,8 +860,10 @@ class LaneFollow():
         self.lidar_sub = rospy.Subscriber(LIDAR,PointCloud2,callback=self.lidar_cb)
         self.state_sub = rospy.Subscriber(STATE_SUB, State, callback=self.state_cb) 
         self.local_raw_pub = rospy.Publisher(LOCAL_VEL_PUB, Twist, queue_size=10)
-        rospy.wait_for_service(SET_MODE_CLIENT)
+        #rospy.wait_for_service(SET_MODE_CLIENT)
         self.set_mode_client = rospy.ServiceProxy(SET_MODE_CLIENT, SetMode)
+        self.localization_gps = NavSatFix()
+        self.localization_gps_sub = rospy.Subscriber("/mavros/global_position/global",NavSatFix,callback=self.localization_gps_cb)
         self.prev_error_height = 0
         self.prev_error = 0
         self.error = 0
@@ -746,6 +872,7 @@ class LaneFollow():
         self.error_height = 0
         self.KP_v = 0.009
         self.KD_v = 0.7
+        self.velocity = Twist()
       
 
         self.max_linear_velocity = 1.8  # The maximum speed you want to reach
@@ -754,15 +881,22 @@ class LaneFollow():
 
         self.t1 = 0.0
 
+        self.point_A_vertex = [47.642184,-122.140238]
+        self.point_B_vertex = [47.642187,-122.140186]
+        self.point_C_vertex = [47.642198,-122.140241]
+        self.point_D_vertex = [47.642201,-122.140188]
 
 
-        self.velocity = Twist()
+
+    def localization_gps_cb(self,msg):
+
+        self.localization_gps = msg
 
 
     def lidar_cb(self,cloud_msg):
-        for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True):
-            self.distance_z = point[0] 
-           
+        z_points = [point[0] for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True)]
+        self.distance_z = sum(z_points) / len(z_points) 
+        print(self.distance_z)  
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -832,20 +966,30 @@ if __name__ == '__main__':
     lane_follow.velocity.linear.y = 0.0
     lane_follow.velocity.angular.z = 0.0
 
-    #signal.signal(signal.SIGINT, lane_follow.handler)
+    signal.signal(signal.SIGINT, lane_follow.handler)
+
+    """
+    
+    if (A[0] <= P[0] <= C[0]) and (B[1] <= P[1] <= A[1]) and (B[0] <= P[0] <= D[0]) and (D[1] <= P[1] <= C[1]):
+    print("El punto P está dentro del rectángulo.")
+    
+    else:
+        print("El punto P está fuera del rectángulo.")
+    """
+
     
 
     while (not rospy.is_shutdown()):
-        #print((WIDTH/2 - image_viewer.cx)*(X_PER_PIXEL/WIDTH))
-        print("Centre lane: " + str(image_viewer.cx))
-        for id_state in range(len(STATES)):
-                if image_viewer.cx >= STATES[id_state][0] and image_viewer.cx <= STATES[id_state][1]: 
-                    state_ = id_state
-                    print("State: " + str(state_))
-      
-       
-        """
+        print("Centre lane error: " + str((WIDTH/2 - image_viewer.cx)))
+        print("Error angle: " + str(image_viewer.orientation_angle))
+
         
+
+        #print("Diferencia de centroides en valor absoluto: " + str(abs(image_viewer.cx - image_viewer.cx_prev)))
+        #image_viewer.cx_prev = image_viewer.cx
+
+        """
+       
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
@@ -860,7 +1004,6 @@ if __name__ == '__main__':
      
         lane_follow.prev_error = lane_follow.error
         lane_follow.prev_error_height = lane_follow.error_height
-        """
       
         
         if time.time() - start_time >= 1:
@@ -868,6 +1011,5 @@ if __name__ == '__main__':
             frames_ = frames
             start_time = time.time()
             frames = 0
-        
-        
+        """
         rate.sleep()
