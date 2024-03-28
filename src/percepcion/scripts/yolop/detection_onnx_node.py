@@ -86,8 +86,10 @@ print(len(STATES))
 is_first = False
 
 is_exit_lane = False
-
 counter = 0
+
+is_first_time = True
+
 def calculate_fps(t1,list_fps):
         fps = 1/(time.time() - t1)
         list_fps.append(fps)
@@ -656,102 +658,117 @@ class ImageSubscriber:
     #-- En los numpys, [y,x]
     def calculate_margins_points(self,left_clusters,right_clusters,cvimage,img_da_seg):
         
-            global is_first,is_exit_lane
+            global is_first,is_exit_lane,is_first_time
+
+            if(len(left_clusters) > 0  and len(right_clusters) > 0):
             
-            left = np.concatenate(left_clusters,axis=0)
-            right = np.concatenate(right_clusters,axis=0)
+                left = np.concatenate(left_clusters,axis=0)
+                right = np.concatenate(right_clusters,axis=0)
 
-            
-
-            cvimage[left[:,0],left[:,1]] = [0,0,255]
-            cvimage[right[:,0],right[:,1]] = [0,255,0]
-
-            points_line_right,extrem_point_line_right,m_right =  self.calculate_right_regression(right)
-            points_line_left,extrem_point_line_left,m_left = self.calculate_left_regression(left)
-
-            
-
-            #angle = np.arctan(abs((m_right - m_left) / (1 + m_left*m_right)))
-            
-            
-
-            cv2.circle(cvimage, (extrem_point_line_left[1],extrem_point_line_left[0]), radius=7, color=(0, 0, 0),thickness=-1)
-            cv2.circle(cvimage, (extrem_point_line_right[1],extrem_point_line_right[0]), radius=7, color=(0, 0, 0),thickness=-1)
-
-
-
-
-
-            
-
-            img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
-
-            cvimage[img_line_left == 1] = [255,255,255]
-            cvimage[img_line_right == 1] = [255,255,255]
-
-            points_beetween_lines = self.interpolate_lines(cvimage,points_line_left,points_line_right)
-
-
-            #--Detect right turn
-            if (extrem_point_line_left[1] > 140 and extrem_point_line_right[1] > WIDTH/2):
-                is_exit_lane = True
-                cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
-
-            #--Detect left turn
-            elif(extrem_point_line_left[1] < WIDTH/2 and extrem_point_line_right[1] < WIDTH/2):
-                is_exit_lane = True
-                cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
-
-            else:
-
-               
-                max_y_index = np.argmin(points_line_right[:,0])
-                extrem_point_line2 = points_line_right[max_y_index]
                 
-                max_y_left_index = np.argmin(points_line_left[:,0])
-                extrem_point_left_line2 = points_line_left[max_y_left_index]
 
-                #print("Pendiente derecha: " + str((extrem_point_line_right[0] - extrem_point_line2[0])/(extrem_point_line2[1] - extrem_point_line2[1]) ))
-                #print("Pendiente izquierda: " + str((extrem_point_line_left[0] - extrem_point_left_line2[0])/(extrem_point_line_left[1] - extrem_point_left_line2[1]) ))
+                cvimage[left[:,0],left[:,1]] = [0,0,255]
+                cvimage[right[:,0],right[:,1]] = [0,255,0]
 
-                print(extrem_point_line2[1] - extrem_point_left_line2[1])
+                points_line_right,extrem_point_line_right,m_right =  self.calculate_right_regression(right)
+                points_line_left,extrem_point_line_left,m_left = self.calculate_left_regression(left)
 
-                if(extrem_point_line2[1] - extrem_point_left_line2[1] >= 100):
+
+                print("Left: " + str(extrem_point_line_left[1]) + ", Right: " + str(extrem_point_line_right[1]))
+                
+
+                #angle = np.arctan(abs((m_right - m_left) / (1 + m_left*m_right)))
+                
+                
+
+                cv2.circle(cvimage, (extrem_point_line_left[1],extrem_point_line_left[0]), radius=7, color=(0, 0, 0),thickness=-1)
+                cv2.circle(cvimage, (extrem_point_line_right[1],extrem_point_line_right[0]), radius=7, color=(0, 0, 0),thickness=-1)
+
+
+
+
+
+                
+
+                img_line_left,img_line_right = self.dilate_lines(points_line_left,points_line_right)
+
+                cvimage[img_line_left == 1] = [255,255,255]
+                cvimage[img_line_right == 1] = [255,255,255]
+
+                points_beetween_lines = self.interpolate_lines(cvimage,points_line_left,points_line_right)
+
+                cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
+
+                
+                
+                self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
+
+                if (is_first is False):
+                    self.cx_prev = self.cx
+                    is_first = True
+                
+
+
+                self.orientation_angle = self.calculate_angle([self.cx,self.cy],[160,self.cy],cvimage)
+
+                
+
+                cv2.circle(cvimage, (self.cx,self.cy), radius=4, color=(0, 0, 0),thickness=-1)
+
+                # Crea una imagen en blanco del tamaño que necesites
+                imagen = np.zeros((320, 320), dtype=np.uint8)
+
+                
+                #cv2.line(cvimage,(160,0),(160,320),(0,0,0),)
+
+                #--Detect right turn
+                if (extrem_point_line_left[1] > 130 and extrem_point_line_right[1] > WIDTH/2):
                     is_exit_lane = True
                     cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
 
+                #--Detect left turn
+                elif(extrem_point_line_left[1] < WIDTH/2 and extrem_point_line_right[1] < 170):
+                    is_exit_lane = True
+                    cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+               
                 else:
-                    is_exit_lane = False
+                   
+                    #if(not is_first_time):
+                        max_y_index = np.argmin(points_line_right[:,0])
+                        extrem_point_line2 = points_line_right[max_y_index]
+                        
+                        max_y_left_index = np.argmin(points_line_left[:,0])
+                        extrem_point_left_line2 = points_line_left[max_y_left_index]
+
+                        cv2.circle(cvimage, (extrem_point_line2[1],extrem_point_line2[0]), radius=7, color=(0, 0, 0),thickness=-1)
+                        cv2.circle(cvimage, (extrem_point_left_line2[1],extrem_point_left_line2[0]), radius=7, color=(0, 0, 0),thickness=-1)
+
+                        #print("Pendiente derecha: " + str((extrem_point_line_right[0] - extrem_point_line2[0])/(extrem_point_line2[1] - extrem_point_line2[1]) ))
+                        #print("Pendiente izquierda: " + str((extrem_point_line_left[0] - extrem_point_left_line2[0])/(extrem_point_line_left[1] - extrem_point_left_line2[1]) ))
+
+                        print(extrem_point_line2[1] - extrem_point_left_line2[1])
+                    
+
+                        if(extrem_point_line2[1] - extrem_point_left_line2[1] >= 100):
+                            is_exit_lane = True
+                            cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+                        elif(extrem_point_line2[1] - extrem_point_left_line2[1] <= 15):
+                            is_exit_lane = True
+                            #cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+
+                        else:
+                            is_exit_lane = False
+                   
+
+                        
 
 
 
-
-
-            cvimage[points_beetween_lines[:,0],points_beetween_lines[:,1]] = [255,0,0]
-
-            
-            
-            self.cx,self.cy = self.calculate_mass_centre_lane(points_beetween_lines,img_da_seg,cvimage)
-
-            if (is_first is False):
-                self.cx_prev = self.cx
-                is_first = True
-            
-
-
-            self.orientation_angle = self.calculate_angle([self.cx,self.cy],[160,self.cy],cvimage)
-
-            
-
-            cv2.circle(cvimage, (self.cx,self.cy), radius=4, color=(0, 0, 0),thickness=-1)
-
-          
-
-            # Crea una imagen en blanco del tamaño que necesites
-            imagen = np.zeros((320, 320), dtype=np.uint8)
-
-            
-            #cv2.line(cvimage,(160,0),(160,320),(0,0,0),)
+            else:
+                #cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
+                is_exit_lane = True
                
             return cvimage
     
@@ -845,7 +862,7 @@ class ImageSubscriber:
 
         cv2.line(img,(0,200),(320,200),(0,255,255),2)
         #cv2.imshow('image',mask_cvimage)
-        cv2.imshow('image_cluster',img_cluster)
+        #cv2.imshow('image_cluster',img_cluster)
         cv2.imshow('image',out_img)
         
 
@@ -896,7 +913,7 @@ class LaneFollow():
     def lidar_cb(self,cloud_msg):
         z_points = [point[0] for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True)]
         self.distance_z = sum(z_points) / len(z_points) 
-        print(self.distance_z)  
+        #print(self.distance_z)  
 
     def state_cb(self, msg):
         self.current_state = msg
@@ -954,7 +971,7 @@ if __name__ == '__main__':
     set_mode = SetModeRequest()
     set_mode.custom_mode = 'OFFBOARD'
 
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(20)
 
 
     last_req = rospy.Time.now()
@@ -962,7 +979,7 @@ if __name__ == '__main__':
     start_time = time.time()  
     frames = 0
 
-    lane_follow.velocity.linear.x = 1.5
+    lane_follow.velocity.linear.x = 2.0
     lane_follow.velocity.linear.y = 0.0
     lane_follow.velocity.angular.z = 0.0
 
@@ -982,28 +999,45 @@ if __name__ == '__main__':
     while (not rospy.is_shutdown()):
         print("Centre lane error: " + str((WIDTH/2 - image_viewer.cx)))
         print("Error angle: " + str(image_viewer.orientation_angle))
-
+        print("Z: " + str(lane_follow.distance_z))
         
 
         #print("Diferencia de centroides en valor absoluto: " + str(abs(image_viewer.cx - image_viewer.cx_prev)))
         #image_viewer.cx_prev = image_viewer.cx
 
-        """
        
+        
+        """
+        
         if (lane_follow.current_state.mode != OFFBOARD and (rospy.Time.now() - last_req) > rospy.Duration(5.0)):
             if (lane_follow.set_mode_client.call(set_mode).mode_sent is True):
                 rospy.loginfo("OFFBOARD enabled")
         
        
         if (lane_follow.current_state.mode == OFFBOARD):
+            
+
+            if(counter < 20):
+                counter +=1
+            else:
+                counter = 0
+                is_first_time = False
             lane_follow.velocity_controller(image_viewer.cx)
             lane_follow.height_velocity_controller()
         
 
-        lane_follow.local_raw_pub.publish(lane_follow.velocity)
-     
-        lane_follow.prev_error = lane_follow.error
-        lane_follow.prev_error_height = lane_follow.error_height
+        if (is_exit_lane is True):
+            lane_follow.velocity.linear.x = 0.0
+            lane_follow.velocity.linear.y = 0.0
+            lane_follow.velocity.angular.z = 0.0
+            lane_follow.local_raw_pub.publish(lane_follow.velocity)
+            break
+
+        else:
+            lane_follow.local_raw_pub.publish(lane_follow.velocity)
+        
+            lane_follow.prev_error = lane_follow.error
+            lane_follow.prev_error_height = lane_follow.error_height
       
         
         if time.time() - start_time >= 1:
@@ -1013,3 +1047,4 @@ if __name__ == '__main__':
             frames = 0
         """
         rate.sleep()
+       
