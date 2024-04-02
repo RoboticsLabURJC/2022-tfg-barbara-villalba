@@ -212,7 +212,7 @@ class QLearning:
         self.FIRST_LOCALIZATION = 1
         self.SECOND_LOCALIZATION = 2
 
-        self.client_airsim = airsim.MultirotorClient(ip="192.168.1.16")
+        self.client_airsim = airsim.MultirotorClient(ip="192.168.2.16")
         self.client_airsim.confirmConnection()
         self.client_airsim.enableApiControl(True)
 
@@ -464,7 +464,7 @@ class QLearning:
         
 
         MIN_ERROR = 0
-        MAX_ERROR = 100
+        MAX_ERROR = 80
         
         if (self.is_exit_lane(cx)):
             
@@ -553,27 +553,6 @@ class QLearning:
             print("Error del centro en pixeles: " + str((WIDTH/2 - cx)) + "Centroide: " + str(cx))
             print("is_not_detect_lane: " + str(is_not_detect_lane))
            
-          
-            """
-            
-            #-- Comprobación de cuando se ejecuta las primeras acciones
-            if(is_not_detect_lane and is_first_time):
-                init = time.time()
-                rate_aux = rospy.Rate(20)
-                
-                while (time.time() - init <= 1.2):
-                    print("bucle")
-                    print(time.time() - init )
-                    self.height_velocity_controller()
-                    self.local_raw_pub.publish(self.velocity)
-                    rate_aux.sleep()
-                   
-                is_first_time = False
-                is_not_detect_lane = False
-            
-
-            
-            """
             #print("is_not_detect_lane: " + str(is_not_detect_lane) + "," + str(is_first_time))
             #--Comprobación si falla la percepción
             if(cx == -1):
@@ -1310,7 +1289,7 @@ class Perception():
                         
                         if(is_first_time):
                             print("Paso los 2 segundos")
-                            if(len(points_beetween_lines) > 36000):
+                            if(len(points_beetween_lines) > 33700):
                                 print("El tamaño es muy grande de la zona azul")
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
                                 is_not_detect_lane = True
