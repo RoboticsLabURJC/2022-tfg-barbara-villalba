@@ -86,6 +86,8 @@ n_steps = 0
 
 state = 0
 
+counter_photo = 0
+
 STATES = [
     (77,87),
     (88,98),
@@ -143,7 +145,7 @@ class QLearning:
     def __init__(self):
     
         #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
        
 
@@ -513,7 +515,7 @@ class QLearning:
     
 
     def algorithm(self,perception):
-        global n_steps,state,is_not_detected_left,is_not_detected_right,is_first,counter_actions,is_not_detect_lane,size_blue,t1,t2,is_first_time
+        global n_steps,state,is_not_detected_left,is_not_detected_right,is_first,counter_actions,is_not_detect_lane,size_blue,t1,t2,is_first_time,counter_photo
 
         pepe = True
         image = perception.cv_image
@@ -525,6 +527,9 @@ class QLearning:
         is_first = True
 
         exit_lane = self.is_exit_lane(cx)
+
+        counter_fail_percepcion = 0
+        counter_fail_exit_lane = 0
 
         t1 = time.time()
 
@@ -538,59 +543,83 @@ class QLearning:
             print("Estado: "+ str(current_state))
             print("Accion: "+str(id_action))
      
-            print("Valor actual de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
+            #print("Valor actual de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
             
+
+            self.client_airsim.simPause(False)
 
             qlearning.execute_action(action,id_action)
             #counter_actions +=1
             
             time.sleep(0.05)
+
+            self.client_airsim.simPause(True)
             #print(cx)
 
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
 
-            
-            print("Error del centro en pixeles: " + str((WIDTH/2 - cx)) + "Centroide: " + str(cx))
-            print("is_not_detect_lane: " + str(is_not_detect_lane))
-           
-            #print("is_not_detect_lane: " + str(is_not_detect_lane) + "," + str(is_first_time))
-            #--Comprobación si falla la percepción
-            if(cx == -1):
-                print("Error por la percepción")
-                init = time.time()
-                rate_aux = rospy.Rate(30)
-                while (time.time() - init <= 0.5):
-                    self.height_velocity_controller()
-                    self.local_raw_pub.publish(self.velocity)
-                    rate_aux.sleep()
-                        
-
-                is_not_detected_left = False
-                is_not_detected_right = False
-                #is_not_detect_lane = False
-                out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
            
             
+           #--Percepcion fallida
+            if((cx == -1) or (is_not_detected_left is True) or(is_not_detected_right is True)):
+                print("Fallo en la percepcion")
+                
+                print("Centroide: " + str(cx))
+                counter_fail_percepcion += 1
+                print("Iteraciones consecutivas: " + str(counter_fail_percepcion))
+                if(counter_fail_percepcion < 5):
+                    continue
+
+            else:
+                #print("Error del centro en pixeles: " + str((WIDTH/2 - cx)) + "Centroide: " + str(cx))
+                if(counter_fail_percepcion == 0):
+                   counter_fail_percepcion = 0
+
+                else:
+                
+                    counter_fail_percepcion -= 1 
+
+            #--Salida del carril
+            if(is_not_detect_lane is True):
+                print("Me he salido del carril")
+                #print("Centroide: " + str(cx))
+                counter_fail_exit_lane += 1
+                print("Iteraciones consecutivas de la salida del carril: " + str(counter_fail_exit_lane))
+                if(counter_fail_exit_lane < 3):
+                    continue
+
+            else:
+                #print("Iteraciones consecutivas de la salida del carril: " + str(counter_fail_exit_lane))
+                #print("Error del centro en pixeles: " + str((WIDTH/2 - cx)) + "Centroide: " + str(cx))
+                if(counter_fail_exit_lane == 0):
+                   counter_fail_exit_lane = 0
+
+                else:
+                
+                    counter_fail_exit_lane -= 1 
+
+           
+            #print("Iteraciones consecutivas: " + str(counter_fail_percepcion))
             
 
-            self.client_airsim.simPause(True)
-            #print("Pausado el simulador")
-            #t1 = time.time()
-           
+          
 
-            #t4 = time.time()
-            is_first = False    
+            #--Comprobar la percepcion si ha fallado. Si me ha fallado hacer el conteo,hasta llegar 5 consecutivas. Si no he llegado a 5 hago el continue.
+
+            #-- Comprobar si el exit lane se ha perdido, 3 iteraciones consecutivas.Si no he llegado a 3 hago el continue. 
+           
+          
             reward = qlearning.reward_function(cx)
             print("Recompensa: " + str(reward))
             next_state = qlearning.getState(cx)
 
            
             qlearning.functionQLearning(current_state,next_state,id_action,reward)
-            print("Valor nuevo de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
-            print("Valor de maximo de Q en el siguiente estado MaxQ(S" + str(next_state) + "): " + str(np.max(self.QTable[next_state])))
+            #--print("Valor nuevo de Q(S" + str(current_state) + ",A" + str(id_action) + "): " + str(self.QTable[current_state,id_action]))
+            #print("Valor de maximo de Q en el siguiente estado MaxQ(S" + str(next_state) + "): " + str(np.max(self.QTable[next_state])))
             print("------------------------------------------------------")
             #t5 = time.time()
-            self.client_airsim.simPause(False)
+            
             #print("Tiempo de parar el simulador evaluar todo y reanudarlo: " + str(time.time() - t1))
             #print("Reanudado el simulador")
             #print("Current_state: " + str(current_state) + " , Next_state: " + str(next_state))
@@ -602,69 +631,70 @@ class QLearning:
 
             if (out_image is not None):
                 image = out_image
-                perception.drawStates(out_image)
+                
 
                 
              
-                
-                cv2.putText(
-                        out_image, 
-                        text = "V: " + str(action[0]),
-                        org=(0, 15),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5,
-                        color=(255, 255, 255),
-                        thickness=2,
-                        lineType=cv2.LINE_AA
-                )
+                if((cx != -1 )or(is_not_detected_left is False) or(is_not_detected_right is False)):
+                    perception.drawStates(out_image)
+                    cv2.putText(
+                            out_image, 
+                            text = "V: " + str(action[0]),
+                            org=(0, 15),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(255, 255, 255),
+                            thickness=2,
+                            lineType=cv2.LINE_AA
+                    )
+
+                    
+                    cv2.putText(
+                            out_image, 
+                            text = "W: " + str(action[1]),
+                            org=(0, 45),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(255, 255, 255),
+                            thickness=2,
+                            lineType=cv2.LINE_AA
+                    )
+                    cv2.putText(
+                            out_image, 
+                            text = "Action: " + str(id_action),
+                            org=(0, 85),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(255, 255, 255),
+                            thickness=2,
+                            lineType=cv2.LINE_AA
+                    )
+
+                    cv2.putText(
+                            out_image, 
+                            text = "State: " + str(current_state),
+                            org=(0, 65),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(255, 255, 255),
+                            thickness=2,
+                            lineType=cv2.LINE_AA
+                    )
+
+                    cv2.putText(
+                            out_image, 
+                            text = "Size_blue: " + str(size_blue),
+                            org=(0, 105),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.6,
+                            color=(255, 255, 255),
+                            thickness=2,
+                            lineType=cv2.LINE_AA
+                    )
 
                 
-                cv2.putText(
-                        out_image, 
-                        text = "W: " + str(action[1]),
-                        org=(0, 45),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5,
-                        color=(255, 255, 255),
-                        thickness=2,
-                        lineType=cv2.LINE_AA
-                )
-                cv2.putText(
-                        out_image, 
-                        text = "Action: " + str(id_action),
-                        org=(0, 85),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5,
-                        color=(255, 255, 255),
-                        thickness=2,
-                        lineType=cv2.LINE_AA
-                )
 
-                cv2.putText(
-                        out_image, 
-                        text = "State: " + str(current_state),
-                        org=(0, 65),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5,
-                        color=(255, 255, 255),
-                        thickness=2,
-                        lineType=cv2.LINE_AA
-                )
-
-                cv2.putText(
-                        out_image, 
-                        text = "Size_blue: " + str(size_blue),
-                        org=(0, 105),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.6,
-                        color=(255, 255, 255),
-                        thickness=2,
-                        lineType=cv2.LINE_AA
-                )
-
-                
-
-                cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
+                    cv2.circle(out_image,(cx,280),3,(0,0,0),-1)
                 cv2.imshow("image",out_image)
                 cv2.waitKey(3)
            
@@ -682,7 +712,8 @@ class QLearning:
                 is_first_time = True
                 pepe = False
             
-        file = "/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/fotos/foto" + str(n_steps) + ".jpg"
+        self.client_airsim.simPause(False)
+        file = "/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/fotos/foto-episodio" + str(counter_photo) + ".jpg"
         cv2.imwrite(file ,image)
         #print("FPS train: " + str(1/(t1 - t0)))
             #print("Centroide: " + str(cx))
@@ -963,12 +994,12 @@ class Perception():
                 points_cluster = points_lane[labels==cluster,:]
                 centroid = points_cluster.mean(axis=0).astype(int)
                 color = self.colors[cluster % len(self.colors)]
-                #img[points_cluster[:,0], points_cluster[:,1]] = color
+                img[points_cluster[:,0], points_cluster[:,1]] = color
 
                 # Check if the centroid is within the desired lane
                 if centroid[1] < 160:  # left lane
                     left_clusters.append((points_cluster,centroid))
-                    #print("Izquierda: " + str(len(points_cluster)))
+                    print("Izquierda: " + str(centroid[1]))
                     img[points_cluster[:,0], points_cluster[:,1]] = [0,0,255]
                 elif centroid[1] >= 160:  # right lane
                     right_clusters.append((points_cluster, centroid))
@@ -1010,11 +1041,11 @@ class Perception():
             if (counter_left_points == 0  or counter_right_points == 0):
                 print("No hay puntos")
                 print(counter_left_points,counter_right_points)
-                return None,None,-1
+                return None,None,-1,img
             
             else:
 
-                return final_left_clusters,final_right_clusters,0
+                return final_left_clusters,final_right_clusters,0,img
         
         else:
             print("No hay puntos en la calle")
@@ -1229,11 +1260,12 @@ class Perception():
 
                 if (points_line_right is None or points_line_left is None):
                     print("Error en la regresion")
-                    cx = -1 
+                    print(points_line_right,points_line_left)
+                    #cx = -1 
                     cy = -1
                     orientation_angle = -1
-                    cvimage = None
-                    is_not_detect_lane = True
+                    
+                   
 
                 
                 else:            
@@ -1265,8 +1297,9 @@ class Perception():
 
 
                     #--Detect right turn
-                    if (extrem_point_line_left[1] > 140 and extrem_point_line_right[1] > WIDTH/2):
+                    if (extrem_point_line_left[1] > 150 and extrem_point_line_right[1] > WIDTH/2):
                         print("Detenccion de salida por la derecha")
+                        print(extrem_point_line_left[1],extrem_point_line_right[1])
                         is_not_detect_lane = True
                         cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
 
@@ -1285,7 +1318,7 @@ class Perception():
 
                 
                     else:
-                        print("Distancia maxima: " + str(extrem_point_line2[1] - extrem_point_left_line2[1]))
+                        #print("Distancia maxima: " + str(extrem_point_line2[1] - extrem_point_left_line2[1]))
                         
                         if(is_first_time):
                             print("Paso los 2 segundos")
@@ -1355,12 +1388,14 @@ class Perception():
         cx = 0
         cy = 0
         orientation_angle = 0
+        is_not_detected_left = False
+        is_not_detected_right = False
         images_yolop = self.infer_yolop(cv_image)
         #print("Tiempo YOLOP: " + str(1/(time.time() - self.t1)))
         mask_cvimage = self.draw_region(cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
         mask = self.draw_region(images_yolop[1])
         
-        left_clusters,right_clusters,state_clusters = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
+        left_clusters,right_clusters,state_clusters,img = self.clustering(mask,cv2.resize(cv_image,(WIDTH,HEIGH),cv2.INTER_LINEAR))
        
         #print("Clustering: " + str(1 / (time.time() - self.t1)))
 
@@ -1372,6 +1407,7 @@ class Perception():
             orientation_angle = -1 
             is_not_detected_left = True
             is_not_detected_right = True
+            out_img = img
 
         
         else:
@@ -1421,20 +1457,20 @@ def spin():
 
 def save_files(n_episode, epsilon, steps, acummulateReward):
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/episodes-iterations.csv', mode="a", newline="") as file_steps:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/episodes-iterations.csv', mode="a", newline="") as file_steps:
         writer_steps = csv.writer(file_steps)
         writer_steps.writerow([n_episode, steps])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
         writer_epsilon = csv.writer(file_epsilon)
         writer_epsilon.writerow([n_episode, epsilon])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
         writer_reward = csv.writer(file_reward)
         writer_reward.writerow([n_episode, acummulateReward])
 
     df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/29-marzo/q_table.csv')
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/3-abril/q_table.csv')
 
 
 
@@ -1464,6 +1500,7 @@ if __name__ == '__main__':
 
     error = 0
     n_episode = rospy.get_param('~n_episode')
+    
 
     rate = rospy.Rate(20)
     is_landing = False
@@ -1495,7 +1532,7 @@ if __name__ == '__main__':
                 time.sleep(3)
 
             if(state == 2):
-
+                counter_photo = n_episode
                 if(n_episode < qlearning.MAX_EPISODES):
                     n_episode += 1
                     state = 3
