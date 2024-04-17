@@ -23,7 +23,7 @@ import pandas as pd
 import airsim
 import datetime
 import os
-import threading
+from threading import Lock
 
 
 IMAGE_TOPIC = '/airsim_node/Drone/front_center_custom/Scene'
@@ -65,6 +65,8 @@ n_steps = 0
 state = 0
 
 counter_photo = 0
+
+lock = Lock()
 
 STATES = [
     (77,87),
@@ -123,8 +125,8 @@ MAX_EXPLORATIONS = 900
 class QLearning:
     def __init__(self):
     
-        self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        #self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/14-abril/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/15-abril/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
        
 
@@ -173,8 +175,8 @@ class QLearning:
         self.last_req = 0.0
         self.pepe = False
 
-        self.KP_v = 0.1
-        self.KD_v = 0.7
+        self.KP_v = 0.5
+        self.KD_v = 1.2
 
         self.prev_error_height = 0
         self.error = 0
@@ -184,6 +186,7 @@ class QLearning:
     def lidar_cb(self,cloud_msg):
         z_points = [point[0] for point in sensor_msgs.point_cloud2.read_points(cloud_msg, field_names=("z"), skip_nans=True)]
         self.distance_z = sum(z_points) / len(z_points) 
+        #print("Distancia: " + str(self.distance_z))
 
     def localization_gps_cb(self,msg):
 
@@ -230,13 +233,13 @@ class QLearning:
             id_action = np.random.choice(len(ACTIONS))
             is_exploration = True
             print("Exploracion: " + str(is_exploration))
-            #print("Exploracion,Accion : " + str(id_action))
+            print("Exploracion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
         #--Explotation
         else:
             id_action = np.argmax(self.QTable[state,:])
             print("Exploracion: " + str(is_exploration))
-            #print("Explotacion,Accion : " + str(id_action))
+            print("Explotacion,Accion : " + str(id_action))
             return ACTIONS[id_action],id_action
 
         
@@ -249,9 +252,9 @@ class QLearning:
         #print(self.QTable[state, action])
         #print(np.argmax(self.QTable[next_state, action]))
 
-        self.QTable[state, action] = round(self.QTable[state, action] + self.alpha * (reward + self.gamma * np.max(self.QTable[next_state]) - self.QTable[state, action]),3)
-        print("QTable[" + str(state) + "," + str(action) + "] : " + str(self.QTable[state, action]) + ",reward: " + str(reward) + ",Maximo valor del siguiente estado: " + 
-            str(np.max(self.QTable[next_state])) + ",Siguiente estado: " + str(next_state))
+        self.QTable[state, action] = self.QTable[state, action] + self.alpha * (reward + self.gamma * np.max(self.QTable[next_state]) - self.QTable[state, action])
+        #print("QTable[" + str(state) + "," + str(action) + "] : " + str(self.QTable[state, action]) + ",reward: " + str(reward) + ",Maximo valor del siguiente estado: " + 
+            #str(np.max(self.QTable[next_state])) + ",Siguiente estado: " + str(next_state))
         
         self.accumulatedReward += reward
         #print(self.accumulatedReward,reward)
@@ -303,7 +306,7 @@ class QLearning:
         self.error = round((2.80 - self.distance_z),2)
         derr = self.error - self.prev_error_height
 
-        self.vz = -(self.KP_v * error)
+        self.vz = -((self.KP_v * self.error) + (self.KD_v *derr))
         
 
 
@@ -311,6 +314,7 @@ class QLearning:
 
         #print("Correct heigh")
         self.height_velocity_controller()
+        
     
         self.client_airsim.moveByVelocityBodyFrameAsync(
             vx = action[0],
@@ -320,7 +324,7 @@ class QLearning:
             drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
             yaw_mode = airsim.YawMode(is_rate =True, yaw_or_rate=action[1])
             ).join()
-        #self.prev_error_height = self.error
+        self.prev_error_height = self.error
 
 
     def reward_function(self,cx):
@@ -384,10 +388,17 @@ class QLearning:
 
         pepe = True
         image = perception.cv_image
-        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+        
+       
+        out,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
+        perception.drawStates(out)
+        cv2.circle(out,(cx,280),3,(0,0,0),-1)
+        cv2.imshow("image-antes-percepcion",out)
+        cv2.waitKey(3)
 
         
         current_state = self.getState(cx)
+        #print("Cx: " + str(cx) + ", State: " + str(current_state))
         is_first = True
         exit_lane = self.is_exit_lane(cx)
 
@@ -395,7 +406,9 @@ class QLearning:
         counter_fail_exit_lane = 0
 
         t1 = time.time()
-
+        
+       
+      
         while(not exit_lane and (not self.is_finish_route())):
           
             t0 = time.time()
@@ -415,7 +428,7 @@ class QLearning:
            
 
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-            print("Centroide: " + str(cx))
+            #print("Cx: " + str(cx))
 
            #--Percepcion fallida
             if((cx == -1) or (is_not_detected_left is True) or(is_not_detected_right is True)):
@@ -439,7 +452,7 @@ class QLearning:
             #--Salida del carril
             if(is_not_detect_lane is True):
                 print("Me he salido del carril")
-                #print("Centroide: " + str(cx))
+                print("Centroide: " + str(cx))
                 counter_fail_exit_lane += 1
                 print("Iteraciones consecutivas de la salida del carril: " + str(counter_fail_exit_lane))
                 if(counter_fail_exit_lane < 3):
@@ -568,7 +581,7 @@ class QLearning:
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
         
-
+        
         state = 4
 
 
@@ -577,7 +590,7 @@ class Perception():
     def __init__(self):
         self.bridge = CvBridge()
         self.tiempo_ultimo_callback = time.time()
-        self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img)
+        self.image_sub = rospy.Subscriber(IMAGE_TOPIC, Image, self.callback_img,queue_size=1)
         self.cv_image = Image()
         ort.set_default_logger_severity(4)
         self.ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
@@ -887,8 +900,8 @@ class Perception():
             
            
             if (counter_left_points == 0  or counter_right_points == 0):
-                print("No hay puntos")
-                print(counter_left_points,counter_right_points)
+                #print("No hay puntos")
+                #print(counter_left_points,counter_right_points)
                 return None,None,-1,img
             
             else:
@@ -896,8 +909,8 @@ class Perception():
                 return final_left_clusters,final_right_clusters,0,img
         
         else:
-            print("No hay puntos en la calle")
-            print(left_clusters,right_clusters)
+            #print("No hay puntos en la calle")
+            #print(left_clusters,right_clusters)
             return None,None,-1,img
 
     def draw_region(self,img):
@@ -1112,8 +1125,8 @@ class Perception():
 
 
                 if (points_line_right is None or points_line_left is None):
-                    print("Error en la regresion")
-                    print(points_line_right,points_line_left)
+                    #print("Error en la regresion")
+                    #print(points_line_right,points_line_left)
                     #cx = -1 
                     cy = -1
                     orientation_angle = -1
@@ -1152,8 +1165,8 @@ class Perception():
                     if(is_first_time):
                         #--Detect right turn
                         if (extrem_point_line_left[1] > 150 and extrem_point_line_right[1] > WIDTH/2):
-                            print("Detenccion de salida por la derecha")
-                            print(extrem_point_line_left[1],extrem_point_line_right[1])
+                            #print("Detenccion de salida por la derecha")
+                            #print(extrem_point_line_left[1],extrem_point_line_right[1])
                             is_not_detect_lane = True
                             cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
 
@@ -1161,12 +1174,12 @@ class Perception():
                         elif(extrem_point_line_left[1] < WIDTH/2 and extrem_point_line_right[1] < 170):
                             
                             if(extrem_point_line2[1] - extrem_point_left_line2[1] <= 2):
-                                print("Detenccion de salida por la izquierda con distancia de extremos")
+                                #print("Detenccion de salida por la izquierda con distancia de extremos")
                                 is_not_detect_lane = True
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
 
                             else:
-                                print("Detenccion de salida por la izquierda")
+                                #print("Detenccion de salida por la izquierda")
                                 is_not_detect_lane = True
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
 
@@ -1175,9 +1188,9 @@ class Perception():
                             #print("Distancia maxima: " + str(extrem_point_line2[1] - extrem_point_left_line2[1]))
                             
                             
-                            print("Paso los 2 segundos")
+                            #print("Paso los 2 segundos")
                             if(len(points_beetween_lines) >= 36800):
-                                print("El tamaño es muy grande de la zona azul")
+                                #print("El tamaño es muy grande de la zona azul")
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
                                 is_not_detect_lane = True
 
@@ -1199,8 +1212,8 @@ class Perception():
                
 
             else:
-                print("Error de los puntos numpy")
-                print(left_clusters,right_clusters)
+                #print("Error de los puntos numpy")
+                #print(left_clusters,right_clusters)
                 cvimage = None
                 cx = -1 
                 cy = -1 
@@ -1238,6 +1251,8 @@ class Perception():
     def calculate_lane(self,cv_image):
 
         global is_not_detected_left,is_not_detected_right
+        
+       
         out_img = None
         cx = 0
         cy = 0
@@ -1255,7 +1270,7 @@ class Perception():
 
         if state_clusters == -1:
             
-            print("Error en clustering")
+            #print("Error en clustering")
             cx = -1
             cy = -1 
             orientation_angle = -1 
@@ -1275,34 +1290,31 @@ class Perception():
         
     def callback_img(self, data):
         
+        
+        self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
 
-        self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") 
-
+            
 
     def correct_initial_position(self,error,qlearning):
         global state
 
-        while(abs(error) > 0):
-            if time.time() - qlearning.lastTime > 5.0:
-                state = 5
-                break
+        while(abs(error) > 1):
             qlearning.height_velocity_controller()
-            qlearning.set_mode_client.call(qlearning.set_mode_offboard)
-               
-        
-            
-            qlearning.velocity.angular.z = (0.009 * error)
+            print(qlearning.vz)
+            qlearning.client_airsim.moveByVelocityBodyFrameAsync(
+            vx = 0,
+            vy = 0,
+            vz = qlearning.vz,
+            duration = 0.080,
+            drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
+            yaw_mode = airsim.YawMode(is_rate =True, yaw_or_rate= ((0.009 * error)))
+            ).join()
            
-
-            qlearning.local_raw_pub.publish(qlearning.velocity)
-            qlearning.prev_error_height = qlearning.error
+            
             _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
             error  = WIDTH/2 - cx
-            #print(error)
-        
-        _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-        error  = WIDTH/2 - cx
-        #print("Error of final: " + str(error))
+
+        qlearning.vz = 0
         state = 2
 
 def spin():
@@ -1339,8 +1351,8 @@ if __name__ == '__main__':
     
     rospy.init_node("RL_node_py")
 
-    thread_spin = threading.Thread(target=spin)
-    thread_spin.start()
+    #thread_spin = threading.Thread(target=spin)
+    #thread_spin.start()
     
     perception = Perception()
     qlearning = QLearning()
@@ -1370,27 +1382,21 @@ if __name__ == '__main__':
             if(state == 0):
                 t_episode = time.time()
                 qlearning.client_airsim.armDisarm(True)
-                qlearning.client_airsim.moveToZAsync(-2.4, 1).join()
+                qlearning.client_airsim.moveToZAsync(-2.3, 1).join()
                 time.sleep(2)
                 state = 2
 
-            """
+            
             
             if(state == 1):
                 _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-                #angle_error = 0.0 - angle_orientation
+                
                 error = (WIDTH/2 - cx)
 
                 perception.correct_initial_position(error,qlearning)
-                qlearning.stop()
-
-                
-                
-                if (qlearning.set_mode_client.call(qlearning.set_mode_hold).mode_sent is True):
-                        rospy.loginfo("HOLD")
                 
                 time.sleep(3)
-            """
+            
 
             if(state == 2):
 
@@ -1405,7 +1411,7 @@ if __name__ == '__main__':
 
                
              
-                t2 = time.time()
+                time.sleep(3)
                 qlearning.algorithm(perception)
                 
             if(state == 4):
@@ -1415,6 +1421,7 @@ if __name__ == '__main__':
                 cv2.destroyAllWindows()
                
                 qlearning.reset_position()
+                perception.cv_image = None
                 
                 is_not_detected_left = False
                 is_not_detected_right = False
@@ -1422,10 +1429,22 @@ if __name__ == '__main__':
                 is_first_time = False
                 exit = False
                 counter_actions = 0
+                perception.list_left_coeff_a.clear()
+                perception.list_left_coeff_b.clear()
+                perception.list_left_coeff_c.clear()
 
-                        
+                perception.list_right_coeff_a.clear()
+                perception.list_right_coeff_b.clear()
+                perception.list_right_coeff_c.clear()
+
+                perception.counter_it_right = 0
+                perception.counter_it_left = 0
+
+
+                #print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon) + "accumulatedReward: " + str(qlearning.accumulatedReward))  
                        
-                        
+               
+               
                 t_counter_ep +=time.time() - t_episode
                 
                 if n_steps > 0:
@@ -1442,6 +1461,7 @@ if __name__ == '__main__':
                     qlearning.epsilon = 0
                 n_steps = 0
                 qlearning.accumulatedReward = 0
+               
                 state = 0
                 time.sleep(3)
                 
