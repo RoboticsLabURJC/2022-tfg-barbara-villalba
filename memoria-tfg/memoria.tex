@@ -1,0 +1,37 @@
+% !TEX root = memoria-tfg/memoria.tex
+
+\input{estilo.tex} % archivo de configuraci�n de estilo
+
+\makeindex
+
+\begin{document}
+\baselineskip 1.35\baselineskip
+
+\frontmatter
+
+\input{portada/indice.tex} % aqui se cargan todas las "primeras paginas"
+
+% Bibliografia
+\let\OLDthebibliography=\thebibliography
+\def\thebibliography#1{\OLDthebibliography{#1}
+\addcontentsline{toc}{chapter}{\bibname}}
+
+\mainmatter
+
+\setcounter{page}{1}
+
+\input{capitulos/Introduccion}
+
+%\input{capitulos/Objetivos}
+%\input{capitulos/Plataforma_desarollo}
+%\input{capitulos/Diseño}
+%\input{capitulos/Conclusiones}
+
+\clearpage
+\thispagestyle{empty}
+
+\printindex \nocite{*}
+\appendix
+\bibliographystyle{apalike} \bibliography{bibliografia}
+
+\end{document}
