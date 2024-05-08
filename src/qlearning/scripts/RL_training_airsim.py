@@ -23,7 +23,7 @@ import pandas as pd
 import airsim
 import datetime
 import os
-from threading import Lock
+import statistics
 
 
 IMAGE_TOPIC = '/airsim_node/Drone/front_center_custom/Scene'
@@ -66,7 +66,6 @@ state = 0
 
 counter_photo = 0
 
-lock = Lock()
 
 STATES = [
     (77,87),
@@ -94,7 +93,7 @@ t2 = 0.0
 
 ACTIONS = []
 speeds_actions = np.linspace(0.1,2.0,11, dtype=float)
-angular_speeds = np.linspace(-50,50, 21)
+angular_speeds = np.linspace(-25,25, 21)
 
 def build_actions():
 
@@ -126,7 +125,9 @@ class QLearning:
     def __init__(self):
     
         #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        #self.CounterActionsMatrix = np.zeros((len(STATES)+1,len(ACTIONS)))
+        self.CounterActionsMatrix = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/counter_actions_matrix.csv', delimiter=',')
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
        
 
@@ -161,11 +162,21 @@ class QLearning:
 
        
         self.localization_gps_sub = rospy.Subscriber("/airsim_node/Drone/global_gps",NavSatFix,callback=self.localization_gps_cb)
-        #--Points to road final
-        self.point_A_vertex = [47.642184,-122.140238]
-        self.point_B_vertex = [47.642187,-122.140186]
-        self.point_C_vertex = [47.642198,-122.140241]
-        self.point_D_vertex = [47.642201,-122.140188]
+        #--Points to road final-- antiguos
+        #self.point_A_vertex = [47.642184,-122.140238]
+        #self.point_B_vertex = [47.642187,-122.140186]
+        #self.point_C_vertex = [47.642198,-122.140241]
+        #self.point_D_vertex = [47.642201,-122.140188]
+
+        #--Puntos nuevos del final de la calle
+        #self.point_A_vertex = [47.642711,-122.140800]
+        #self.point_B_vertex = [47.642704,-122.140762]
+        #self.point_C_vertex = [47.642726,-122.140785]
+        #self.point_D_vertex = [47.642715,-122.140747]
+
+        #--Punto del centro del circulo para comprobar el final del recorrido
+        self.point_P = [47.642715,-122.140777]
+
 
 
 
@@ -262,7 +273,7 @@ class QLearning:
                 
     def reset_position(self):
 
-        number_position = random.randint(1,2)
+        number_position = random.randint(1,4)
         x = 0
         y = 0
         z = 0
@@ -270,6 +281,15 @@ class QLearning:
         pitch = 0.0
         yaw = 0.0
         roll = 0.0
+
+        self.client_airsim.moveByVelocityBodyFrameAsync(
+            vx = 0,
+            vy = 0,
+            vz = self.vz,
+            duration = 2.0,
+            drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
+            yaw_mode = airsim.YawMode(is_rate =True, yaw_or_rate=0)
+            ).join()
         
 
     
@@ -287,6 +307,22 @@ class QLearning:
             z = -0.2761923372745514
 
             yaw =  0.2228621193016977
+
+        elif(number_position == 3):
+            x = 47.886112213134766
+            y = 21.24800682067871
+            z = -0.2762098014354706
+
+            yaw =  0.07393334743888746
+
+        else:
+            x = 84.56167602539062
+            y = 2.8275511264801025
+            z = -0.2763093113899231
+
+            yaw =  -1.4376945341070075
+
+        
         
 
         position = airsim.Vector3r(x,y,z)
@@ -319,21 +355,28 @@ class QLearning:
             vx = action[0],
             vy = 0,
             vz = self.vz,
-            duration = 0.080,
+            duration = 0.1,
             drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
             yaw_mode = airsim.YawMode(is_rate =True, yaw_or_rate=action[1])
             ).join()
         self.prev_error_height = self.error
 
 
-    def reward_function(self,cx):
+    def reward_function(self,cx,angle):
 
         reward = 0
+        target_heading = 0
         error_lane_center = (WIDTH/2 - cx)
+        heading_difference = (target_heading - angle) 
         
-
         MIN_ERROR = 0
         MAX_ERROR = 80
+
+        MIN_ANGLE = 0
+        MAX_ANGLE = 60
+
+        CENTRE_WEIGHT = 0.65
+        ANGLE_WEIGHT = 0.35
         
         if (self.is_exit_lane(cx)):
             
@@ -342,8 +385,15 @@ class QLearning:
         else:
 
             
-            normalise_error = (abs(error_lane_center) - MIN_ERROR) / (MAX_ERROR - MIN_ERROR)
-            reward = 1 - normalise_error
+            normalise_error_centre = (abs(error_lane_center) - MIN_ERROR) / (MAX_ERROR - MIN_ERROR)
+            reward_centre = 1 - normalise_error_centre
+
+            
+            normalise_error_angle = (abs(heading_difference) - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE)
+            reward_angle = 1 - normalise_error_angle
+
+
+            reward = (reward_centre * CENTRE_WEIGHT) + (reward_angle * ANGLE_WEIGHT)
             
         return reward
     
@@ -366,6 +416,10 @@ class QLearning:
 
     def is_finish_route(self):
 
+
+        #--Condicion de si esta al final de la calle con un rectangulo
+        """
+        
         if (self.point_A_vertex[0] <= self.latitude <= self.point_C_vertex[0]) and \
            (self.point_B_vertex[0] <= self.latitude <= self.point_D_vertex[0]) and \
            (self.point_B_vertex[1] >= self.longitude >=self.point_A_vertex[1]) and \
@@ -374,12 +428,36 @@ class QLearning:
             print("¡Recorrido completado!")
             return True
 
+         else:
+            return False
+        """
+        #----------------------------------------------------------------
+
+        #-- Para comprobar que estamos en el final del recorrido definiremos un circulo con radio 3,
+        #--calcularemos con la distancia de Pitagoras si se encuentra dentro del circulo del final del recorrido
+
+        distance_latitude = (self.latitude - self.point_P[0])**2
        
+        distance_longitude = (self.longitude - self.point_P[1])**2
         
+        distance = float(format(math.sqrt(distance_latitude + distance_longitude),'.15f'))
+        
+        if(distance <= 0.0000158):
+            print("¡Recorrido completado!")
+            return True
+
         else:
             return False
+            
 
         
+    def update_counter_actions(self,state,action):
+
+        #print(state,action)
+        self.CounterActionsMatrix[state,action] += 1
+        print(state,action)
+        print(self.CounterActionsMatrix[state,action])
+
     
 
     def algorithm(self,perception):
@@ -390,10 +468,10 @@ class QLearning:
         
        
         out,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-        perception.drawStates(out)
-        cv2.circle(out,(cx,280),3,(0,0,0),-1)
-        cv2.imshow("image-antes-percepcion",out)
-        cv2.waitKey(3)
+        #perception.drawStates(out)
+        #cv2.circle(out,(cx,280),3,(0,0,0),-1)
+        #cv2.imshow("image-antes-percepcion",out)
+        #cv2.waitKey(3)
 
         
         current_state = self.getState(cx)
@@ -410,7 +488,7 @@ class QLearning:
       
         while(not exit_lane and (not self.is_finish_route())):
           
-            t0 = time.time()
+            
             action,id_action = qlearning.chooseAction(current_state)
             print("Estado: "+ str(current_state))
             print("Accion: "+str(id_action))
@@ -422,10 +500,12 @@ class QLearning:
 
             te = time.time()
             qlearning.execute_action(action,id_action)
-            print("Tiempo: " + str(time.time() - te))
+            #time.sleep(0.1)
+            #print("Tiempo: " + str(time.time() - te))
             self.client_airsim.simPause(True)
+          
            
-
+            t0 = time.time()
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
             #print("Cx: " + str(cx))
 
@@ -470,7 +550,11 @@ class QLearning:
             
             
           
-            reward = qlearning.reward_function(cx)
+            reward = qlearning.reward_function(cx,angle_orientation)
+
+            #--Depuracion
+            qlearning.update_counter_actions(current_state,id_action)
+
             print("Recompensa: " + str(reward))
             next_state = qlearning.getState(cx)
 
@@ -573,7 +657,7 @@ class QLearning:
           
             
         self.client_airsim.simPause(False)
-        file = "/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/fotos/foto-episodio" + str(counter_photo) + ".jpg"
+        file = "/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/fotos/foto-episodio" + str(counter_photo) + ".jpg"
         cv2.imwrite(file ,image)
         print("Rate train: " + str(int(1/(t3 - t0))))
             #print("Centroide: " + str(cx))
@@ -581,7 +665,7 @@ class QLearning:
             
         
         
-        state = 4
+        state = 3
 
 
 
@@ -1324,24 +1408,26 @@ def spin():
     rospy.spin() 
 
 
-def save_files(n_episode, epsilon, steps, acummulateReward):
+def save_files(n_episode, epsilon, steps, acummulateReward,QTable,CounterActionsMatrix):
 
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/episodes-iterations.csv', mode="a", newline="") as file_steps:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-iterations.csv', mode="a", newline="") as file_steps:
         writer_steps = csv.writer(file_steps)
         writer_steps.writerow([n_episode, steps])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
         writer_epsilon = csv.writer(file_epsilon)
         writer_epsilon.writerow([n_episode,epsilon])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
         writer_reward = csv.writer(file_reward)
         writer_reward.writerow([n_episode, round(acummulateReward,2)])
 
     
-    df = pd.DataFrame(qlearning.QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/18-abril/q_table.csv')
+    df = pd.DataFrame(QTable)
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/q_table.csv')
+
+    np.savetxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/counter_actions_matrix.csv',CounterActionsMatrix,fmt="%d",delimiter=",")
 
 
 
@@ -1387,37 +1473,27 @@ if __name__ == '__main__':
                 qlearning.client_airsim.armDisarm(True)
                 qlearning.client_airsim.moveToZAsync(-2.3, 1).join()
                 time.sleep(2)
-                state = 2
+                state = 1
 
             
-            
+
             if(state == 1):
-                _,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
-                
-                error = (WIDTH/2 - cx)
-
-                perception.correct_initial_position(error,qlearning)
-                
-                time.sleep(3)
-            
-
-            if(state == 2):
 
                 if(n_episode < qlearning.MAX_EPISODES):
                     n_episode += 1
                     counter_photo = n_episode
-                    state = 3
+                    state = 2
                 else:
                     state = 5
             
-            if(state == 3):
+            if(state == 2):
 
                
              
                 time.sleep(3)
                 qlearning.algorithm(perception)
                 
-            if(state == 4):
+            if(state == 3):
                 
                
                 
@@ -1453,7 +1529,7 @@ if __name__ == '__main__':
                 if n_steps > 0:
                     print("ID_EPISODE: " + str(n_episode) + " N_STEPS: " + str(n_steps) + " epsilon: " + str(qlearning.epsilon) + "accumulatedReward: " + str(qlearning.accumulatedReward))
 
-                    save_files(n_episode,qlearning.epsilon ,n_steps,qlearning.accumulatedReward)
+                    save_files(n_episode,qlearning.epsilon ,n_steps,qlearning.accumulatedReward,qlearning.QTable,qlearning.CounterActionsMatrix)
 
                 else:
                     state = 5
@@ -1501,8 +1577,6 @@ if __name__ == '__main__':
             save_files(n_episode,qlearning.epsilon ,n_steps,qlearning.accumulatedReward)
             break
 
-       
-      
         """
         
         except IndexError:
@@ -1517,8 +1591,6 @@ if __name__ == '__main__':
     print("Tiempo de entrenamiento: " + str(time.time() - t_initial))
     print("Media de tiempo por episodio: " + str(t_counter_ep/qlearning.MAX_EPISODES))
 
-   
-    
     
     
     
