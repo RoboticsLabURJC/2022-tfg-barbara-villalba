@@ -1,0 +1,422 @@
+\chapter{Plataforma de desarrollo}
+\label{cap:capitulo3}
+
+En este capítulo hablaremos sobre que tecnologías hemos utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación.
+\section{Lenguaje de programación}
+\label{sec:programación}
+\subsection{Python}
+\label{sec:python}
+Para el desarrollo de este TFG, hemos utilizado como lenguaje de programación Python. Python\footnote{\url{https://www.python.org/}} es un lenguaje de programación interpretado, de tipado dinámico y orientado a objetos,
+utilizado para el desarrollo de software, aplicaciones web, data science y machine learning (ML).  
+Fue creado por Guido van Rossum \footnote{\url{https://gvanrossum.github.io/}} en 1989, el nombre de "Python" se inspiró en el programa de televisión británico "Monty Python's Flying Circus". \newline
+
+Este lenguaje con los tiempos se ha convertido en uno de los lenguajes más populares del mundo, esto se puede deber a su sintaxis sencilla, clara y legible, a parte 
+de estos beneficios también presenta una amplia gama de bibliotecas y marcos de trabajo. Además se trata de un lenguaje de programación 'open source' (código abierto) y está disponible bajo
+una licencia de código abierto aprobada por la Iniciativa de Código Abierto (OSI), esto significa que Python es libre de usar, distribuir y modificar, incluso para uso
+comercial. \newline
+
+También a de destacar, la facilidad que puede ser la instalación de dicho lenguaje en sistemas operativos como Linux o Windows. \newline
+
+En el caso de este TFG, se utilizará Python3 para todo el desarrollo del código junto con el middleware robotico ROS (veáse la sección \ref{sec:ros}) y para el desarrollo
+de los diferentes algoritmos. 
+\newline
+
+\begin{code}[h]
+\begin{lstlisting}[language=Python]
+  def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+print(factorial(5))  # Output: 120
+
+\end{lstlisting}
+\caption[Ejemplo de código en Python de una función para calcular el factorial de un número]{Ejemplo de código en Python de una función para calcular el factorial de un número}
+\label{cod:codejemplo}
+\end{code}  
+
+
+\section{ROS}
+\label{sec:ros}
+\textbf{ROS (Robot Operating System)}\footnote{\url{https://www.ros.org/}} es un sistema operativo de código abierto utilizado principalmente para aplicaciones robóticas. 
+Podemos definir este middleware de la siguiente forma:
+siguiente:
+
+\begin{figure} [H]
+    \begin{center}
+      \includegraphics[scale=0.18]{figs/Plataformas_Desarollo/ros-equation.png}
+    \end{center}
+    \caption{Definición de ROS}
+    \label{fig:ROS}
+  \end{figure}\
+
+
+\begin{enumerate}
+    \item \textbf{Plumbing}: ROS proporciona una infraestructura de mensajería publicador-subscriptor diseñada para facilitar la construcción sencilla y rápida de sistemas informáticos
+    distribuidos.
+    \item \textbf{Tools}: ROS proporciona introspección, lanzamiento, depuración, visualización, trazado, registro, reproducción y detener sistemas informáticos distribuidos.
+    \item \textbf{Capabilities}: ROS proporciona una amplia colección de bibliotecas que implementan funciones útiles para los robots, por ejemplo, movilidad, manipulación y percepción.
+    \item \textbf{Community}: ROS cuenta con el apoyo y la mejora de una gran comunidad, con un fuerte enfoque en la integración y la documentación, gracias a ello, es una ventaja poder
+    aprender a cerca de los miles de paquetes que ofrece ROS que están disponibles de desarrolladores de todo el mundo.
+\end{enumerate}
+
+\subsection{Arquitectura de ROS}
+\label{sec:arquitectura}
+Antes de adentrarnos en el tipo de modelo que sigue ROS, mencionaremos y explicaremos ciertos conceptos que son importantes de conocer y saber.
+
+\subsubsection{Conceptos}
+\label{sec:conceptos}
+
+\begin{enumerate}
+    \item \textbf{Nodo}: Definiremos nodo como un programa ejecutable. Dentro de los nodos podemos tener nodos publicadores y subscriptores. 
+        \begin{itemize}
+            \item \textbf{ROS Master}: ROS Master es el nodo que lleva los registros de los demás nodos,el papel que tiene este nodo es permitir que los nodos de ROS individuales se localicen entre sí. 
+            \item \textbf{Nodo Publicador}: El término publicador consiste en transmitir mensajería o acciones asociadas a un topic. 
+            Dicha información se registra con el nodo ROS Master y una vez se realice el registro enviará mensajes asociados a un topic.
+            \item \textbf{Nodo Subscriptor}: Este nodo será el encargado de recibir la mensajería correspondientes al topic. 
+            El nodo subscriber se registra en el ROS Master y una vez se realice el registro recibirá la información del nodo publicador que ha publicado en ese topic.
+        \end{itemize}
+    \item \textbf{Topic}: Son canales que permiten el intercambio de mensajes entre nodos. Estos canales permite que directamente que el publicador y el subscriptor puedan intercambiar
+    mensajes y están diseñados para la comunicación unidireccional.
+    \item \textbf{Servicio}: Se trata de otro modelo de comunicación entre nodos que consiste en una comunicación bidireccional síncrona entre un cliente
+    y un servidor. Este tipo de modelo de comunicación se basa en un modelo de llamada-respuesta el que un nodo proporcionará 
+    un servicio y solo enviará datos cuando otro nodo (en este caso sería el cliente) lo llame concretamente. 
+        \begin{itemize}
+          \item \textbf{Service Server}: Es el nodo encargado de ofrecer un servicio específico, esta diseñado para manejar solicitudes de servicio y enviar respuestas correspondientes. Cuando un nodo cliente
+                                         envía una solicitud de servicio, el nodo servidor procesa dicha solicitud y devuelve una respuesta al nodo cliente.
+          \item \textbf{Service Client}: Es el nodo que utiliza un servicio específico proporcionado por un \textbf{Service Server}. El nodo \textbf{Service Client} envía solicitudes de servicio al nodo servidor y espera recibir la respuesta correspondiente.
+                                         Utiliza la interfaz proporcionada por el servicio para comunicarse con el nodo servidor y realizar operaciones específicas.  
+            
+        \end{itemize}
+    \item \textbf{Acción}: Se refiere a un tipo de comunicación asíncrona que permite la ejecución de tareas complejas y de larga duración, por ejemplo como mover un robot desde un
+                           punto A hasta un punto B o realizar una búsqueda en un entorno.
+    \item \textbf{Parámetros}: Es una manera que tienen los nodos de almacenar datos y puedan usarlos para configuraciones durante el tiempo de ejecución del propio nodo. Estos parámetros
+    están almacenados por un nodo demoninado \textbf{Parameter Server}, esto permite que los nodos puedan almacenar y recuperar parametros en cualquier momento de este nodo servidor. 
+
+    Por ejemplo, podriamos tener un parámetro que determine la velocidad máxima a la que pueda moverse un robot móvil. 
+\end{enumerate}
+
+Por lo tanto ahora conociendo alguno de los conceptos más importantes, diremos que \textbf{ROS (Robot Operating System)} sigue un modelo parcialmente centralizado de publicación y 
+suscripción, el cual el publicador genera mensajes y eventos asociados a un topic que registra con el nodo ROS Master y el subscriptor se registra en el nodo ROS Master y solicita 
+la recepción de dichos mensajes generados por el publicador.
+
+\begin{figure} [H]
+    \begin{center}
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/arq_ros.png}
+    \end{center}
+    \caption{Arquitectura de ROS}
+    \label{fig:ArqROS}
+  \end{figure}\
+
+\subsection{Distribucciones}
+\label{sec:dis}
+\subsubsection{¿Qué es una distribucción?}
+\label{subsubsec:q_dis}
+Una distribución ROS es un conjunto versionado de paquetes ROS, similar a las distribuciones de Linux(por ejemplo, Ubuntu). El principal objetivo que tiene ROS con las distribuciones 
+es permitir a los desarrolladores trabajar con un código relativamente estable hasta que estén preparados y puedan publicar versiones robustas y estables. \newline
+
+En este TFG se ha utilizado ROS con la distribución Noetic \footnote{\textbf{ROS Noetic}:\url{http://wiki.ros.org/noetic}} debido al uso de Airsim, 
+ya dentro de Airsim las distribucciones más estables con ROS están entre las distribuciones melodic y noetic. 
+
+\begin{figure} [H]
+    \begin{center}
+      \includegraphics[width=0.3\textwidth,height=0.4\textwidth]{figs/Plataformas_Desarollo/ros-noetic.png}
+      \includegraphics[width=0.3\textwidth,height=0.4\textwidth]{figs/Plataformas_Desarollo/melodic.jpg}
+    \end{center}
+    \caption{ROS noetic y ROS melodic}
+    \label{fig:DisROS}
+  \end{figure}\
+
+\subsection{Mavros}
+\label{sec:mavros}
+
+\textbf{Mavros}\footnote{\url{http://wiki.ros.org/mavros}} es un paquete formado por \textbf{ROS} y el protocolo de comunicaciones ligero \textbf{MAVLink} (Micro Air Vehicle Link) diseñado por Lorenz Meir\footnote{\url{https://www.technologyreview.es/listas/35-innovadores-con-menos-de-35/2017/inventores/lorenz-meier}} bajo el LGPL licencia. Este protocolo es utilizado para enviar información de estado,
+para controlar el vehículo y recibir datos de telemetría.Fácil de implementar en sistemas con recursos limitados, 
+lo que lo hace ideal para su uso en drones y otros vehículos aéreos no tripulados. \newline
+
+Ademas, \textbf{Mavros} traduce los mensajes \textbf{ROS} a mensajes \textbf{MAVLink} y viceversa por lo que permite que los datos y comandos fluyan entre \textbf{ROS} y el drone, 
+permitiendo un control más sofisticado y una mayor funcionalidad. \newline
+
+Por lo que, en este TFG estudiaremos y analizaremos sí \textbf{Mavros} se podría utilizar para el control del dron junto con \textbf{PX4 ArduPilot} (\ref{sec:px4}) \newline
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/mavros.jpg}
+  \end{center}
+  \caption{Infraestructura de Mavros}
+  \label{fig:InfraROS}
+\end{figure}\
+
+\section{Entornos de Simulación}
+\label{sec:simulación}
+El entorno de simulación en el que vamos a estar trabajando será \textbf{Airsim} junto con \textbf{UnRealEngine} de Epic Games. 
+\footnote{\url{https://www.unrealengine.com/es-ES}}.\textbf{Airsim} es un simulador de código abierto que se utiliza en aplicaciones robóticas 
+y aprendizaje automático.
+Se construye sobre entornos 3D creados con \textbf{UnRealEngine}, estos entornos son utilizados para simular el mundo real y probar 
+cómo los vehículos autónomos se comportarían en diferentes situaciones. \textbf{Airsim} es compatible en varias plataformas como Linux, Windows, macOS y también para Docker y WSL. En nuestro caso,se utilizará en Linux junto
+con \textbf{ROS}. \newline
+
+Por otro lado \textbf{UnRealEngine} es un motor de videojuegos que se utiliza para la creación y simulación de entornos 3D realistas para videojuegos,
+peliculas animadas, experiencias interactivas y de realidad virtual. Es una propuesta innovadora utilizar este tipo de herramientas ya que puedes simular comportamientos físicos que se puedan producir en un entorno real. Este motor se encuentra en un ordenador secundario con Windows junto con una gráfica Nvidia RTX 2070 Super con el pluggin de \textbf{Airsim}, 
+esta propuesta fue tomada ya que al tener todo encapsulado en un único ordenador
+desembocaba a tener un bajo rendimiento del comportamiento que queremos desarrollar,por lo que finalmente al separar en dos partes,por una parte el simulador y por otra parte 
+las plataformas de que utilizaremos a desarrollar los algoritmos.
+De esta manera podemos tener un alto rendimiento por parte de ambos ordenadores y de las aplicaciones software que se utilizarán. Ambos ordenadores estarán comunicados 
+a través de un router con protocolos de red TCP/UDP.
+
+
+\subsection{Airsim}
+\label{sec:airsim}
+Como hemos comentado anteriormente, \textbf{Airsim} es una buena opción de uso si queremos tener comportamientos
+similares a un entorno real. Ofrece una variedad de escenarios, tipos de vehículos, sensores y configuraciones del entorno 
+según las necesidades u objetivos marcados de cada persona. \newline
+
+Para ello se debe todo configurar en un fichero de configuración con extensión json denominado settings.json ,lo cual para configurar
+el vehiculo con nuestras necesidades necesitaremos definir diferentes variables. 
+
+\subsubsection{Escenarios}
+\label{sec:airsim}
+Los escenarios que ofrece Airsim depende en que sistema operativo, en nuestro caso al utilizar el escenario en Windows 
+tenemos más variedad que en comparación con Linux. \newline
+
+Tiene escenarios desde carreteras y cuidades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras. En nuestro caso
+hemos utilizado el escenario Coastline,consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno tendremos la
+información del entorno para realizar el comportamiento sigue carril con el dron. \newline
+
+Todos estos escenarios se pueden encontrar en las releases de Airsim \footnote{\url{https://github.com/Microsoft/AirSim/releases}} tanto para Windows como para Linux.
+En nuestro caso hemos utilizado el escenario Coastline, ya que queremos desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
+a cabo.
+
+\begin{figure}[H]
+  \begin{center}
+    \subfigure[Blocks]{
+     \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/blocks.png}
+     \label{f:blocks}}
+    \subfigure[LandscapeMountains]{
+     \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/landscapemountains.png}
+     \label{f:LandscapeMountains}}
+    \subfigure[Coastline]{
+      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/Coastline.png}
+      \label{f:Coastline}}
+    \subfigure[City]{
+      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/city_airsim.png}
+      \label{f:City}}
+    \subfigure[Neigborhood]{
+      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/AirsimNH.jpg}
+      \label{f:Neigborhood}}
+
+  \caption{Ejemplos de escenarios en Airsim}
+  \label{f:escenarios_airsim}
+  \end{center}
+ \end{figure}
+
+\subsubsection{Sensores}
+\label{sec:airsim}
+Ofrece sensores como cámaras, barómetros, Imus, GPS, Magnetómetros, sensores de distancia y Lidar.
+En nuestro caso utilizaremos como sensores una cámara para poder realizar la detención del carril 
+que queremos seguir, el sensor Lidar para saber a que altura se encuentra el dron respecto al suelo y el sensor
+GPS para poder obtener la localización del vehículo. 
+
+\subsubsection{Tipos de vehículos}
+\label{sec:airsim}
+\textbf{Airsim} ofrece dos tipos principales de vehículos para la simulación: coches y drones. Dentro de estos tipos se encuentran los subtipos de coches y drones que se puede utilizar.
+
+\begin{enumerate}
+  \item \textbf{Coche}
+    \begin{itemize}
+      \item \textbf{PhysXCar}: Representa un vehículo en tierra con física realista basado en el motor de física PhysX.
+      \item \textbf{ArduRover}: Se utiliza para vehículos terrestres que sigan el estándar ArduRover. ArduRover \footnote{\url{https://ardupilot.org/rover/}} 
+      se trata de un piloto automático de código abierto utilizado especificamente para vehículos terrestres.
+    \end{itemize}
+    \newpage
+  \item \textbf{Dron}
+    \begin{itemize}
+      \item \textbf{SimpleFlight}: Representa un dron con un modelo de vuelo simplificado. Este tipo de opción puede ser útil si queremos simular comportamientos 
+      de movimiento básico para los drones.
+      \item \textbf{PX4Multirotor}: Representa un dron mediante PX4 ArduPilot. 
+      \item \textbf{ArduCopter}: Representa un dron pero siguiendo el estándar ArduCopter. ArduCopter \footnote{\url{https://ardupilot.org/copter/}} 
+      se trata de un piloto automático de código abierto utilizado para los drones 
+    \end{itemize}
+  
+\end{enumerate}
+
+Como hemos numerado anteriormente, este entorno de simulación tiene un catalogo de vehículos, sensores y
+cambios climatológicos dentro del entorno. Nosotros utilizaremos un dron de tipo "SimpleFligh". 
+
+\subsection{Airsim ROS Wrapper}
+\label{sec:wrapper}
+Utilizaremos el paquete \textbf{Airsim ROS Wrapper} \footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}} para poder acceder a ciertos sensores 
+que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece hablaremos sobre que es un ROS Wrapper. \newline
+
+\textbf{ROS Wrapper} es un componente que facilita la integración entre dos sistemas o entornos diferentes. Si lo llevamos al contexto de \textbf{ROS}, un wrapper es un nodo o paquete 
+que permite que los componentes de \textbf{ROS} se comuniquen con otros sistemas o bibliotecas que no fueron originalmente diseñadas para trabajar con \textbf{ROS}.Este paquete 
+puede proporcionar publicación de datos desde el sistema externo a \textbf{ROS} a través de topics, suscripción a topics de \textbf{ROS} para recibir comando o datos, adaptación 
+de interfaces de llamada (por ejemplo, entre C++ y Python). \newline
+
+Por lo tanto, \textbf{Airsim ROS Wrapper} es un paquete de \textbf{ROS} que comunicará \textbf{ROS} y \textbf{Airsim}. Este paquete contiene dos nodos principales:
+\newpage
+\begin{enumerate}
+  \item \textbf{AirSim ROS Wrapper Node}: Este nodo proporciona una interfaz \textbf{ROS} para acceder a los datos del vehículo simulado, por ejemplo, sus sensores, proporcionar velocidades, acceder a su sistema de referencia,etc. 
+  \item \textbf{Simple PID Position Controller Node}: Este nodo es un controlador de posición simple basado en un controlador PID (proporcional-derivativo-integral). Ayuda controlar la posición del vehículo 
+  simulado en el entorno \textbf{Airsim}.
+\end{enumerate}
+
+La primera aproximación fue utilizar \textbf{AirSim ROS Wrapper Node} para poder dar un comportamiento al vehículo mediante velocidades. 
+La dificultad que nos podemos encontrar es al comandar las velocidades, ya que la altura del vehículo no es constante en el aire, es decir, 
+a medida que el vehículo avanza, el dron va perdiendo altura como resultado acabando en el suelo. Esto se debe a que \textbf{AirSim ROS Wrapper Node} 
+no proporciona ningún controlador de posición para el eje z que correspondería con la altura y ni ningún controlador de velocidades en los ejes x e y.
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[width=0.5\textwidth,height=0.4\textwidth]{figs/Plataformas_Desarollo/dron_vechicle.jpg}
+  \end{center}
+  \caption{Ilustración de los ejes de referencia del dron}
+  \label{fig:dron}
+\end{figure}\
+
+Es cierto que \textbf{Airsim} y \textbf{ROS} ofrecen \textbf{Simple PID Position Controller Node}, pero el controlador de este nodo es para todos los ejes (x,y e z) 
+lo cual lo que necesitamos sería un controlador de posición para el eje z para cuando comandamos velocidades en los ejes x e y, y velocidades angulares en el eje z. 
+Al obtener estos resultados, escogimos una de posibles soluciones de integrar un pequeño controlador PID junto con el sensor Lidar que ofrece el \textbf{AirSim ROS Wrapper Node} 
+para poder controlar la altura del vehículo durante su navegación. 
+
+\subsection{Client Airsim}
+\label{sec:Client Airsim}
+
+Airsim ofrece una API implementada para Python demoninada Client Airsim \footnote{\url{https://microsoft.github.io/AirSim/apis/}}, en donde podemos conectarnos con el simulador y tener el control de los sensores y actuadores del vehículo. 
+Esta interfaz es bastante útil ya que podemos tener el control del vehículo simulado sin necesidad de tener que utilizar los topics de ROS, es decir, existen métodos los cuales
+podemos comandar velocidades al vehículo, tener acceso a los sensores como las cámaras o cambiar configuraciones de la simulación como por ejemplo el clima, el viento, el tiempo del día
+o la densidad de tráfico en escenarios donde aparecen coches simulados. \newline
+
+Esta API la utilizaremos sobre todo para tener el control del vehículo para realizar su navegación con los controladores PID y en 
+el desarrollo de reinforcement learning. 
+
+\section{PX4 AutoPilot}
+\label{sec:px4}
+
+\textbf{PX4} \footnote{\url{https://docs.px4.io/main/en/}} es una plataforma de software de código abierto para desarrolladores de drones que les permite crear 
+y controlar diversos tipos de drones,desde aplicaciones de consumo hasta aplicaciones industriales. \newline
+
+Unas de las principales características que ofrece esta plataforma es el soporte de múltiples tipos de vehículos, como aviones de 
+ala fija, multirrotores, helicópteros, rovers y vehículos submarinos, también proporciona diferentes modos de vuelo, 
+navegación por puntos de referencias predefinidos, estabilización del vehículo. \newline
+
+En este trabajo realizaremos un analisis respecto a la navegación del dron mediante \textbf{PX4} con el modo de simulación Software in The Loop(SITL) para tener el control el vehículo junto con 
+\textbf{Mavros} y \textbf{Airsim}.\newline
+\subsection{Software in The Loop(SITL)}
+\label{sec:px4 sitl} 
+Este modo de simulación permite a los desarrolladores probar y depurar códigos de control de drones sin necesidad de hardware físico, en lugar de ejecutar el código en un 
+vehículo real, este modo simula el comportamiento del vehículo en una computadora. Es especialmente útil durante el desarrollo y la validación de control, navegación y 
+planificación de misiones. \newline
+
+Podemos tener diversos entornos de simulación con este modo como Gazebo, Airsim y jMAVSim. Dichos entornos de simulación permiten realizar simulaciones muy realistas y avanzadas 
+de cualquier tipo de vehículo simulando una gran variedad de parámetros.\newline
+
+Para poder utilizar PX4 SITL, se debe configurar el entorno de desarrollo adecuado y seguir las instrucciones proporcionadas por la comunidad\footnote{\url{https://docs.px4.io/v1.14/en/simulation/}} .
+En nuestro caso realizaremos la configuración PX4 SITL junto con Airsim para estudiar si es posible tener un control en el comportamiento a querer
+desarrollar. 
+
+\subsection{Modos de vuelo}
+\label{sec:flight modes} 
+
+PX4 ofrece varios modos de vuelo por ejemplo como Takeoff,Land,Hold, Position, Offboard, etc. Un modo de vuelo define como el usuario puede controlar el vehículo a traves de comandos
+  y ver que respuesta tiene. 
+
+
+  \begin{enumerate}
+    \item \textbf{TAKEOFF}: Este modo de vuelo permite despegar el vehículo con una altitud y una velocidad de ascendiente escogida por el usuario con los parametros de PX4 MIS\_TAKEOFF\_ALT y
+    MPC\_TKO\_SPEED, dichos parametros tienen valores por defectos definidos por la plataforma (2.5 m y 1.5 m/s respectivamente). Antes de realizar el despegue el vehículo sera armado 
+    para poder realizarlo.
+
+    Una vez se realice el despegue del vehículo se pasa al modo HOLD 
+    \item \textbf{LAND}: Permite aterrizar el vehiculo en donde nos encontremos en ese instante, una vez el vehículo sea aterrizado se desarmará por defecto. En este modo podemos cambiar por ejemplo
+    la tasa de descenso durante se realiza el aterrizaje del vehículo con el parametro MPC\_LAND\_SPEED, tiempo en segundos para que se realice el desamardo del vehículo si se establece dicho tiempo
+    con un valor de -1 el vehículo no se desarmará cuando aterrice.
+    
+    Cuando de realice este modo de vuelo por defecto se cambiará al modo de Position
+
+    \item \textbf{HOLD}: A partir de este modo de vuelo podemos parar el vehículo manteniendolo en el aire con su actual posición GPS y altitud. Este modo puede ser bastante útil para cuando queremos
+    pausar una mision o reiniciar el comportamiento que queramos realizar. 
+
+    \item \textbf{POSITION}: Es un modo de vuelo manual el cual puedes controlar el vehículo mediante un joystick, dicho vuelo controla la posición del vehículo cuando comandemos velocidades 
+    mediante el joystick. Este modo de vuelo lo utilizaremos para teleoperar el dron para ver el funcionamiento de la percepción por parte de la red neuronal que utilizaremos.
+    Dicho vuelo ofrece un gran catalogo de parametros que puede afectar al vuelo.
+
+    \begin{figure} [H]
+      \begin{center}
+        \includegraphics[width=0.8\textwidth,height=0.3\textwidth]{figs/Diseño/PX4/position_MC.png}
+      \end{center}
+      \caption{Diagrama del comportamiento del modo de vuelo Position}
+      \label{fig:position_mode_px4}
+    \end{figure}\
+
+    \item \textbf{OFFBOARD}: Con este modo de vuelo podemos controlar el movimiento y la altitud del vehículo a partir de comandos de posición, velocidad, aceleración, altitud, velocidades de 
+    altitud o puntos de ajuste de empuje/torque. 
+
+    Dichos comandos debe ser una secuencia de mensajes de setpoint MavLink o a través de topics mediante ROS con Mavros.
+
+    En este modo,PX4 debe recibir una secuencia de mensajes continua. Si en algún momento dejamos de publicar mensajes, el control externo de PX4 dejará de estar en el modo Offboard después
+    de pasar un tiempo de espera establecido por el parámetro COM\_OF\_LOOS\_T (por defecto esta establecido a 1 s) e intentará aterrizar o realizar alguna acción de seguridad (dichas acciones 
+    de seguridad vienen definidas en la seccion de Failsafes en PX4 Autopilot \footnote{\url{https://docs.px4.io/v1.14/en/config/safety.html}}). La acción dependerá
+    si el control RC está disponible, si este control esta disponible pasará a otro tipo de modo de vuelo definido en el parámetro COM\_OBL\_RC\_ACT. 
+
+    Para comandar las velocidades al vehículo mediante Mavros, se tendrá que utilizar el topic denominado /mavros/setpoint\_velocity/cmd\_vel\_unstamped dicho topic utiliza el un marco de coordenadas
+    por defecto definido en el archivo de configuración de px4.config.yaml  LOCAL\_NED. Si queremos que el marco de coordenadas se mueva con el 
+    cuerpo del vehiculo se tendrá que utilizar el marco de coordenadas
+    En nuestro caso necesitamos un marco de coordenadas diferente para que el vehiculo se mueva
+    con el cuerpo del vehículo, por ello utilizaremos el marco de coordenadas BODY\_NED. 
+
+    Los marcos de coordenadas que oferece Mavros se puede ver a traves del servicio SetMavFrame.srv \footnote{\url{https://github.com/mavlink/mavros/blob/master/mavros_msgs/srv/SetMavFrame.srv}}
+  \end{enumerate}
+
+\section{QGroundControl}
+\label{sec:QGroundControl} 
+
+\textbf{QGroundControl} \footnote{\url{http://qgroundcontrol.com}} es una plataforma de software que proporciona un control completo de vuelo 
+y configuraciones de vehículos para drones por \textbf{PX4 ArduPilot}. Además, ofrece un control total durante el vuelo y permite la planificación de vuelos autónomos 
+mediante la definición de puntos de referencia, se muestra la posición del vehículo junto con su trayectoria, los puntos de referencia y los instrumentos del vehículo. 
+Es una opción cómoda para poder visualizar tu vehículo y querer cambiar parámetros del vehículo mediante esta aplicación y poder teleoperar el vehículo a traves de un mando joystick. \newline
+
+Funciona en diferentes plataformas como Windows, macOS, Linux,iOS y dispositivos Android, en nuestro caso lo utilizaremos en Linux. 
+
+\begin{figure} [h]
+  \begin{center}
+    \includegraphics[scale=1.2]{figs/Plataformas_Desarollo/software-qgc.jpg}
+  \end{center}
+  \caption{QGroundControl}
+  \label{fig:QGroundControl}
+\end{figure}\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
