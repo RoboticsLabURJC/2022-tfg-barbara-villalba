@@ -1,7 +1,7 @@
 \chapter{Plataforma de desarrollo}
 \label{cap:capitulo3}
 
-En este capítulo hablaremos sobre que tecnologías hemos utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación.
+En este capítulo hablaremos sobre que tecnologías hemos utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación y las librerías utilizadas.
 \section{Lenguaje de programación}
 \label{sec:programación}
 \subsection{Python}
@@ -35,8 +35,131 @@ print(factorial(5))  # Output: 120
 \caption[Ejemplo de código en Python de una función para calcular el factorial de un número]{Ejemplo de código en Python de una función para calcular el factorial de un número}
 \label{cod:codejemplo}
 \end{code}  
+\subsection{Librerías para el desarrollo de la percepción}
+\label{sec:librerias}
+Para el desarrollo del sistema de percepción, hemos utilizado varías librerias mediante el lenguaje de programación Python para poder
+percibir en el entorno que vamos a estar trabajando. 
+\subsubsection{OpenCV}
+\label{sec:OpenCV}
+OpenCV (Open Source Computer Vision Library) es una biblioteca de open source dedicada para el tratamiento de imagenes y aprendizaje automático. Fue desarrollada por Intel y lanzada en 
+el año 2000 y esta disponible para todos los públicos tanto para uso comercial como para uso personal\footnote{\url{https://opencv.org/}}.  \newline
 
+Ofrece diferentes tareas como procesamiento de imágenes, detencción de objetos, extracción de características, reconocimiento facial, estimación de movimiento entre otras. Además de ser
+compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una libreria muy vérsatil para el desarrollo de aplicaciones en diferentes
+dispositivos y entornos. \newline
 
+En nuestro caso utilizaremos esta biblioteca para poder obtener la imagen del sensor de la cámara.
+
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+    import cv2
+
+    imagen = cv2.imread('ruta/a/tu/imagen.jpg')
+    
+    cv2.imshow('Imagen', imagen)
+    
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+  \end{lstlisting}
+  \caption[Ejemplo de código en Python de operaciones básicas utilizando la libreria OpenCv]{Ejemplo de código en Python de operaciones básicas utilizando la libreria OpenCv}
+  \label{cod:Numpy}
+  \end{code}  
+
+\subsubsection{Numpy}
+\label{sec:Numpy}
+
+Numpy (Numerical Python) es una libreria dedicada para el cálculo científico en Python como arrays multidimensionales y matrices, junto con una amplia
+colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia y facilidad de uso. 
+
+A continuación, se muestra un simple ejemplo de como podemos crear un array en NumPy e realizar operaciones básicas como la suma y calcular la matriz transpuesta
+
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+    import numpy as np
+
+    array1d = np.array([1, 2, 3, 4, 5])
+
+    array2d = np.array([[1, 2, 3], [4, 5, 6]])
+
+    suma = np.sum(array1d)  
+    transpuesta = np.transpose(array2d)  
+  \end{lstlisting}
+  \caption[Ejemplo de código en Python de operaciones básicas utilizando la libreria Numpy]{Ejemplo de código en Python de operaciones básicas utilizando la libreria Numpy}
+  \label{cod:Numpy}
+  \end{code}  
+
+Utilizaremos esta libreria para obtener la salida de la red neuronal y para el desarollo del sistema de percepción que más adelante se explicará. 
+
+\subsubsection{Pytorch y ONNX Runtime}
+\label{sec:pytorchandonnx}
+\newpage
+\subsection{YOLOP}
+\label{sec:YOLOP}
+YOLOP (You Only Look Once for Panoptic Driving Perception) es una red de percepción
+de conducción panóptica que ofrece múltiples tareas que puede
+manejar simultaneamente tres tareas cruciales en la conducción autónoma: 
+\begin{enumerate}
+  \item \textbf{Detencción de objetos de tráfico}: Identifica los objetos presentes en la carretera, como otros vehículos, peatones, señales de tráfico, etc.
+  \item \textbf{Segmentación del área transitable}: Determina las áreas de la carretera por las que un vehículo puede conducir de manera segura.
+  \item \textbf{Detección de carriles}: Identifica los carriles de la carretera.
+\end{enumerate}
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.5]{figs/Diseño/YOLOP/yolop-architecture.png}
+  \end{center}
+  \caption{Arquitectura de YOLOP}
+  \label{fig:Arq_YOLOP}
+\end{figure}\
+
+YOLOP está compuesto por un codificador para la extracción de características y tres decodificadores para manejar las tareas específicas. Este modelo ha demostrado un rendimiento 
+extremadamente bueno en el desafiante conjunto de datos BDD100K, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. \newline
+
+Nosotros utilizaremos los decodificadores de segmentación del área transitable 
+y detencción de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
+extraidos por el codificador para realizar una prediccion semántica a nivel de pixeles. Esto significa que 
+para cada pixel de la imagen, el decodificador de segmentación del área transitable predice si el pixel 
+pertenece a un área transitable o no. 
+\\
+\\
+El decodificador de detencción de carriles, también utiliza los mapas de características extraídos 
+por el codificador. Sin embargo, en lugar de predecir si un pixel es transitable o no, este decodificador
+predice si un pixel pertenece a un carril de la carretera. 
+\\
+Es importante destacar que estos decodificadores no funcionan de manera aislada, sino que forman parte
+de un sistema de aprendizaje multitarea, es decir, se entranaran conjutamente para realizar sus tareas
+respectivas, lo que puede mejorar el rendimiento general del sistema.
+
+Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256): 
+\begin{enumerate}
+  \item \textbf{W/8 y H/8}: Representa la anchura y la altura de la imagen de entrada, respectivamente, divididas por 8
+  \item \textbf{256}: es el número de 
+  canales en el tensor de entrada. En el contexto de las redes neuronales convolucionales, 
+  un canal puede ser una característica aprendida (como bordes, texturas, colores, etc.) o una capa de color en una imagen (como rojo, verde, azul en imágenes RGB)
+\end{enumerate}
+
+Y devuelven una salida de tipo (W,H,2), siendo W la anchura y H la altura de la imagen, solo hay dos canales en cada mapa de características, ya que cada píxel 
+representa si pertenece a una clase de objeto o al fondo. 
+
+Para más detalles, de como se ha podido entrenar este tipo de red neuronal, tenemos el artículo \cite{YOLOP} en donde se explica
+como se construyo el entrenamiento y el dataset para obtener el resultado final. 
+\subsubsection{Modelo de YOLOP}
+\label{sec:Modelo_YOLOP}
+
+YOLOP sigue un modelo de red neuronal CNN(Convolutional neuronal network).Es un tipo de red neuronal artificial diseñada para procesar datos con una
+estructura de cuadrícula, como una imagen. Dicho modelo presenta unos pesos preentrenados: 
+
+\begin{enumerate}
+  \item \textbf{End-to-end.pth}: Este archivo se ha construido a partir de a partir de la biblioteca Pytorch\footnote{\textbf{Pytorch}: \url{https://pytorch.org/}}, es una biblioteca de Python para el aprendizaje
+  automático. Permite a los desarrolladores crear y entrenar modelos de aprendizaje profundo. 
+  \item \textbf{Yolop-320-320.onnx, yolop-640-640.onnx y yolop-1020-1020.onnx}: Estos tres archivos se han construido a partir de Onnx\footnote{\textbf{Onnx}: \url{https://onnxruntime.ai/}}. 
+  Onnx (Open Neural Network Exchange) es un framework de aprendizaje automatico intermediario, permite que los modelos de aprendizaje
+  automático creados en un framework (como Pytorch o TensorFlow) se conviertan a un formato estandar (ONNX), y luego se puedan ejecutaráen otros frameworks. 
+\end{enumerate}
+
+Dependiendo de que pesos preentrenados queramos utilizar tendremos resultados diferentes en el ámbito de cómputo y rapidez a la hora de 
+realizar la inferencia del modelo con los pesos. 
 \section{ROS}
 \label{sec:ros}
 \textbf{ROS (Robot Operating System)}\footnote{\url{https://www.ros.org/}} es un sistema operativo de código abierto utilizado principalmente para aplicaciones robóticas. 

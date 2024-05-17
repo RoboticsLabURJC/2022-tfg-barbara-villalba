@@ -22,6 +22,11 @@
 \usepackage{tabularx}
 \usepackage[hyphenbreaks]{breakurl}
 
+\usepackage[square,numbers]{natbib}
+\AtBeginDocument{
+  \renewcommand{\bibsection}{\chapter{\bibname}}
+} % Bibliografia en capitulo numerado
+
 \colorlet{punct}{red!60!black}
 \definecolor{background}{HTML}{EEEEEE}
 \definecolor{delim}{RGB}{20,105,176}

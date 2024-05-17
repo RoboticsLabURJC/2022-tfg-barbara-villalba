@@ -126,8 +126,8 @@ class QLearning:
     
         #self.QTable = np.zeros((len(STATES)+1,len(ACTIONS)))
         #self.CounterActionsMatrix = np.zeros((len(STATES)+1,len(ACTIONS)))
-        self.CounterActionsMatrix = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/counter_actions_matrix.csv', delimiter=',')
-        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
+        self.CounterActionsMatrix = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/counter_actions_matrix.csv', delimiter=',')
+        self.QTable = np.genfromtxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/q_table.csv', delimiter=',',skip_header=1,usecols=range(1,22))
         self.accumulatedReward = 0
        
 
@@ -273,7 +273,7 @@ class QLearning:
                 
     def reset_position(self):
 
-        number_position = random.randint(1,4)
+        number_position = random.randint(1,3)
         x = 0
         y = 0
         z = 0
@@ -299,16 +299,9 @@ class QLearning:
             z = -0.276497483253479
 
             yaw = 0.4893928006316498
-        
+    
 
-        elif(number_position == self.SECOND_LOCALIZATION):
-            x = 28.493175506591797
-            y = 16.92218589782715
-            z = -0.2761923372745514
-
-            yaw =  0.2228621193016977
-
-        elif(number_position == 3):
+        elif(number_position == 2):
             x = 47.886112213134766
             y = 21.24800682067871
             z = -0.2762098014354706
@@ -316,11 +309,11 @@ class QLearning:
             yaw =  0.07393334743888746
 
         else:
-            x = 84.56167602539062
-            y = 2.8275511264801025
-            z = -0.2763093113899231
+            x = 86.50939178466797
+            y = -7.812751293182373
+            z =  -0.2759387493133545
 
-            yaw =  -1.4376945341070075
+            yaw =  -1.3658072306973006
 
         
         
@@ -373,10 +366,10 @@ class QLearning:
         MAX_ERROR = 80
 
         MIN_ANGLE = 0
-        MAX_ANGLE = 60
+        MAX_ANGLE = 70
 
-        CENTRE_WEIGHT = 0.65
-        ANGLE_WEIGHT = 0.35
+        CENTRE_WEIGHT = 0.85
+        ANGLE_WEIGHT = 0.15
         
         if (self.is_exit_lane(cx)):
             
@@ -505,7 +498,7 @@ class QLearning:
             self.client_airsim.simPause(True)
           
            
-            t0 = time.time()
+            #t0 = time.time()
             out_image,cx,cy,angle_orientation = perception.calculate_lane(perception.cv_image)
             #print("Cx: " + str(cx))
 
@@ -643,7 +636,7 @@ class QLearning:
             exit_lane = self.is_exit_lane(cx)
 
             #centroid = cx
-            t3 = time.time()
+            #t3 = time.time()
             t2 = time.time()
 
             
@@ -657,9 +650,9 @@ class QLearning:
           
             
         self.client_airsim.simPause(False)
-        file = "/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/fotos/foto-episodio" + str(counter_photo) + ".jpg"
+        file = "/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/fotos/foto-episodio" + str(counter_photo) + ".jpg"
         cv2.imwrite(file ,image)
-        print("Rate train: " + str(int(1/(t3 - t0))))
+        #print("Rate train: " + str(int(1/(t3 - t0))))
             #print("Centroide: " + str(cx))
             #print("Error center : " + str(error) + " ,Error angle: " + str(error_angle))
             
@@ -831,7 +824,30 @@ class Perception():
 
         return line,extrem_point_line
     
+    def calculate_radius_curvature(self,a, b, x):
+        """
+        Calculate the radius of curvature at a given x in a quadratic function.
 
+        Args:
+            a (float): The second degree coefficient of the quadratic function.
+            b (float): The first degree coefficient of the quadratic function.
+            x (float): The x value at which to calculate the radius of curvature.
+
+        Returns:
+            R (float): The radius of curvature.
+        """
+        # First derivative
+        y_prime = 2*a*x + b
+
+        # Second derivative
+        y_double_prime = 2*a
+        
+    
+
+        # Radius of curvature
+        R = (1 + y_prime**2)**1.5 / np.abs(y_double_prime)
+
+        return R
     def calculate_right_regression(self,points_cluster):
         global coefficients_right_global,is_not_detected_right
         """
@@ -848,6 +864,9 @@ class Perception():
         punto = np.array([290,319])
         line = None
         extrem_point_line = None
+        a = 0
+        b = 0
+        c = 0
 
         try:
             with warnings.catch_warnings():
@@ -890,6 +909,15 @@ class Perception():
             values_fy = np.polyval(mean_coeff,valuesX).astype(int)
             fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= 319]
             line = np.array(fitLine_filtered)
+
+            #x_centroid = (-mean_coeff[1]/(2*mean_coeff[0])).astype(int)
+#
+            #y = (mean_coeff[0]*x_centroid)**2 + mean_coeff[1] * x_centroid + mean_coeff[2]
+
+            print("Coeficiente A: "  + str(mean_coeff[0]))
+
+            ##center_5_x_values = line[(len(line) // 2) - 2 : (len(line) // 2) + 3, 1]
+            #print("Radio en la regresion derecha: " + str(self.calculate_radius_curvature(a, b, x_centroid)))
 
             max_y_index = np.argmax(line[:,0])
             extrem_point_line = line[max_y_index]
@@ -1203,7 +1231,7 @@ class Perception():
                 cvimage[right[:,0],right[:,1]] = [0,255,0]
 
                 
-                points_line_right,extrem_point_line_right =  self.calculate_right_regression(right)
+                points_line_right,extrem_point_line_right=  self.calculate_right_regression(right)
                 points_line_left,extrem_point_line_left = self.calculate_left_regression(left)
 
 
@@ -1256,7 +1284,7 @@ class Perception():
                         #--Detect left turn
                         elif(extrem_point_line_left[1] < WIDTH/2 and extrem_point_line_right[1] < 170):
                             
-                            if(extrem_point_line2[1] - extrem_point_left_line2[1] <= 2):
+                            if(extrem_point_line2[1] - extrem_point_left_line2[1] <= 5):
                                 #print("Detenccion de salida por la izquierda con distancia de extremos")
                                 is_not_detect_lane = True
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
@@ -1271,8 +1299,9 @@ class Perception():
                             #print("Distancia maxima: " + str(extrem_point_line2[1] - extrem_point_left_line2[1]))
                             
                             
+                            
                             #print("Paso los 2 segundos")
-                            if(len(points_beetween_lines) >= 36800):
+                            if(len(points_beetween_lines) >= 34800):
                                 #print("El tamaño es muy grande de la zona azul")
                                 cv2.circle(cvimage, (10,50), radius=10, color=(0, 0, 255),thickness=-1)
                                 is_not_detect_lane = True
@@ -1411,23 +1440,23 @@ def spin():
 def save_files(n_episode, epsilon, steps, acummulateReward,QTable,CounterActionsMatrix):
 
     
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-iterations.csv', mode="a", newline="") as file_steps:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/episodes-iterations.csv', mode="a", newline="") as file_steps:
         writer_steps = csv.writer(file_steps)
         writer_steps.writerow([n_episode, steps])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/episodes-epsilon.csv', mode="a", newline="") as file_epsilon:
         writer_epsilon = csv.writer(file_epsilon)
         writer_epsilon.writerow([n_episode,epsilon])
 
-    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
+    with open('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/episodes-accumulated-reward.csv', mode="a", newline="") as file_reward:
         writer_reward = csv.writer(file_reward)
         writer_reward.writerow([n_episode, round(acummulateReward,2)])
 
     
     df = pd.DataFrame(QTable)
-    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/q_table.csv')
+    df.to_csv('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/q_table.csv')
 
-    np.savetxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/8-mayo/counter_actions_matrix.csv',CounterActionsMatrix,fmt="%d",delimiter=",")
+    np.savetxt('/home/bb6/pepe_ws/src/qlearning/trainings/airsim/17-mayo/counter_actions_matrix.csv',CounterActionsMatrix,fmt="%d",delimiter=",")
 
 
 
