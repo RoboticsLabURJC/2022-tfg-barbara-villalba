@@ -321,74 +321,7 @@ wrapper y utilizaremos un método de ROS denonimado CvBridge en donde podremos c
 \end{figure}\
 
 \newpage
-\subsection{YOLOP}
-\label{sec:YOLOP}
-YOLOP (You Only Look Once for Panoptic Driving Perception) es una red de percepción
-de conducción panóptica que ofrece múltiples tareas que puede
-manejar simultaneamente tres tareas cruciales en la conducción autónoma: 
-\begin{enumerate}
-  \item \textbf{Detencción de objetos de tráfico}: Identifica los objetos presentes en la carretera, como otros vehículos, peatones, señales de tráfico, etc.
-  \item \textbf{Segmentación del área transitable}: Determina las áreas de la carretera por las que un vehículo puede conducir de manera segura.
-  \item \textbf{Detección de carriles}: Identifica los carriles de la carretera.
-\end{enumerate}
-
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[width=0.6\textwidth,height=0.4\textwidth]{figs/Diseño/YOLOP/yolop-architecture.png}
-  \end{center}
-  \caption{Arquitectura de YOLOP}
-  \label{fig:Arq_YOLOP}
-\end{figure}\
-
-YOLOP está compuesto por un codificador para la extracción de características y tres decodificadores para manejar las tareas específicas. Este modelo ha demostrado un rendimiento 
-extremadamente bueno en el desafiante conjunto de datos BDD100K, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. \newline
-
-Nosotros utilizaremos los decodificadores de segmentación del área transitable 
-y detencción de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
-extraidos por el codificador para realizar una prediccion semántica a nivel de pixeles. Esto significa que 
-para cada pixel de la imagen, el decodificador de segmentación del área transitable predice si el pixel 
-pertenece a un área transitable o no. 
-\\
-\\
-El decodificador de detencción de carriles, también utiliza los mapas de características extraídos 
-por el codificador. Sin embargo, en lugar de predecir si un pixel es transitable o no, este decodificador
-predice si un pixel pertenece a un carril de la carretera. 
-\\
-Es importante destacar que estos decodificadores no funcionan de manera aislada, sino que forman parte
-de un sistema de aprendizaje multitarea, es decir, se entranaran conjutamente para realizar sus tareas
-respectivas, lo que puede mejorar el rendimiento general del sistema.
-
-Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256): 
-\begin{enumerate}
-  \item \textbf{W/8 y H/8}: Representa la anchura y la altura de la imagen de entrada, respectivamente, divididas por 8
-  \item \textbf{256}: es el número de 
-  canales en el tensor de entrada. En el contexto de las redes neuronales convolucionales, 
-  un canal puede ser una característica aprendida (como bordes, texturas, colores, etc.) o una capa de color en una imagen (como rojo, verde, azul en imágenes RGB)
-\end{enumerate}
-
-Y devuelven una salida de tipo (W,H,2), siendo W la anchura y H la altura de la imagen, solo hay dos canales en cada mapa de características, ya que cada píxel 
-representa si pertenece a una clase de objeto o al fondo. 
-
-Para más detalles, de como se ha podido entrenar este tipo de red neuronal, tenemos el artículo \cite{YOLOP} en donde se explica
-como se construyo el entrenamiento y el dataset para obtener el resultado final. 
-\subsubsection{Modelo de YOLOP}
-\label{sec:Modelo_YOLOP}
-
-YOLOP sigue un modelo de red neuronal CNN(Convolutional neuronal network).Es un tipo de red neuronal artificial diseñada para procesar datos con una
-estructura de cuadrícula, como una imagen. Dicho modelo presenta unos pesos preentrenados: 
-
-\begin{enumerate}
-  \item \textbf{End-to-end.pth}: Este archivo se ha construido a partir de a partir de la biblioteca Pytorch\footnote{\textbf{Pytorch}: \url{https://pytorch.org/}}, es una biblioteca de Python para el aprendizaje
-  automático. Permite a los desarrolladores crear y entrenar modelos de aprendizaje profundo. 
-  \item \textbf{Yolop-320-320.onnx, yolop-640-640.onnx y yolop-1020-1020.onnx}: Estos tres archivos se han construido a partir de Onnx\footnote{\textbf{Onnx}: \url{https://onnxruntime.ai/}}. 
-  Onnx (Open Neural Network Exchange) es un framework de aprendizaje automatico intermediario, permite que los modelos de aprendizaje
-  automático creados en un framework (como Pytorch o TensorFlow) se conviertan a un formato estandar (ONNX), y luego se puedan ejecutaráen otros frameworks. 
-\end{enumerate}
-
-Dependiendo de que pesos preentrenados queramos utilizar tendremos resultados diferentes en el ámbito de cómputo y rapidez a la hora de 
-realizar la inferencia del modelo con los pesos. 
-
-\subsubsection{Inferencia de YOLOP}
+\subsection{Inferencia de YOLOP}
 \label{sec:Inferencia de YOLOP}
 
 En este apartado hablaremos sobre la inferencia del YOLOP con sus distintos pesos preentrenados. En primer lugar, hablaremos
@@ -408,7 +341,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
   \label{cod:codejemplo}
   \end{code}  
 
-  Primero se cargará el modelo YOLOP a través de su repositorio de github \footnote{\textbf{hustvl/yolop}: \url{https://github.com/hustvl/YOLOP}}
+  Primero se cargará el modelo YOLOP a través de su repositorio de github \footnote{\url{https://github.com/hustvl/YOLOP}}
   , matizando el modelo de red neuronal y la opción "pretrained".A través de la última opción se escoge de su repositorio los pesos preentrenados con formato pytorch que
   en este caso es el archivo End-to-end.pth. Una vez tengamos el modelo cargado del repositorio, podemos escoger si queremos 
   hacer la inferencia en la CPU o GPU, para ello tendremos la siguiente linea de código: 
@@ -425,7 +358,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
     \label{cod:codeloadYOLOP}
     \end{code}  
 
-    En el \ref{codeloadYOLOP} se puede observar que pytorch proporciona la opción de escoger entre CPU y GPU. En nuestro caso, escogeremos
+    En el \ref{cod:codeloadYOLOP} se puede observar que pytorch proporciona la opción de escoger entre CPU y GPU. En nuestro caso, escogeremos
     la GPU para realizar la inferencia y le asignaremos al modelo que realizaremos la inferencia por GPU. \newline
 
     Por último, nos quedaria convertir la imagen en un tensor antes de realizar la inferencia, una vez que se realice este paso
@@ -447,7 +380,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
       \end{code}  
 
     Para poder convertir la imagen en un tensor, utilizaremos la funcion transforms.toTensor y después añadiremos una dimensión más con unsqueeze(0) , esto se debe 
-    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el numero de imagenes que se procesarán juntas
+    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imagenes que se procesarán juntas
     (generalmente 1 para inferencia) por lo que el tensor tendrá esta forma: (batch\_size, channels, height, width) \break. 
 
     Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detencción de la Segmentación
@@ -455,7 +388,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
     dicho resultado en una imagen. 
     Por ello, convertiremos el tensor en un array numpy y realizaremos una transformacion para cambiar las dimensiones de (H,W,C) 
     a (C,H,W) esto se realiza ya que en Opencv representa imagenes en formato Numpy array y se transpone las dimensiones porque las
-    imagenes de Opencv tiene la forma de (H, W, C). Numpy es una libreria de Python por la cual podemos realizar operaciones de arrays
+    imagenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. Numpy es una libreria de Python por la cual podemos realizar operaciones de arrays
     \newline
     Una vez que hemos realizado esto, obtendremos un numpy array el cual lo normalizaremos con valores de 0-1, la tarea de normalizar 
     puede ayudar a igualar la escala de los pixeles de la imagen. Finalmente se podrá mostrar el resultado de la inferencia de la red 
@@ -490,7 +423,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
       \end{code}  
 
       Los pesos preentrenados de Onnx para poder utilizarlos en la inferencia del modelo YOLOP tendremos que descargarnos la libreria Onnx para Python, 
-      seguiremos los pasos de la página oficial \footnote{\textbf{Instalación Onnx}: \url{https://onnxruntime.ai/docs/install/}}
+      seguiremos los pasos de la página oficial \footnote{\url{https://onnxruntime.ai/docs/install/}}
       Para saber que tipo de versión necesitamos instalar de OnnxRuntime para realizar la inferencia a traves de la GPU, tenemos que saber que versión de cuda
       tenemos, esto se puede saber ejecutando en una terminal el siguiente comando:  \texttt{nvidia-smi}. Con este comando nos saldrá este panel de información:
 
@@ -503,7 +436,7 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
       \end{figure}\
 
       En la esquina superior derecha, podemos ver que tenemos la version de CUDA de nuestro ordenador, en este caso tenemos la versión de CUDA 12.2 por lo que necesitamos una versión compatible
-      para dicha versión. Para saber lo anterior, solamente bastará encontrar en la siguiente tabla de la página oficial de Onnx \footnote{\textbf{Tabla\ compatibilidades}: \url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}} la versión compatible con nuestra versión de CUDA. \newline
+      para dicha versión. Para saber lo anterior, solamente bastará encontrar en la siguiente tabla de la página oficial de Onnx \footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}} la versión compatible con nuestra versión de CUDA. \newline
       Cuando empezamos a realizar dicha instalación en diciembre de 2023, la versión que existia de onnx runtime solamente era compatible con CUDA 11.8, por lo tanto tuvimos que descargarnos 
       dicha versión de CUDA y colocar dicha variable de entorno la ruta en donde se encontraba la instalación de CUDA 11.8 \texttt{LD\_LIBRARY\_PATH=/usr/local/cuda-11.8/lib64:\$LD\_LIBRARY\_PATH} \break. 
 
@@ -553,7 +486,7 @@ En la siguiente figura mostramos la media en realizar la inferencia de YOLOP uti
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[width=0.6\textwidth,height=0.5\textwidth]{figs/Diseño/Percepcion/Results-Yolop.png}
+    \includegraphics[scale=0.4]{figs/Diseño/Percepcion/Results-Yolop.png}
   \end{center}
   \caption{Resultados de los pesos preentrenados del modelo YOLOP}
   \label{fig:pesos_preentrenados}
@@ -575,9 +508,9 @@ Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las line
 \label{sec:DBSCAN}
 
 Para saber con qué lineas detectadas por la red nos quedaremos, utilizaremos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
-utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\footnote{\textbf{DBSCAN}:\url{https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html}}. 
+utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html}}. 
 
-DBSCAN es un algoritmo de agrupamiento no paramétrico que se encuentra en la librería scikit-learn. Scikit-learn\footnote{\textbf{Scikit-learn}:\url{https://scikit-learn.org/stable/}} es una libreria de Python para algoritmos de aprendizaje automático,
+DBSCAN es un algoritmo de agrupamiento no paramétrico que se encuentra en la librería scikit-learn. Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una libreria de Python para algoritmos de aprendizaje automático,
 este algoritmo trabaja con muestras centrales de alta densidad y expande clústeres a partir de ellas. Es especialmente útil para datos que contienen clústeres de densidad similar.
 \newline
 Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
@@ -650,7 +583,7 @@ esto conseguimos que no solamente escojamos en función de la cercania si no que
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[width=0.8\textwidth,height=0.5\textwidth]{figs/Diseño/DBSCAN/resultado.png}
+    \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/resultado.png}
   \end{center}
   \caption{Ilustración del proceso de elección de clústeres }
   \label{fig:DBSCAN_imagen}
@@ -664,8 +597,8 @@ La regresión es un método de aprendizaje supervisado el cual consiste en aprox
 que vamos a realizar las lineas detectadas por la red neuronal no son totalmente rectas si no que se tratan de lineas curvilineas por lo que la regresión cuadrática en este papel puede 
 funcionar perfectamente. \newline
 
-Para la construcción de las regresiones cuadráticas utilizaremos las funciones de la libreria Numpy denominada Polyfit\footnote{\textbf{Polyfit}: \url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
-y Polyval\footnote{\textbf{Polyval}: \url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
+Para la construcción de las regresiones cuadráticas utilizaremos las funciones de la libreria Numpy denominada Polyfit\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
+y Polyval\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
 Polyfit es una función que calcula los  coeficientes del polinomio que mejor se ajusta a los datos utilizando el método de los mínimos 
 cuadrados para la ecuación cuadrática,obtendremos tres coeficientes, denominados a,b y c. \newline
 \newline
@@ -683,7 +616,7 @@ ver las regresiones cuadráticas.\newline
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[width=0.3\textwidth,height=0.4\textwidth]{figs/Diseño/Regresiones/regresion.jpg}
+    \includegraphics[scale=0.4]{figs/Diseño/Regresiones/regresion.jpg}
   \end{center}
   \caption{Resultado de la regresión cuadrática}
   \label{fig:regresión cuadrática}
@@ -733,20 +666,20 @@ en la imagen final.
 
   \begin{figure} [H]
     \begin{center}
-      \includegraphics[width=0.3\textwidth,height=0.4\textwidth]{figs/Diseño/Regresiones/interpolacion.jpg}
+      \includegraphics[scale= 0.4]{figs/Diseño/Regresiones/interpolacion.jpg}
     \end{center}
     \caption{Resultado de la interpolación}
     \label{fig:interpolación}
   \end{figure}\
 
   Finalmente, cuando obtengamos el cálculo del carril que queremos seguir solamente faltará calcular el centro de masas de dicho fragmento conocido como el centroide siguiendo la ecuación
-  del cálculo de centro de masas de una superficie.
+  del cálculo de centro de masas de una superficie. \newline
 
   \begin{equation} 
     \vec{r}_{CM} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{\sum_{i}m_{i}} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{M} 
+    \newline
   \end{equation} 
  
-  
   Para ello, 
   supondremos que todos los puntos tienen la misma masa (m\_i = 1). Esto simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar.
   El segundo paso será el calculo de la masa total, se calcula multiplicando la masa individual (m\_i) por la cantidad de puntos en el carril. A continuación calcularemos
@@ -755,7 +688,7 @@ en la imagen final.
 
   \begin{figure} [H]
     \begin{center}
-      \includegraphics[width=0.3\textwidth,height=0.4\textwidth]{figs/Diseño/Regresiones/percepcion.jpg}
+      \includegraphics[scale=0.6]{figs/Diseño/Regresiones/percepcion.jpg}
     \end{center}
     \caption{Resultado del centro de masas}
     \label{fig:centro de masas}

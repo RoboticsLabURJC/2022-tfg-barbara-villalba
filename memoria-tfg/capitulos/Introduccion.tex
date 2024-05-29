@@ -1,16 +1,22 @@
 \chapter{Introducción}
 \label{cap:introduccion}
 \setcounter{page}{1}
-\section{La robótica}
-\label{sec:enfoquesrobotica}
+
 En la última década, la evolución tecnológica ha provocado una transformación radical en nuestra forma de vivir, trabajar y relacionarnos desempeñando la tecnología un papel 
 fundamental en el avance de la sociedad e impulsando una serie de innovaciones que se extienden desde la invención de la rueda hasta la era digital contemporánea. 
 Por ejemplo, los ordenadores empezaron siendo grandes máquinas que ocupaban habitaciones enteras que requerían una gran cantidad de energía y mantenimiento. Hoy en día, los ordenadores
-son dispositivos ligeros y eficientes que pueden realizar múltiples cálculos por segundo. Respecto a la telefonía móvil también ha experimentado una evolución destacada, los primeros móviles
-se caracterizaban de ser dispositivos pesados y grandes que solo podían realizar llamadas, pero hoy en día no solamente podemos realizar llamadas telefónicas con un teléfono móvil, sino 
-que también podemos enviar mensajes, navegar por internet, tomar fotos, escuchar música, ver vídeos y mucho más. \newline
+son dispositivos ligeros y eficientes que pueden realizar múltiples cálculos por segundos que se utilizan en diferentes ramas de las ingenierías como la informática, telecomunicaciones y,
+por supuesto, la robótica. \newline
 
-Entre las diversas ramas de la tecnología, la robótica se destaca como una de las más prometedoras. Apareciendo como disciplina durante la década de los años 60, 
+La robótica,en particular, se destaca como una de las ramas de la tecnología que más impacto significativo ha tenido. Estos avances han facilitado numerosas tareas mejorando la eficiencia 
+y la capacidad de enfrentar desafíos complejos dando pie a nuevas posibilidades en nuestro entorno. Dentro de las ramas de la robótica, la robótica aerea con el uso de los drones han 
+demostrado ser desafiantes y valiosos en la inspección de áreas de díficil acceso, el mapeo de terrenos, la realización de entregas, la navegación autonónoma o la captura 
+de imágenes desde alturas elevadas. Su versatilidad y su capcidad para poder operar en entornos peligrosos o inaccesibles para los seres humanos los convierten 
+en herramientas fundamentales en campos como la agricultura, la seguridad, la investigación medioambiental y la logística. 
+
+\section{La robótica}
+\label{sec:enfoquesrobotica}
+Como mencionamos anteriorente, entre las diversas ramas de la tecnología, la robótica se destaca como una de las más prometedoras. Apareciendo como disciplina durante la década de los años 60, 
 la robótica ha tenido un cambio asombroso  pasando de ser simples máquinas programables a sistemas inteligentes capaces de aprender y adaptarse 
 a su entorno teniendo avances en diversas disciplinas de la ingeniería, como la informática, la inteligencia artificial, la ingenieria de control, la mecánica y otras más. 
 Los robots de hoy en día no solo tienen la capacidad de realizar tareas programadas y repetitivas, sino que también tienen la capacidad de interactuar con su entorno
@@ -35,7 +41,7 @@ la manipulación de objetos con sensores táctiles y de fuerza, dichas tareas pu
  % etiqueta para luego referenciar esta sección
  \subsection{Enfoques en la robótica}
  \label{sec:enfoquesrobotica}
-A lo largo de la evolución de la robótica, han surgido dos enfoques fundamentales para el diseño y la operación de robots, cada uno de estos enfoques presentan diferentes
+A lo largo de la evolución de la robótica, han surgido tres enfoques fundamentales para el diseño y la operación de robots, cada uno de estos enfoques presentan diferentes
 formas de interactuar y operar robots, con sus propias características y aplicaciones únicas. 
 
 \subsubsection{Teleoperación}
@@ -67,14 +73,43 @@ ya que estaban equipadas materiales como de aluminio y acero inoxidable. \newlin
 Con esta misión espacial se pudo probar como era el entorno marciano con técnicas realizadas en los laboratorios de la NASA demostrando que se podia realizar una teleoperación en 
 el espacio abriendo el camino a futuros rovers como el Spirit, Opportunity y más \footnote{\url{https://spaceplace.nasa.gov/mars-spirit-opportunity/sp/}}. 
 
-\subsubsection{Autonomía}
+\subsubsection{Robótica Semiautónoma}
+\label{sec:subseccion}
+Los robots pueden realizar tareas de forma independiente siguiendo intrucciones preprogramadas o tomando decisiones en tiempo real, este enfoque se le conoce como autonomía o semi-
+autonomía, siendo la diferencia que en el enfoque semiautónomo todavía existe parte de teleoperación en el robot. Este enfoque permite que los robots puedan ser autónomos para poder
+percibir su entorno y en la toma de decisiones pero con el handicap de que un operario humano puede controlarlo para poder ajustar parámetros, cambiar objetivos o intervenir 
+en caso de emergencia. \newline
+
+Aunque los robots semiautónomos puedan tomar decisiones en tiempo real, a menudo siguen instrucciones preprogramadas o reciben ordenes de un operario humano, esta toma de decisiones
+puede incluir elegir la ruta más eficiente para navegar por un entorno peligroso como puede ser el robot submarino llamado Nereus. El Nereus\footnote{\url{https://www.bbc.com/mundo/ciencia_tecnologia/2009/06/090603_1541_nereus_robot_mar_mr}} 
+es un vehículo submarino semiautoóomo que puede ser manejado por control remoto que entro en servicio en el año 2009, su proposito fue explorar la Fosa de las Marianas, espeficamente el Abismo Challenger (es el punto más
+profundo conocido en los océanos). Fue manejado meiante control remoto por pilotos que se encontraban en un barco en la superficie aunque el Nereus tambien podia cambiar al modo
+de veículo autónomo pudiendo navegar libremente adaptandose a las condiciones del entorno sin intervencción humana directa. \newline
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/introducción/nereus.jpg}
+  \end{center}
+  \caption{Nereus}
+  \label{fig:Nereus}
+\end{figure}\
+
+Lamentablemente, en 2014 durante una misión, el robot Nereus sufrió un colapso estructural y se perdio en el fondo del oceano. A pesa de esta perdida, los datos que se pudieron
+recopilar en este robot submarino siguen siendo una fuente de conocimiento sobre las profundidades marinas. Este ejemplo de robot semiautónomo demuestra que se pueden realizar 
+tareas en entornos peligrosos sin poner en riesgo la vida humana aunque tenga control por un operario\footnote{\url{https://www.elperiodico.com/es/ciencia/20140512/famoso-sumergible-nereus-pierde-fondo-mar-3271389}}. 
+
+\newpage
+\subsubsection{Robótica Autónoma}
 \label{sec:subseccion}
 
 La robótica autónoma consiste en tener robots que sean capaces de operar y realizar tareas de forma independiente sin la intervencción de un ser humano. En contraste con los 
 robots teleoperados, este tipo de robots necesitan un comportamiento más robusto y preciso para realizar tareas independientes basandose en la percepción del entorno 
 y en la toma de decisiones autónomas. \newline
 
-El concepto de automía en los sistemas robóticos se esta convirtiendo en un area de investigación activa y en rápido desarrollo. Los avances en inteligencia artificial (IA), visión 
+El concepto de automía en los sistemas robóticos se esta convirtiendo en un area de investigación activa y en rápido desarrollo. 
+
+
+Los avances en inteligencia artificial (IA), visión 
 artificial, aprendizaje automático han facilitado la creación de robots autonómos capaces de llevar a acbo amplias variedades de tareas en entornos no estructurados y cambiantes \cite{upm70576}. \newline 
 
 \begin{figure} [H]
@@ -90,23 +125,21 @@ artificial, aprendizaje automático han facilitado la creación de robots auton�
 
 Dentro del campo de la robótica aérea tenemos los drones. Podemos definir un dron, como vehículo aéreo no tripulado (UAV), es un tipo de aeronave que puede operar sin la 
 necesidad de un piloto humano a bordo. Estos dispositivos pueden ser controlados remotamente por un operador humano o navegar autonomamente incoporando software 
-en su sistema. \newline
-
+en su sistema. 
 El origen de los drones se remonta a la Primera Guerra Mundial con el biplano Kettering Bug.
 Este era un torpedo no tripulado de 240 kg (con una envergadura de 4,5 m, una longitud de
 3,8 m y una altura de 2,3 m)\footnote{\url{https://www.nationalmuseum.af.mil/Visit/Museum-Exhibits/Fact-Sheets/Display/Article/198095/kettering-aerial-torpedo-bug/}} era propulsado por un motor alternativo. Podía volar de
-forma autónoma hasta un punto específico, donde soltaba sus alas y caía en “caída libre” \footnote{\url{https://daytonunknown.com/2023/06/30/the-kettering-bug-the-worlds-first-drone/}}.\newline
-
+forma autónoma hasta un punto específico, donde soltaba sus alas y caía en “caída libre”\footnote{\url{https://daytonunknown.com/2023/06/30/the-kettering-bug-the-worlds-first-drone/}}.
 Avanzando en la historia, en 1935 se desarrolló el DH.82 Queen Bee\footnote{\url{https://dronewars.net/2014/10/06/rise-of-the-reapers-a-brief-history-of-drones/}}. Este era un blanco aéreo sin piloto que era controlado por radio. De hecho, parece que el término “dron” se originó a partir del nombre, que se refiere a la abeja macho que realiza un vuelo en busca de la abeja reina y luego fallece. \newline
 
 Durante la Segunda Guerra Mundial, quizás el más conocido fue el V-1 "Flying Bomb"\footnote{\url{https://migflug.com/jetflights/the-v1-flying-bomb/}} , el primer misil
 de crucero operativo del mundo, en donde su sistema de guía prestablecido incluía una brújula magnética que monitoreaba un autopiloto con giroscopios. También en este periodo, destacaremos el \textit{Proyect Aphrodite} \cite{Aphrodite}, fue un programa que tenía como objetivo convertir bombarderos en bombas voladoras no tripuladas que eran controladas por radio. Más adelante estos bombarderos no tripulados se utilizaron para volar a traves de nubes de hongo
 después de las pruebas nucleares. \newline
 
-Destacando más UAVs, tenemos la familia Teledyne Ryan Firebee/Firefly \footnote{\url{https://www.designation-systems.net/dusrm/m-34.html}}, estos sistemas generalmente se lanzaban 
+Destacando más UAVs, tenemos la familia Teledyne Ryan Firebee/Firefly\footnote{\url{https://www.designation-systems.net/dusrm/m-34.html}}, estos sistemas generalmente se lanzaban 
 desde el aire y se recuperaban mediante una combinación de paracaidas y helicopteros. El Lockheed D-21 fue uno de los sistemas más impresionantes durante la Guerra Fría. 
-Este UAV fue propulsado por estatorreactor con velocidades mayores que Mach 3 \footnote{\url{https://www.marchfield.org/aircraft/unmanned/d-21-drone-lockheed/}} . 
-En la Edad Moderna, destacamos El Condor \cite{CondorUAV}, fue el primer UAS en utilizar navegación GPS y tecnología de aterrizaje automático y el Predactor \footnote{\url{https://www.airforce-technology.com/projects/predator-uav/?cf-view}}. 
+Este UAV fue propulsado por estatorreactor con velocidades mayores que Mach 3\footnote{\url{https://www.marchfield.org/aircraft/unmanned/d-21-drone-lockheed/}} . 
+En la Edad Moderna, destacamos El Condor \cite{CondorUAV}, fue el primer UAS en utilizar navegación GPS y tecnología de aterrizaje automático y el Predactor\footnote{\url{https://www.airforce-technology.com/projects/predator-uav/?cf-view}}. 
 En la época dorada, gracias a los avances anteriores se pudo desarrollar sistemas militares esenciales que han demostrado su valor y el desarrollo de vehículos aéreos no 
 tripulados pequeños (small UAV). Este ultimo ha despertado un gran interés significativo resaltando como puntos de entrega al mercado civil ya que con sus cargas útiles
 reducidas pueden ser portátiles y tener un coste menor . \newline
@@ -145,13 +178,14 @@ reducidas pueden ser portátiles y tener un coste menor . \newline
   \end{center}
  \end{figure}
 
-Cada vez es más común que los drones sean más sostificados y accesibles. Por ejemplo, el dron Ingenuity de la NASA se ha convertido en el primer vehículo aéreo en poder volar
+Cada vez es más común que los drones sean más sostificados y accesibles. Por ejemplo, el dron Ingenuity de la NASA se ha convertido en el primer vehículo aéreo autónomo en poder volar
 sobre la superficie de otro planeta. Fue transportado a Marte mediante el rover Perseverance de la NASA, una vez fue posicionado el dron se elevó cerca de 3 metros realizando 
-diferentes giros y desplazamientos tomando fotos a la superficie,teniendo la capacidad de escoger de forma autónoma los sitios de aterrizaje en el terreno marciano \footnote{\url{https://ciencia.nasa.gov/sistema-solar/finaliza-la-mision-del-helicoptero-ingenuity-en-marte/}}. \newline
+diferentes giros y desplazamientos tomando fotos a la superficie,teniendo la capacidad de escoger de forma autónoma los sitios de aterrizaje en el terreno marciano \footnote{\url{https://ciencia.nasa.gov/sistema-solar/finaliza-la-mision-del-helicoptero-ingenuity-en-marte/}}.
+Este dron operaba de manera autónoma, controlado por sistemas de guía, navegación y control a bordo ejecutando los diferentes algoritmos desarrollados por la NASA. 
 
-Uno de los gran retos de este proyecto fue poder volar sobre la superficie de Marte ya que su atmosfera esta compuesta por el 1\% de la densidad terrestre
+Uno de los grandes retos de este proyecto era demostrar la viabilidad del vuelo en la atmosfera de Marte, ya que su atmosfera esta compuesta por el 1\% de la densidad terrestre
 dificultando el vuelo del dron. Sin embargo, gracias a su diseño ligero y a sus hélices especialmente diseñadas para crear suficiente sustentación en la atmósfera del planeta, el Ingenuity 
-fue capaz de superar este desafío \footnote{\url{https://www.bbc.com/mundo/noticias-56738201}}. \newline
+fue capaz de superar este desafío\footnote{\url{https://www.bbc.com/mundo/noticias-56738201}}. \newline
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.6]{figs/introducción/Ingenuity_II.jpeg}
@@ -160,7 +194,9 @@ fue capaz de superar este desafío \footnote{\url{https://www.bbc.com/mundo/noti
   \label{fig:Ingenuity}
 \end{figure}\
 
-Otro ejemplo de uso podemos tener control y mantenimiento de redes eléctricas y otras infaestructuras. Algunas construcciones constan de grandes alturas y tamaños, lo que puede
+Además, en su última fase, el Ingenuity realizó pruebas de vuelo experimentales para ampliar el conocimiento sobre cuáles eran sus límites aerodinámicos\footnote{\url{https://science.nasa.gov/mission/mars-2020-perseverance/ingenuity-mars-helicopter/}}.\newline
+
+Otro ejemplo de uso de drones podemos tener control y mantenimiento de redes eléctricas y otras infaestructuras. Algunas construcciones constan de grandes alturas y tamaños, lo que puede
 dificultar el trabajo y su correcto mantenimiento. No obstante, estas tareas con los drones se agilizan y se vuelven más eficientes y robustas, porque permiten poder
 inspeccionar dichas infraestructuras desde cerca sin poner en peligro a la seguridad de los operarios. 
 Hay drones que se encargarn en la monitorización de infraestructuras elétricas. \newline
@@ -180,7 +216,7 @@ drones podrían acceder a zonas de difícil acceso para comprobar daños y poder
 \end{figure}\
 Asimismo, Amazon ha estado trabajando en el desarrollo de drones para la entrega de paquetes durante varios años denominado así Prime Air\cite{AmazonPrimeAir}, 
 que consiste en un sistema de entrega de paquetes utilizando estos vehículos. Durante este programa, han realizado diferentes pruebas de reparto de paquetes a clientes
-en 60 minutos o menos. Estas entregas se realizan desde sitios preparados con esta modalidad, el proceso de entrega de los drones empezarian en los centros de preparación de pedidos en 
+en 60 minutos o menos. Estas entregas se realizan desde sitios preparados con esta modalidad, el proceso de entrega de los drones empiezan en los centros de preparación de pedidos en 
 donde los empleados seleccionarian el artículo, lo llevarían a la estación de embalaje y cuando este preparado su embalaje se deslizaría por una rampa hacia la fase de
 entrega. 
 En la fase de entrega los empleados preparan el paquete y la batería del dron para su destino. Cuando el dron halla realizado el despegue seguirá una ruta prestablecida con supervisión
