@@ -2,25 +2,29 @@
 \label{cap:capitulo2}
 
 
-En esta sección se describirá el problema a resolver junto con los objetivos pautados en el desarrollo del TFG
+En esta sección se describirá el problema a resolver junto con los objetivos y requisitos pautados en el desarrollo del TFG
 
 
 \section{Descripción del problema}
 \label{sec:descripcion}
 
 Como anteriormente hemos relatado, los drones tienen un uso actualmente elevado para solventar tareas de alta complejidad adoptado de sensores 
-para ello. \\
-
-El objetivo principal de este TFG, es desarrollar un comportamiento de navegación autónoma basado en aprendizaje por refuerzo e 
-inteligencia artificial, en el que el dron sea capaz de desenvolverse por escenarios urbanos. \newline
+para ello. El objetivo principal de este TFG, es desarrollar un comportamiento de navegación autónoma basado en aprendizaje por refuerzo e 
+inteligencia artificial, en el que el dron sea capaz de desenvolverse por escenarios urbanos. El enfoque de este trabajo de investigación 
+se centrará en la creación de una solución eficiente y completa ante la problemática que puede llegar a tener la navegación autónoma, se 
+mostrará un comportamiento capaz de realizar el seguimiento de un carril para demostrar la complejidad de mantener una trayectoria estable 
+y precisa utilizando en un vehículo autónomo aéreo. 
 
 A continuación, se definen los siguientes subobjetivos: 
 
 \begin{enumerate}
+    \item Desarrollo de diferentes comportamientos para controlar el dron alrededor del circuito: teleoperador y sigue-linea utilizando
     \item Analisis de la viabilidad de desarrollar aplicaciones de navegación autónoma en entornos fotorrealistas para drones.
     \item Analisis y desarrollo de una aplicación de navegación autónoma de drones basandonos en el seguimiento de un carril.
-    \item Creación de un comportamiento autónomo sigue-carril basado en inteligencia artificial y aprendizaje por refuerzo. 
-    \item Análisis y comparativas de los diferentes comportamientos desarrollados en este trabajo con el fin de encontrar interesantes acerca de la utilización de redes neuronales y aprendizaje por refuerzo en la navegación autónoma de drones.
+    \item Creación de una aplicación sigue-carril utilizando 
+    \item Análisis y comparativas de los diferentes comportamientos desarrollados en este trabajo con el fin de 
+    lograr resultados interesantes acerca de la utilización de redes neuronales y aprendizaje por refuerzo en la navegación autónoma de drones.
+    \item Desarrollo en ROS para intercomunicar componentes. (desarrollar más)
 \end{enumerate}
 \newpage
 \section{Requisitos}
@@ -29,8 +33,9 @@ A continuación, se definen los siguientes subobjetivos:
 Los requisitos que han de cumplirse en este trabajo son: 
 \begin{enumerate}
     \item Uso del vehículo UAV en el entorno de simulación fotorrealista Airsim junto a UnRealEngine.
-    \item El comportamiento robusto y en tiempo real para garantizar la navegación segura del vehículo dentro de su entorno mediante Airsim client y ROS Wrapper Airsim. 
+    \item El comportamiento robusto y en tiempo real para garantizar la navegación segura del vehículo.
     \item Los sistemas desarrollados deben ser reactivos para poder reaccionar a su entorno de manera concisa y eficiente.
+    \item Comportamiento portable sin reconfiguración.
 \end{enumerate}
 
 
@@ -42,11 +47,23 @@ Este trabajo, comenzó oficialmente en Septiembre del 2023 aunque en Diciembre d
 La metodología que se llevo a cabo fue:
 
 \begin{enumerate}
-    \item Reuniones semanales o cada dos semanales mediante Teams\footnote{\url{https://www.microsoft.com/es-es/microsoft-teams/group-chat-software}} con una duración de media o una hora, con el fin de tener un control semanal y pactar los objetivos semanales a seguir. Gracias a estas reuniones, se tenia una organización global del proyecto. 
+    \item Reuniones semanales mediante Teams\footnote{\url{https://www.microsoft.com/es-es/microsoft-teams/group-chat-software}} con una duración de media o una hora, con el fin de tener un control semanal y pactar los objetivos semanales a seguir. Gracias a estas reuniones, se tenia una organización global del proyecto. 
     \item Contacto via email de la universidad con el fin de solventar problemas urgentes. 
-    \item Utilización de la metodología Scrum\footnote{\url{https://www.iebschool.com/blog/metodologia-scrum-agile-scrum/}}, definiendo así los sprints de forma variable 
-    normalmente de una semana: Esta metodología consiste marco ágil de gestión y desarrollo de proyectos, especialmente diseñado para entornos complejos y cambiantes,basadas en sesiones de trabajo de dos semanas con reuniones,
-    con un enfoque particular en el desarrollo de software. Se fundamenta en la colaboración, la flexibilidad y la entrega iterativa e incremental de productos de alta calidad.
+    \item Utilización de la metodología Scrum\footnote{\url{https://www.iebschool.com/blog/metodologia-scrum-agile-scrum/}}: Esta metodología consiste marco ágil de gestión y desarrollo de proyectos, especialmente diseñado para entornos complejos y cambiantes,basadas en sesiones de trabajo de dos semanas con reuniones,
+    con un enfoque particular en el desarrollo de software. Se fundamenta en la colaboración, la flexibilidad y la entrega iterativa e incremental de productos de alta calidad.\newline
+
+    A lo largo del desarrollo de este TFG, se marcaron diferentes sprints, los cuales tuvieron una duración determinada y exponían pequeños objetivos a alcanzar. En la siguiente figura
+    se muestra los diferentes sprints que se llegaron a completar. 
+
+    \begin{figure} [H]
+        \begin{center}
+          \includegraphics[scale=0.25]{figs/objetivos/Sprints.png}
+        \end{center}
+        \caption{Sprints durante el desarrollo del TFG utilizando la metodologia Scrum}
+        \label{fig:Sprints}
+      \end{figure}
+    
+
     \item Tener un control de versiones mediante la plataforma GitHub\footnote{\url{https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba}}, con el objetivo de tener un almacenamiento de código y respaldos de ello.  
     \item El uso de un blog \footnote{\url{https://roboticslaburjc.github.io/2022-tfg-barbara-villalba/}}, en el cual se describió brevemente los pasos que se siguieron para el desarrollo del TFG.
 \end{enumerate}
