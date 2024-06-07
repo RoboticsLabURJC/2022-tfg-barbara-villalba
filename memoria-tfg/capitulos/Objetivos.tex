@@ -18,13 +18,13 @@ y precisa utilizando en un vehículo autónomo aéreo.
 A continuación, se definen los siguientes subobjetivos: 
 
 \begin{enumerate}
-    \item Desarrollo de diferentes comportamientos para controlar el dron alrededor del circuito: teleoperador y sigue-linea utilizando
-    \item Analisis de la viabilidad de desarrollar aplicaciones de navegación autónoma en entornos fotorrealistas para drones.
+    \item Análisis y desarrollo de un sistema perceptivo basado en redes neuronales en la navegación autonónoma de drones.
+    \item Desarrollo  de un sistema de control para drones utilizando técnicas de Reinforcement Learning para lograr una navegación 
+    autónoma y segura.
     \item Analisis y desarrollo de una aplicación de navegación autónoma de drones basandonos en el seguimiento de un carril.
-    \item Creación de una aplicación sigue-carril utilizando 
     \item Análisis y comparativas de los diferentes comportamientos desarrollados en este trabajo con el fin de 
     lograr resultados interesantes acerca de la utilización de redes neuronales y aprendizaje por refuerzo en la navegación autónoma de drones.
-    \item Desarrollo en ROS para intercomunicar componentes. (desarrollar más)
+    \item Desarrollo en ROS para intercomunicar componentes en la navegación autonónoma del dron.
 \end{enumerate}
 \newpage
 \section{Requisitos}
@@ -49,21 +49,42 @@ La metodología que se llevo a cabo fue:
 \begin{enumerate}
     \item Reuniones semanales mediante Teams\footnote{\url{https://www.microsoft.com/es-es/microsoft-teams/group-chat-software}} con una duración de media o una hora, con el fin de tener un control semanal y pactar los objetivos semanales a seguir. Gracias a estas reuniones, se tenia una organización global del proyecto. 
     \item Contacto via email de la universidad con el fin de solventar problemas urgentes. 
-    \item Utilización de la metodología Scrum\footnote{\url{https://www.iebschool.com/blog/metodologia-scrum-agile-scrum/}}: Esta metodología consiste marco ágil de gestión y desarrollo de proyectos, especialmente diseñado para entornos complejos y cambiantes,basadas en sesiones de trabajo de dos semanas con reuniones,
-    con un enfoque particular en el desarrollo de software. Se fundamenta en la colaboración, la flexibilidad y la entrega iterativa e incremental de productos de alta calidad.\newline
+    \item Utilización de la metodología Espiral\footnote{\url{https://www.lifeder.com/modelo-espiral/}}: Este tipo de metología consiste en llevar a cabo
+    un cicle iterativo que se debe repetir hasta que se alcanze el objetivo y se componen de varias fases:
+    \begin{itemize}
+      \item \textbf{Fase 1: Definir los objetivos y descripciones de las condiciones generales}. Consiste en marcar los objétivos que se deben seguir a la misma vez de barajar posibles 
+      alternativas especificando las condiciones (por ejemplo, sistema operativo, entornos, lenguajes de programación, herramientas de desarrollo). En esta fase nosotros definimos el tipo
+      de aplicación que se iba a seguir que es la navegación autónoma de drones considerando un entorno de simulación de carreteras. También de identificar alternativas técnologias como utilizaremos
+      Airsim para una simulación fotorrealista, integrar el middleware ROS para la comunicación y control, emplear PX4 Autopilot,Mavros u otras herramientas para el control de vuelo. \newline
+      \item \textbf{Fase 2: Análisis de requisitos}. Se realiza una investigación y documentación sobre las restricciones que podemos llegar a tener, entornos de trabajo, objetivos. Realizamos
+      un análisis sobre el uso que conllevaba utilizar el simulador Airsim junto con el midllware robótico ROS, qué tipo de compatbilidad puede llegar a tener, fiabilidad en cuanto 
+      a la comunicación entre ellos, viabilidad con herramientas como PX4 Autopilot con Airsim. \newline
 
-    A lo largo del desarrollo de este TFG, se marcaron diferentes sprints, los cuales tuvieron una duración determinada y exponían pequeños objetivos a alcanzar. En la siguiente figura
-    se muestra los diferentes sprints que se llegaron a completar. 
+      \item \textbf{Fase 3: Desarrollo y pruebas}. Se realiza la construcción de la arquitectura del sistema como de sus componentes y comunicación entre ellos para llevar acabo la aplicación 
+      marcada como objetivo en la fase 1 como la configuración del entorno en Airsim, configuración del modelo del dron, integración con ROS y configuraciones de bibliotecas. Conllevando
+      al desarrollo de los algoritmos y realización de diferentes pruebas.\newline
+
+      \item \textbf{Fase 4: Evaluación}. Se trata de presentar el sistema desarrollado recompilando problemas, mejoras a seguir, pruebas de diferentes algoritmos y sus resultados. Recopilaremos
+      diferentes pruebas realizadas, su uso, rendimiento, optimizaciones, gráficas con diferentes comparativas de diferentes comportamientos en cuanto a control.  \newline
+
+      \item \textbf{Planificación del próximo ciclo}. Al ser un método en espiral, cuando se completa un ciclo se comienza la planificación del siguiente ciclo. Dicha planificación 
+      sigue normalmente si se alcanzó el objetivo del anterior ciclo, planteandose los objetivos del siguiente ciclo. También podría ser encontrar nuevas soluciones si en alguna de las 
+      otras etapas se ha producido problemas, hasta de poder cambiar estrategias existentes por nuevas alternativas previamente definidas. En este trabajo hemos realizo varios ciclos compuestos
+      por la definición del problema, los ánalisis del entorno de simulación e infraestructuras y construcción del sistema perceptivo-control del robot, además de marcar nuevos 
+      objetivos dados por los problemas que nos hemos llegado encontrando en este desarrollo. 
+
+    \end{itemize}
+  
+    A lo largo del desarrollo de este TFG, se marcaron estas 4 fases estando en un ciclo iterativo junto con los objetivos a seguir permitiendo cambios y mejoras continuas hasta llegar al resultado final.
 
     \begin{figure} [H]
         \begin{center}
-          \includegraphics[scale=0.25]{figs/objetivos/Sprints.png}
+          \includegraphics[scale=0.5]{figs/objetivos/espiral.jpg}
         \end{center}
-        \caption{Sprints durante el desarrollo del TFG utilizando la metodologia Scrum}
-        \label{fig:Sprints}
+        \caption{Ilustración de metología en Espiral }
+        \label{fig:Espiral}
       \end{figure}
-    
-
+  
     \item Tener un control de versiones mediante la plataforma GitHub\footnote{\url{https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba}}, con el objetivo de tener un almacenamiento de código y respaldos de ello.  
     \item El uso de un blog \footnote{\url{https://roboticslaburjc.github.io/2022-tfg-barbara-villalba/}}, en el cual se describió brevemente los pasos que se siguieron para el desarrollo del TFG.
 \end{enumerate}

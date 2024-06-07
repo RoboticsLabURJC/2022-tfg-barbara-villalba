@@ -6,330 +6,224 @@
 El principal objetivo de este TFG es poder desarrollar un comportamiento de navegación autónoma en entornos de simulación 
 con el fin de que el dron pueda alcanzar el comportamiento deseado utilizando inteligencia artificial, especificamente redes neuronales
 y aprendizaje por refuerzo. Se tomará como entorno de simulación Airsim junto con el motor de videojuegos UnRealEngine, adicionalmente con 
-la comunicación de este entorno con AirSim ROS Wrapper Node y Client Airsim a través de protocolos de red TCP/UDP, además del estudio y 
-analisis de la comunicación entre Airsim, PX4 Autopilot, Mavros y AirSim ROS Wrapper Node .Así, pudiendo evaluar la unión de Airsim junto con ROS, PX4 y Mavros para
+la comunicación de este entorno con AirSim ROS Wrapper Node y Client Airsim, además del estudio y 
+análisis de la comunicación entre Airsim, PX4 Autopilot, Mavros y AirSim ROS Wrapper Node .Así, pudiendo evaluar si es posible la unión de Airsim junto con ROS, PX4 y Mavros para
 herramientas de diseño en la navegación autonóma de drones. \newline
-\\
 
 En primer lugar, en el contexto de la conducción autonóma de drones se evaluará el desarrollo de la percepción mediante redes neuronales y algoritmos de
 aprendizaje no supervisado, en especial, clustering y regresiones. 
 Posteriormente,el control del UAV se procederá una primera aproximación con un controlador Proporcional Derivativo Integral (PID) desenvolviéndose
-en un entorno de carreteras de ambos carriles. \\
-\\
+en un entorno de carreteras de ambos carriles. \newline
 
 Luego una vez de tener un comportamiento de sigue carril mediante el algoritmo de percepción desarrollado, procederemos a desarollar el algoritmo de 
-aprendizaje por refuerzo. Junto con este aprendizaje se realizará analisis de diferentes métricas y resultados
-por así entonces de poder encontrar una solución robusta y eficaz al problema que queremos enfrentarnos que será la navegación autonoma de drones en
-entornos de carreteras.
+aprendizaje por refuerzo. Junto con este aprendizaje se realizará análisis de diferentes métricas y resultados
+por así entonces de poder encontrar una solución robusta y eficaz al problema que queremos enfrentarnos que será la navegación autónoma de drones en
+entornos de carreteras. \newline
 
 
-\section{Diseño general}
-\label{sec:Diseño general}
-La primera aproximación que se llego a diseñar una infraestrutura para poder comunicar PX4 Autopilot y Mavros con Airsim. Para ello, tendremos
-dos ordenadores en donde en el primer ordenador tendremos el simulador Airsim junto con UnRealEngine y en el segundo ordenador tendriamos 
-PX4 Autopilot, ROS (con la distribución noetic), Mavros, Airsim ROS Wrapper y QGC. 
+\section{Arquitectura}
+\label{sec:Arquitectura}
 
+La arquitectura que se ha llevado a cabo en este trabajo se compone de varios elementos fundamentales que se integran entre sí para el desarrollo del seguimiento
+del carril. En primer lugar, tendremos un enfoque de simulación Airsim que ofrece la configuración directa de los modelos simulados, ofreciendo la modificación de los sensores
+y actuadores disponibles en el entorno de trabajo para obtener los comportamientos deseados. Así de tener una comunicación directa con los componentes intermediarios 
+tanto para el control de los actuadores como el manejo de los sensores. Dichos componentes intermediarias se comunican tanto con los programas desarrollados durante en este 
+trabajo como con el entorno de simulación para obtener comportamientos de navegación autónoma,facilitando la comunicación entre el entorno de simulación y los programas desarrollados.\newline
+
+Se realizan implementaciones de comportamientos de navegación autónoma basada en redes neuronales y algoritmos de aprendizaje automático, como control clásico basado en 
+un controlador Proporcional-Derivativo-Integral así como comportamientos más eficientes y complejos basados en reinforcement learning.
+
+Así junto con el uso de herramientas como PX4 Autopilot y Mavros para así poder analizar la viabilidad junto con el entorno de desarollo Airsim. Las principales implementaciones que se han 
+llevado acabo son principalmente dos como se muestra en la figura \ref{fig:infraestructura}:
+
+\begin{enumerate}
+  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y control clásico}: Utiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
+   y un control clásico basado en un controlador PID para el seguimiento de carriles.
+  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y Q-learning}: tiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
+  con la diferencia de que el control se realiza con un algoritmo de aprendizaje por refuerzo en especial Q-learning para realizar el seguimiento de carriles.
+\end{enumerate}
 
 \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale=0.2]{figs/Diseño/Comunicaciones/digrama-general.drawio.png}
+      \includegraphics[scale=0.40]{figs/Diseño/Comunicaciones/diagrama-modulos.jpg}
     \end{center}
-    \caption{Primera aproximación de diseño de infraestructura}
+    \caption{Arquitectura de los componentes utilizados en el TFG}
     \label{fig:infraestructura}
   \end{figure}\
 
-Por una parte tendremos dos ordenadores que se comunicaran entré si, el primer ordenador tendrá el simulador Airsim junto con el motor UnRealEngine y se comunicará a través
-de protocolos TCP/UDP con el segundo ordenador. El segundo ordenador tendrá las plataformas de software, en las que daremos el comportamiento deseado al dron. 
+\subsection{Configuración de Integración Distribuida en equipos separados}
+En el desarollo de este TFG, hemos tomado la decisión de tener dos enfoques:
 
-A partir de ello, desarrollaremos la navegación autónoma realizando un comportamiento sigue carril mediante una red neuronal, clustering y algoritmos de aprendizaje supervisado. Este comportamiento
-se llevará a dos enfoques: Desarrollar la navegación mediante un controlador proporcional derivativo integral y Reinforcement learning 
+\begin{enumerate}
+  \item El entorno de simulación Airsim estará en un ordenador con un sistema operativo Windows 10, una gráfica Nvidia RTX 2070 Super con el pluggin de 
+  Airsim al cargar el entorno mediante el motor UnRealEngine.
+  \item Las plataformas de desarrollo como ROS, Mavros, PX4, QGC y Client Airsim API estarán un  ordenador secundario con un sistema operativo Ubuntu 20.04 con una gráfica Nvidia RTX
+  2070.
+\end{enumerate}
 
-\section{Preparación del entorno}
+Esta propuesta fue tomada con la iniciativa de no tener encapsulado en un único componente el entorno de simulación y las plataformas de desarrollo, ya que desembocaba a tener un 
+bajo rendimiento en cuanto a velocidad de procesamiento del propio entorno de simulación. La primera aproximación se llegó a construir un entorno de desarrollo con un único ordenador con una grafica
+de Nvidia RTX 2070 compuesto de un sistema operativo Linux en donde se integraba el simulador Airsim junto UnrealEngine y las plataformas de desarrollo, obteniendo una media de 60 FPS (Fotogramas por segundo)
+conllevando así a tener un compotamiento lento debido a la carga de procesamiento por parte del entorno de simulación. Por causa de Airsim, esta contruido sobre un motor de videojuegos, maximizando los controladores
+de gráficos de NVIDIA, lo que puede afectar el rendimiento en sistemas menos optimizados. Por otro lado, si utilizamos un sistema operativo como Windows, es posible lograr un alto rendimiento debido a que Windows
+tiende a asignar más recursos a las aplicaciones gráficas junto con la gráfica Nvidia, lo que puede llegar a beneficiar a Airsim. Al tener Airsim en Windows llegamos tener una media 285 FPS siendo
+mucho más considerable que la primera opción con un sistema operativo Linux lo cual hace interesante tener Airsim en un entorno que tenga como sistema operativo como Windows. \newline
+
+Por otra parte, para poder utilizar las herramientas junto con el simulador necesitariamos Linux ya que estas herramientas de desarrollo como ROS funcionan con un sistema como Linux lo cual se necesitaria 
+tener 2 sistemas operativos diferentes en un mismo equipo. Como se necesitaba desarrollar una comportamiento robusto, eficiente y en tiempo real para el seguimiento de un carril con un dron se decidió
+la separación en dos equipos para así conseguir el mejor rendimiento por ambas partes. \newline
+
+El entorno de simulación Airsim se puede comunicar como hemos mencionado con PX4 y Mavros siguiendo un esquema de comunicaciones marcado por la propia página oficial de 
+PX4\footnote{\url{https://docs.px4.io/main/en/simulation/}} como se muestra en la siguiete figura:
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.2]{figs/Diseño/Comunicaciones/diagrama_comunicaciones.png}
+  \end{center}
+  \caption{Diagrama de comunicaciones entre PX4, QGC y Airsim}
+  \label{fig:diagramapx4}
+\end{figure}\
+
+En donde las comunicaciones internas con PX4 Autopilot se realizan mediante la ejecución del programa px4\_sitl\_default none\_iris y los puertos asignados los realiza la propia
+API de Mavlink además de tener la posibilidad con PX4 de comunicarnos con QGC.
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.5]{figs/Diseño/Comunicaciones/puertos.png}
+  \end{center}
+  \caption{Salida de la terminal ejecutando PX4 SITL}
+  \label{fig:SalidaTerminal}
+\end{figure}\
+
+A lo largo del desarrollo de este trabajo, nos hemos encontrado diferentes difultades respecto a la comunicación directa entre PX4 y el simulador, ya que a menudo cuando se llegaba a 
+comunicar las plataformas de desarrollo entre PX4 y Airsim se producian latencias afectando a la sincronización del comportamiento autónomo que queremos desarrollar. Además de que al tener
+una capa de comunicación extra con la propia herramienta PX4 Autopilot, Mavros. El acceso no es totalmente directo y puede llegar a ser dificultosopor lo que se optó a utilizar 
+Client Airsim por su comunicación directa con el simulador y al estar construida desde la base que se puede llegar acceder directamente al simulador sin llegar a producir capas externas y 
+esta pensanda para realizar comportamientos en tiempo real. 
+
+En resumen, la comunicación constará de Airsim ROS Wrapper para acceder a los diferentes sensores como Cámara, Lidar y GPS, Client Airsim para el control del vehículo y el entorno
+de simulación Airsim. El diagrama de comunicaciones que se muestra en la figura \ref{fig:diagramadeAirsim} consiste en una sencilla implementación de tener 2 equipos diferentes que
+constan del entorno de simulación y de las plataformas en donde iremos desarrollando los diferentes comportamientos como los algoritmos de percepción y control. 
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.3]{figs/Diseño/Comunicaciones/diagrama_comunicaciones_airsim.png}
+  \end{center}
+  \caption{Diagrama de comunicaciones}
+  \label{fig:diagramadeAirsim}
+\end{figure}\
+
+\section{Preparación del entorno de simulación}
 \label{sec:Preparación_entorno}
 
-Como mencionamos en la sección \ref{sec:simulación}, utilizaremos como simulador Airsim junto con el motor UnRealEngine. Para llevar acabo la construcción del entorno, primero tendremos 
-que instalar UnrealEngine. Para ello, seguiremos las instrucciones marcadas por la página oficial de Epic Games \footnote{\textbf{Instalación}: \url{https://www.unrealengine.com/en-US/download}} y trabajaremos con la versión 4.27.2. 
+Como mencionamos en la sección \ref{sec:Airsim}, utilizaremos como simulador Airsim junto con el motor UnRealEngine. Para llevar acabo la construcción del entorno, primero tendremos 
+que instalar UnrealEngine. Para ello, seguiremos las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}} y trabajaremos con la versión 4.27.2. 
 
-Una vez se tenga UnRealEngine instalado, procederemos a configurar el entorno de simulación que necesitamos, para poder realizar este paso necesitaremos un fichero de configuración para definir el tipo de vehículo, sus sensores, la posición y las conexiones, dicho archivo se denomina settings.json
+Una vez se tenga UnRealEngine instalado, procederemos a configurar el entorno de simulación que necesitamos, para ello realizaremos la configuración del fichero settings.json con las diferentes
+secciones. Por defecto, cuando ejecutamos por primera vez Airsim, el propio simulador nos crea este fichero dentro de una carpeta denonimada Airsim dentro de la carpeta Documentos en Windows, lo cual
+es bastante cómodo ya que podemos realizar la modificación de dicho archivo a nuestras necesidades. 
 
-Un archivo settings.json es un archivo de configuración específica de Airsim que define cómo se ejecutará la simulación en términos de propiedades del vehículo, configuración de sensores, condiciones climatológicas y más. 
 
 \subsection{Configuración del dron y del entorno}
 \label{subsec:Configuración del dron y del entorno}
 
-Como mencionamos, necesitamos un archivo de configuración para equipar al vehículo de sensores y otras características de comunicación con el entorno que son necesarias. 
+En primer lugar utilizaremos el entorno de simulación Coastline de los diferentes entornos que nos ofrece Airsim para Windows. Al descargarnos dicha carpeta, contendrá el ejecutable para
+poder abrir el entorno con Airsim junto con las carpetas de modelos de simulación, como las carreteras, montañas y plantas. Dentro de estas carpetas, eliminaremos dichos componentes 
+de simulación que nos puede dificultar cuando desarrollemos la percepción como plantas y señales de tráfico que se ubican encima de las lineas de detencción del carril ya que esto nos puede perjudicar
+en un futuro en la detencción con la red neuronal YOLOP.\newline
+Por defecto, la primera vez que ejecutamos un entorno en Airsim, se crea el archivo settings.json en donde se almancenará por defecto en una carpeta 
+llamada airsim ubicada en Documentos en Windows. \newline
 
-Un archivo settings.json consta de varias secciones: 
+Cuando tengamos el fichero settings.json creado, ya podremos equipar al vehículo con características como qué sensores utilizará, 
+el tipo de vehículo, el tipo de simulación, la comunicación y más. 
+
 \begin{enumerate}
-  \item \textbf{SimMode}: Este parámetro define el modo de simulación, se refiere si el modo de simulación es para coches, multirotores o vision de computador. En nuestro caso
-  utilizaremos multirotor. 
-  \item \textbf{ClockType}: Determina qué tipo de reloj se utiliza para medir el tiempo en la simulación. En nuestro caso este parámetro estará vacío debido a 
-  \item \textbf{Vehicles}:Configuración de  las propiedades de cada vehículo individualmente. Puedes especificar el tipo de vehículo, la posición inicial, la dinámica del vehículo, entre otros.
-  En nuestro caso el tipo de vehículo que utilizaremos sera a partir de PX4 AutoPilot. Para utilizar este tipo de vehículo se debe configurar para ello las comunicaciones y 
-  los diferentes parámetros de PX4 Autopilot. 
+  \item \textbf{SimMode}: Multirotor
+  \item \textbf{ClockType}: SteppableClock. Este tipo de reloj permite un control efectivo y manual sobre el avance en el propio simulador, es particularmente útil en simulaciones
+  de pruebas donde buscamos un control detallado del tiempo.
+  \item \textbf{Vehicles}: En esta sección definiremos las características del vehículo y su comunicación
   \begin{itemize}
-    \item \textbf{VehicleType}: En este caso ese parámetro tendremos un tipo de multirotor para PX4. Tomará el valor de PX4Multirotor
-    \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en fisico, en nuestro caso como será simulado, por lo que dicho valor será False indicando que no 
-    será utilizado.
-    \item \textbf{LockStep}: Es una característica importante cuando se comunica con el simulador AirSim a través de TCP. Principalmente, sincroniza PX4 y el simulador para que utilicen esencialmente el mismo tiempo de reloj. 
-    Esto permite que PX4 se comporte normalmente incluso durante demoras inusualmente largas en el rendimiento del simulador. Dicho valor valdrá True ya que lo utilizaremos. 
-    \item \textbf{UseTcp}: Para poder comunicarnos a través de PX4 necesitamos habilitar esta opción a true.
-    \item \textbf{TcpPort}: Especificamos el puerto TCP que vayamos a usar. 
-    \item \textbf{ControlIp}: Esta opción se colocará con valor "remote" ya que el comportamiento será simulado y es remoto.
-    \item \textbf{ControlPortLocal}: Se especificará el puerto Local del modo onboard de PX4 
-    \item \textbf{ControlPortRemote}: Se especificará el puerto Remoto del modo onboard de PX4
-    \item \textbf{LocalHostIp}: La dirección IP del ordenador en donde llevaremos la simulación, en este caso sera la dirección IP del primer ordenador.
-    \item \textbf{Parameters}: Estos parametros son de PX4 y permite la configuración del vehiculo,
-    como por ejemplo los modos de vuelo, sus configuraciones, configuraciones de velocidades y más. 
-    \item \textbf{Sensors}:Permite personalizar la configuración de los sensores simulados, como Lidar, IMU (Unidad de Medición Inercial),GPS y sensor de distancia. 
-    \item \textbf{Cameras}:Puedes configurar las cámaras utilizadas en la simulación, especificando sus propiedades como resolución, tipo de lente, posición y orientación relativas al vehículo.
-    \newline 
-    Nosotros usaremos una cámara que proporcionará una imagen RGB de dimensiones 620x620 pixeles y activaremos
-    el flag de PublishToRos a 1 para poder acceder a ella mediante el Airsim ROS Wrapper con el topic /airsim\_node/PX4/front\_center\_custom/Scene. 
+    \item \textbf{VehicleType}: SimpleFlight
+    \item \textbf{UseSerial}: False
+    \item \textbf{ControlIp}: Remote
+    \item \textbf{LocalHostIp}: 192.168.2.16
+    \item \textbf{Sensors}: Definiremos una pequeña sección de sensores
+      \begin{itemize}
+        \item \textbf{Lidar}: Definiremos caracteristicas del propio sensor como el tipo, su rango, el número de canales
+      \end{itemize}
   \end{itemize}
 \end{enumerate}
-\begin{code}[H]
-\begin{lstlisting}[language=json]
-  {
-   "SettingsVersion":1.2,
-   "SimMode":"Multirotor",
-   "ClockType":"SteppableClock",
-   "ViewMode": "",
-    "TimeOfDay": {
-    "Enabled": true,
-    "StartDateTime": "2023-08-12 22:00:00",
-    "UpdateIntervalSecs": 1000000000,
-    "CelestialClockSpeed":1
-    },
-   "Vehicles":{
-      "PX4":{
-         "VehicleType":"PX4Multirotor",
-         "UseSerial":false,
-         "LockStep":false,
-         "UseTcp":true,
-         "TcpPort":4560,
-         "ControlIp":"remote",
-         "ControlPortLocal":14540,
-         "ControlPortRemote":14580,
-         "LocalHostIp":"192.168.2.16",
-         "Parameters":{
-         "CBRK_IO_SAFETY":22027,
-         "COM_ARM_CHK_ESCS":0,
-         "COM_ARM_EKF_HGT":1.0,	
-      	"COM_ARM_EKF_POS":1.0,	
-         "COM_ARM_EKF_VEL":1.0,	
-         "COM_ARM_EKF_YAW":1.0,	
-	      "COM_FAIL_ACT_T":0.0,
-         "COM_FLIGHT_UUID":0,
-	      "COM_OBL_RC_ACT":5,
-         "COM_PREARM_MODE":0,
-         "FD_ACT_EN":0,
-	      "LPE_LAT":47.641468,
-         "LPE_LON":-122.140165,
-	      "MIS_TAKEOFF_ALT":2.4,
-         "MPC_TKO_SPEED":	5.0,
-         "MPC_Z_VEL_MAX_DN":4.0,
-         "MPC_Z_VEL_MAX_UP":8.0,
-         "MPC_Z_V_AUTO_DN":4.0,
-         "MPC_Z_V_AUTO_UP":8.0,
-	      "NAV_DLL_ACT":0,
-         "NAV_RCL_ACT":0,
-	      "SIM_BAT_DRAIN": 86400,
-	      "SIM_BAT_MIN_PCT": 100,
-         "SYS_FAILURE_EN":0,
-         "SYS_HITL":2
-         },
-        
-\end{lstlisting}
-\end{code}
 
-\begin{code}[H]
-  \begin{lstlisting}[language=json]
-    "Sensors":{
-            "Barometer":{
-               "SensorType":1,
-               "Enabled":true,
-               "PressureFactorSigma":0.0001825
-            },
-            "Imu":{
-               "SensorType":2,
-               "Enabled":true
-            },
-            "LidarCustom":{
-               "SensorType":6,
-               "Enabled":true,
-               "Range":10,
-               "NumberOfChannels":16,
-               "RotationsPerSecond":10,
-               "PointsPerSecond":10000,
-               "X":0,
-               "Y":0,
-               "Z":-1,
-               "DrawDebugPoints":false,
-               "DataFrame":"SensorLocalFrame"
-            },
-            "Gps":{
-               "SensorType":3,
-               "Enabled":true,
-               "EphTimeConstant":0.9,
-               "EpvTimeConstant":0.9,
-               "EphInitial":25,
-               "EpvInitial":25,
-               "EphFinal":0.1,
-               "EpvFinal":0.1,
-               "EphMin3d":3,
-               "EphMin2d":4,
-               "UpdateLatency":0.2,
-               "UpdateFrequency":50,
-               "StartupDelay":1
-            },
-            "Distance":{
-               "SensorType":5,
-               "Enabled":true,
-               "MinDistance":0.2,
-               "MaxDistance":40,
-               "X":0,
-               "Y":0,
-               "Z":-1,
-               "Yaw":0,
-               "Pitch":0,
-               "Roll":0,
-               "DrawDebugPoints":false
-            }
-        
-        
-  \end{lstlisting}
-\end{code}
-
-\begin{code}[H]
-  \begin{lstlisting}[language=json]
-    },
-    "Cameras":{
-            "front_center_custom":{
-               "CaptureSettings":[
-                  {
-                     "PublishToRos":1,
-                     "ImageType":0,
-                     "Width":620,
-                     "Height":620,
-                     "FOV_Degrees":90,
-                     "ImageRate_FPS":30,
-                     "TargetGamma":1.5,
-                     "AutoExposure":true,
-                     "MotionBlur":false,
-                     "PostProcess":true
-                  }
-               ],
-               "X":0.50,
-               "Y":0,
-               "Z":0.10,
-               "Pitch":0,
-               "Roll":0,
-               "Yaw":0
-            }
-         },
-      "X": 22.474933624267578,
-      "Y": -25.63629913330078,
-      "Z":  0,
-      "Pitch": 0,
-      "Roll": 0,
-      "Yaw":  30
-      }
-   }
-}
-  \end{lstlisting}
-  \caption[Settings]{Archivo de configuracion settings.json}
-  \label{cod:codejemplo}
-\end{code}
-
-  Dicho archivo se almacenará por defecto en Documentos en una carpeta creada por Airsim, si queremos cambiar dicha ruta o utilizar otro fichero de configuración distinto, solo bastará
-  mencionar con el flag "\-settings" y la ruta absoluta de dicho archivo de configuraciones si queremos ejecutar el mapa de la simulación por linea de comando \newline
-  
-  Para poder ejecutar el simulador junto con la configuración realizada previamente, solo bastará ejecutar en una terminal de Windows (en nuestro caso será Windows, pero también
-  se puede realizar en Linux, para ello vease https://microsoft.github.io/AirSim/settings/) ó en la propia carpeta del mundo ejecutable dadle doble click:
+Si no se define la posición inicial del dron, por defecto el propio simulador te establece el vehiculo en el punto que decida Airsim. 
 
 
-  IMAGENES DE LANZAMIENTO DEL SIMULADOR Y IMAGENES RESULTADOS DEL MUNDO
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Diseño/coastline3.png}
+  \end{center}
+  \caption{Visualización del entorno original ilustrando los objetos dificultando la
+  percepción de la carretera}
+  \label{fig:CoastlineModificado}
+\end{figure}\
 
-  \subsection{Configuración de los controladores}
-  \label{subsec:Configuración controladores}
-
-  Para poder comunicar Airsim ROS Wrapper,ROS no etic, PX4 , Mavros con el simulador, lo primero que realizaremos será la instalación de los cuatro componentes:
+  \subsection{Instalación de las herramientas de desarrollo}
+  \label{subsec:Instalación de las herramientas de desarrollo}
+  La instalación de las herramientas de desarrollo se realizarán en el segundo ordenador con el sistema operativo Linux. Constará de las 
+  siguientes:
   \begin{enumerate}
-    \item \textbf{PX4}: Para la instalación de PX4, procederemos a descargarnos el repositorio oficial en github con la version 1.14 \footnote{\textbf{Instalación PX4}: \url{https://github.com/PX4/PX4-Autopilot}}.
-    Una vez se halla descargado, solamente se realizará la compilación a traves del comando: \texttt{make px4\_sitl\_default none\_iris} y tendremos que colocar como variable de entorno 
-    \texttt{PX4\_SIM\_HOSTNAME} la dirección IP del primer ordenador, que es donde estará el simulador.
+    \item \textbf{ROS}: Como se menciona en la documentación oficial de ROS \cite{roswiki} , ROS consta de diferentes conjuntos de paquetes versionados que permiten a los desarrolladores
+    trabajar con un código relativamente estable hasta que estén preparados y puedan publicar versiones robustas y eficientes. En nuestro caso, utilizaremos la distribución Noetic\footnote{\url{http://wiki.ros.org/noetic}}
+    debido al uso de Airsim debido a que esta distribucion se encuentra siendo una de las más estables para poder trabajar junto con Airsim\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}}. 
 
-    Con ese comando, además de realizar la compilación y ejecutar PX4, también estamos especificando el tipo simulación y queremos que sea SITL y el tipo de vehículo .
-    \item \textbf{Airsim ROS Wrapper}: Lo primero que se realizará sera la descarga del repositorio de Airsim a través de su pagina de github \footnote{\textbf{Instalación Airsim}: \url{https://github.com/microsoft/AirSim}}. 
-    Cuando tengamos dicho repositorio descargado, lo que realizaremos sera la compilación y configuración de Airsim mediante los scripts build y setup
+    \begin{figure} [H]
+      \begin{center}
+        \includegraphics[scale=0.3]{figs/Plataformas_Desarollo/ros-noetic.png}
+      \end{center}
+      \caption{Logotipo de ROS noetic}
+      \label{fig:ROS noetic}
+    \end{figure}\
+    \item \textbf{Airsim ROS Wrapper}: Descargaremos del repositorio de Airsim a través de su página de github \footnote{\url{https://github.com/microsoft/AirSim}}. \newline
+    \begin{lstlisting}
+      git clone https://github.com/microsoft/AirSim.git
+    \end{lstlisting}
+    Cuando tengamos dicho repositorio descargado, lo que realizaremos sera la compilación y configuración de Airsim mediante los scripts build y setup como se pauta en la guía oficial.
     \newline
-    Ahora para poder utilizar el Airsim ROS Wrapper que nos proporciona ROS, tendremos que irnos a la carpeta dentro del repositorio de Airsim y buscar la carpeta de ros y construir el paquete 
-    mediante el comando \texttt{catkin\_make}. Cuando tengamos realizado dicho paso tendremos que activar el wrapper en el fichero .bashrc de Linux mediante la siguiente linea:
-    \texttt{source /home/\$USER/Airsim/ros/devel/setup.bashrc}
-    \item \textbf{Mavros}: La instalación del paquete Mavros se puede seguir mediante el siguiente enlace \footnote{\textbf{Instalación Mavros}: \url{https://docs.px4.io/v1.14/en/ros/mavros_installation.html}}
-    \item \textbf{ROS noetic}: Se seguirá la guía oficial de instalación de ROS \footnote{\textbf{Instalación ROS noetic}: \url{http://wiki.ros.org/noetic/Installation/Ubuntu}}
+    Ahora para poder utilizar el Airsim ROS Wrapper que nos proporciona ROS, tendremos que irnos a la carpeta dentro del repositorio de Airsim clonado previamente y buscar la carpeta de ros y construir el paquete 
+    mediante el comando \texttt{catkin\_make}. Cuando tengamos realizado dicho paso tendremos que activar el wrapper en el fichero .bashrc de Linux mediante la siguiente linea:\newline
+
+    \begin{lstlisting}
+      source /home/$USER/Airsim/ros/devel/setup.bashrc
+    \end{lstlisting}
+     siendo \$USER la variable de entorno que contiene el nombre del usuario que actualmente tiene iniciada sesión en el equipo.
+
+     A partir de activar el entorno de trabajo para ros, utilizaremos el nodo AirSim ROS Wrapper Node \ref{sec:wrapper} junto con un launcher airsim\_node.launch proporcionando
+     la dirección IP en donde se encuentra Airsim.\newline
+
+     \begin{lstlisting}
+      roslaunch airsim_ros_pkgs airsim_node.launch output:=screen host:=192.168.2.16
+    \end{lstlisting}
 
   \end{enumerate}
 
-  Cuando se tenga todos los componentes instalados, se procederá a la comunicación de PX4,Mavros, Airsim ROS Wrapper. Una visión global de la insfraestructuras de comunicación se ilustra
-  en la siguiente figura: 
-
-
-
-  \begin{figure} [H]
-    \begin{center}
-      \includegraphics[width=0.9\textwidth,height=0.6\textwidth]{figs/Diseño/Comunicaciones/diagrama_comunicaciones.png}
-    \end{center}
-    \caption{Diagrama de comunicaciones entre PX4 y el simulador}
-    \label{fig:ROS}
-  \end{figure}\
-
-  Como se puede observar, en el segundo ordenador tendremos PX4 STIL y se comunicará con el simulador a través de TCP con el puerto 4560, además se comunicará
-  con la aplicación QGroundControl y la API de Mavros. Los puertos de comunicación que tiene PX4 SITL son escogidos por esta plataforma, dichos puertos se pueden observar
-  cuando ejecutamos PX4 SITL
-
-  \begin{figure} [H]
-    \begin{center}
-      \includegraphics[width=0.7\textwidth,height=0.2\textwidth]{figs/Diseño/Comunicaciones/puertos.png}
-    \end{center}
-    \caption{Salida de la terminal ejecutando PX4 SITL}
-    \label{fig:PX4_SITL}
-  \end{figure}\
-
-  
-
-  
-\newpage
 \section{Percepción}
 \label{sec:Percepción}
 Para el desarrollo de la percepción una primera aproximación fue utilizar
-procedimientos de visión clásica, es decir, procesar la imagen y mediante métodos de la libreria OpenCV \footnote{\textbf{OpenCV}: \url{https://opencv.org/}}
+procedimientos de visión clásica, es decir, procesar la imagen y mediante métodos de la libreria OpenCV
 poder detectar las diferentes líneas que pueden haber en la carretera. El problema que nos podemos encontrar que al realizar esta primera proximación, al tener un 
 entorno fotorrealista, estos métodos se quedan bastante pobres desembocando una percepción muy poco robusta e ineficiente. Por lo que se optó la utilización
 de una red neuronal llamada YOLOP y algoritmos de aprendizaje automático poder construir la percepción. \newline
 
-Para obtener la imagen del entorno nos la proporcionará AirSim ROS Wrapper Node, solamente nos subscribiremos al topic /airsim\_node/Drone/front\_center\_custom/Scene proporcionado por este
-wrapper y utilizaremos un método de ROS denonimado CvBridge en donde podremos convertir dicha imagen en formato OpenCV y trabajar con ella a traves de OpenCv
+Para obtener la imagen del entorno, nos subscribiremos al topic /airsim\_node/Drone/front\_center\_custom/Scene que ofrece el nodo AirSim ROS Wrapper Node
+ y mediante un método de ROS denonimado CvBridge\footnote{\url{http://wiki.ros.org/cv_bridge}} podremos convertir dicha imagen en formato OpenCV y trabajar con ella a traves de OpenCv.\newline
 
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[width=0.6\textwidth,height=0.5\textwidth]{figs/Diseño/Percepcion/cvbridge.png}
-  \end{center}
-  \caption{Interfaz de Opencv con ROS utilizando CvBridge}
-  \label{fig:CvBridge}
-\end{figure}\
-
-\newpage
 \subsection{Inferencia de YOLOP}
 \label{sec:Inferencia de YOLOP}
 
-En este apartado hablaremos sobre la inferencia del YOLOP con sus distintos pesos preentrenados. En primer lugar, hablaremos
-sobre los pesos End-to-end.pth y por último los pesos de Onnx.
-
-Como anteriormente hemos comentado, el archivo End-to-end.pth es un archivo de pesos construido en Pytorch, cuando queremos cargar
+Para realizar la deteción de las líneas en la carretera nos ayudaremos de la red neuronal YOLOP\ref{sec:YOLOP}. A continuación hablaremos sobre la inferencia del YOLOP con sus distintos pesos preentrenados. En primer lugar, 
+como anteriormente hemos comentado, el archivo End-to-end.pth es un archivo de pesos construido en Pytorch, cuando queremos cargar
 dichos pesos con el modelo podemos hacerlo de dos maneras: Podemos realizarlo mediante la CPU o la GPU. 
-Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End-to-end.pth se realizará de la siguiente forma:
+Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End-to-end.pth se realizará cargando el modelo de la red a través de su repositorio de github \footnote{\url{https://github.com/hustvl/YOLOP}}
+especificando el modelo de la red neuronal y la opción 'pretrained' colocada con valor True, diciendo que cargaremos los pesos de formato pytorch del archivo End-to-end.pth.\newline
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
   import torch
@@ -341,10 +235,8 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
   \label{cod:codejemplo}
   \end{code}  
 
-  Primero se cargará el modelo YOLOP a través de su repositorio de github \footnote{\url{https://github.com/hustvl/YOLOP}}
-  , matizando el modelo de red neuronal y la opción "pretrained".A través de la última opción se escoge de su repositorio los pesos preentrenados con formato pytorch que
-  en este caso es el archivo End-to-end.pth. Una vez tengamos el modelo cargado del repositorio, podemos escoger si queremos 
-  hacer la inferencia en la CPU o GPU, para ello tendremos la siguiente linea de código: 
+Una vez tengamos el modelo cargado del repositorio, podemos escoger si queremos hacer la inferencia en la CPU o GPU, para ello tendremos que especificar como 
+lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inferencia y le asignaremos al modelo que realizaremos la inferencia por GPU.\newline
 
   
   \begin{code}[h]
@@ -358,11 +250,10 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
     \label{cod:codeloadYOLOP}
     \end{code}  
 
-    En el \ref{cod:codeloadYOLOP} se puede observar que pytorch proporciona la opción de escoger entre CPU y GPU. En nuestro caso, escogeremos
-    la GPU para realizar la inferencia y le asignaremos al modelo que realizaremos la inferencia por GPU. \newline
-
-    Por último, nos quedaria convertir la imagen en un tensor antes de realizar la inferencia, una vez que se realice este paso
-    se dará pie a la inferencia del modelo: 
+    Por último, nos quedaria convertir la imagen en un tensor antes de realizar la inferencia. Para poder realizarlo, utilizaremos la funcion transforms.toTensor\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
+    y después añadiremos una dimensión más con unsqueeze(0) , esto se debe 
+    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imagenes que se procesarán juntas
+    (generalmente 1 para inferencia) por lo que el tensor tendrá esta forma: (batch\_size, channels, height, width)\newline
 
     \begin{code}[h]
       \begin{lstlisting}[language=Python]
@@ -375,25 +266,23 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
       _, da_seg_out, ll_seg_out = self.model(imagen_tensor)
     
       \end{lstlisting}
-      \caption[Inferencia del modelo]{Inferencia del modelo}
+      \caption[Inferencia del modelo]{Inferencia del modelo en Pytorch}
       \label{cod:codejemplo}
       \end{code}  
 
-    Para poder convertir la imagen en un tensor, utilizaremos la funcion transforms.toTensor y después añadiremos una dimensión más con unsqueeze(0) , esto se debe 
-    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imagenes que se procesarán juntas
-    (generalmente 1 para inferencia) por lo que el tensor tendrá esta forma: (batch\_size, channels, height, width) \break. 
-
-    Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detencción de la Segmentación
+    \newpage
+    Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detencción de la segmentación
     de la calzada y la detencciñon de las lineas de la calzada. Dicho tensor habrá que convertirlo en una imagen para poder visualizar
-    dicho resultado en una imagen. 
+    dicho resultado como una imagen. 
     Por ello, convertiremos el tensor en un array numpy y realizaremos una transformacion para cambiar las dimensiones de (H,W,C) 
     a (C,H,W) esto se realiza ya que en Opencv representa imagenes en formato Numpy array y se transpone las dimensiones porque las
-    imagenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. Numpy es una libreria de Python por la cual podemos realizar operaciones de arrays
+    imagenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
     \newline
-    Una vez que hemos realizado esto, obtendremos un numpy array el cual lo normalizaremos con valores de 0-1, la tarea de normalizar 
-    puede ayudar a igualar la escala de los pixeles de la imagen. Finalmente se podrá mostrar el resultado de la inferencia de la red 
-    en una imagen, al normalizar los valores de 0-1, los valores que tengan un valor 1 se representarán en la imagen final y se le dará un color
-    para que se pueda ver el resultado de la segmentación de la calzada y de la detencción de las lineas de la calzada.
+
+    Obtendremos un array de Numpy que normalizaremos con valores de 0-1.La normalización 
+    ayudar a igualar la escala de los pixeles de la imagen. Finalmente se podrá mostrar el resultado de la inferencia de la red 
+    en una imagen. Al normalizar los valores de 0-1, los pixeles con un valor 1 se mostrarán en la imagen final, asignándoles un color
+    para visualiza el resultado de la segmentación de la calzada y de la detencción de las lineas de la calzada. \newline
     \newpage
     \begin{code}[h]
       \begin{lstlisting}[language=Python]
@@ -422,23 +311,8 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
       \label{cod:codejemplo}
       \end{code}  
 
-      Los pesos preentrenados de Onnx para poder utilizarlos en la inferencia del modelo YOLOP tendremos que descargarnos la libreria Onnx para Python, 
-      seguiremos los pasos de la página oficial \footnote{\url{https://onnxruntime.ai/docs/install/}}
-      Para saber que tipo de versión necesitamos instalar de OnnxRuntime para realizar la inferencia a traves de la GPU, tenemos que saber que versión de cuda
-      tenemos, esto se puede saber ejecutando en una terminal el siguiente comando:  \texttt{nvidia-smi}. Con este comando nos saldrá este panel de información:
-
-      \begin{figure} [H]
-        \begin{center}
-          \includegraphics[width=0.6\textwidth,height=0.4\textwidth]{figs/Diseño/Percepcion/Panel-nvidia.png}
-        \end{center}
-        \caption{Panel de Nvidia}
-        \label{fig:Nvidia}
-      \end{figure}\
-
-      En la esquina superior derecha, podemos ver que tenemos la version de CUDA de nuestro ordenador, en este caso tenemos la versión de CUDA 12.2 por lo que necesitamos una versión compatible
-      para dicha versión. Para saber lo anterior, solamente bastará encontrar en la siguiente tabla de la página oficial de Onnx \footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}} la versión compatible con nuestra versión de CUDA. \newline
-      Cuando empezamos a realizar dicha instalación en diciembre de 2023, la versión que existia de onnx runtime solamente era compatible con CUDA 11.8, por lo tanto tuvimos que descargarnos 
-      dicha versión de CUDA y colocar dicha variable de entorno la ruta en donde se encontraba la instalación de CUDA 11.8 \texttt{LD\_LIBRARY\_PATH=/usr/local/cuda-11.8/lib64:\$LD\_LIBRARY\_PATH} \break. 
+      Para poder utilizar los pesos preentrenados de Onnx, tendremos que realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
+      dichas versiones tienen que ser compatible entre si mismas. Para ello nos guiaremos por la tabla requisitos de la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}. \newline
 
       Cuando tengamos todo preparado y configurado ya podremos realizar los pasos de la inferencia con los pesos preentrenados de Onnx. En primer lugar,cargaremos el modelo
       
@@ -460,9 +334,8 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
         \newline
         A continuación preprocesaremos las imagenes de entrada que le daremos al modelo, al escoger el modelo de yolop-320-320.onnx, las imagenes deben tener una dimensión de 320x320, para ello
         utilizaremos un método implementado por ellos, en el cuál redimensionaremos la imagen como se pide para el modelo. 
-        Una vez que tengamos la imagen preparada, daremos comienzo a la inferencia del modelo de yolop-320-320.onnx. 
-        \newpage
-
+        Una vez que tengamos la imagen preparada, daremos comienzo a la inferencia del modelo de yolop-320-320.onnx. \newline
+      
         \begin{code}[h]
           \begin{lstlisting}[language=Python]
             _, da_seg_out, ll_seg_out = self.ort_session.run(
@@ -481,12 +354,12 @@ Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End
 
 \subsubsection{Resultados de YOLOP }
 \label{sec:resultados}
-Anteriormente, estuvimos hablando sobre lo que ofrece YOLOP, su modelo en concreto y sus pesos preentrenados. En esta sección contrastaremos los resultados de cada parte mencionada. \newline
-En la siguiente figura mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preentrenados End-to-end.pth, yolop-320-320.onnx y yolop-640-640.onnx en segundos.
+En esta sección contrastaremos los resultados dde los diferentes pesos preentrenados que ofrece la red neuronal YOLOP. Como podemos observar en la figura \ref{fig:pesos_preentrenados} 
+mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preentrenados End-to-end.pth, yolop-320-320.onnx,yolop-640-640.onnx e yolop-1280-1280.onnx en segundos.
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.4]{figs/Diseño/Percepcion/Results-Yolop.png}
+    \includegraphics[scale=0.6]{figs/Diseño/Percepcion/Results-Yolop.png}
   \end{center}
   \caption{Resultados de los pesos preentrenados del modelo YOLOP}
   \label{fig:pesos_preentrenados}
@@ -496,23 +369,17 @@ Como podemos observar en la figura 4.6, los pesos preentrenados que tiene una in
 significa que el modelo YOLOP con estos pesos tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes pesos, es el ganador en cuanto 
 en tiempo de inferencia y rate. 
 Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
-del modelo, por lo que puede que el modelo tarde menos en inferir pero depende de varios factores. 
+del modelo, por lo que puede que el modelo tarde menos en inferir pero depende de varios factores como se mostraban en los resultados de la red neuronal 
+en la figura \ref{f:resultadosYOLOP}. \newline
 
-FOTOS DE LOS RESULTADOS DE LA RED
-
-
-
-Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las lineas detectadas que nos interesan.
+Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las lineas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
 
 \subsection{DBSCAN}
 \label{sec:DBSCAN}
 
 Para saber con qué lineas detectadas por la red nos quedaremos, utilizaremos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
-utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html}}. 
+utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html}}. \newline
 
-DBSCAN es un algoritmo de agrupamiento no paramétrico que se encuentra en la librería scikit-learn. Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una libreria de Python para algoritmos de aprendizaje automático,
-este algoritmo trabaja con muestras centrales de alta densidad y expande clústeres a partir de ellas. Es especialmente útil para datos que contienen clústeres de densidad similar.
-\newline
 Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
 \begin{enumerate}
   \item \textbf{Eps}: Consiste en la distancia máxima que puede existir entre dos muestras para que una se considere vecina de la otra. Dicha distancia no se trata de un límite 
