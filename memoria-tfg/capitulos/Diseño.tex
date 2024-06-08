@@ -367,10 +367,18 @@ mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preen
 
 Como podemos observar en la figura 4.6, los pesos preentrenados que tiene una inferencia menor al resto se trata de yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 0.010s, esto
 significa que el modelo YOLOP con estos pesos tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes pesos, es el ganador en cuanto 
-en tiempo de inferencia y rate. 
+en tiempo de inferencia, rate y mejores resultados. 
 Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
-del modelo, por lo que puede que el modelo tarde menos en inferir pero depende de varios factores como se mostraban en los resultados de la red neuronal 
-en la figura \ref{f:resultadosYOLOP}. \newline
+del modelo, añadiendo de tener una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, nosostros
+buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detencción como se mostraban en los resultados de la red neuronal \ref{f:resultadosYOLOP}. \newline
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=1.0]{figs/Diseño/YOLOP/onnx-320-320.jpg}
+  \end{center}
+  \caption{Resultados de los pesos preentrenados yolop320-320.onnx}
+  \label{fig:pesos_preentrenados}
+\end{figure}\
 
 Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las lineas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
 
@@ -378,14 +386,14 @@ Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las line
 \label{sec:DBSCAN}
 
 Para saber con qué lineas detectadas por la red nos quedaremos, utilizaremos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
-utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html}}. \newline
+utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{scikitlearndbscan}.\newline
 
 Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
 \begin{enumerate}
   \item \textbf{Eps}: Consiste en la distancia máxima que puede existir entre dos muestras para que una se considere vecina de la otra. Dicha distancia no se trata de un límite 
   máximo entre las distancias que puede haber dentro de un cluster.
   \item \textbf{Min\_samples}: Es el número mínimo de muestras dentro de un vecindario para que un punto se considere como un punto central incluyendo al propio punto.
-  \item \textbf{Metric}: La métrica utilizada para calcular la distancia entre los conjuntos de clusteres (por defecto es la distancia euclidiana). 
+  \item \textbf{Metric}: La métrica utilizada para calcular la distancia entre los conjuntos de clústeres (por defecto es la distancia euclidiana). 
 \end{enumerate}
 Los valores de los parámetros de la distancia máxima y el número mínimo de muestras se deben elegir cuidadosamente, es decir, si colocamos una distancia 
 máxima alta puede provocar que los clusters que queramos que pertenezcan a un distinto grupo pertenezcan al mismo grupo. 
@@ -393,45 +401,98 @@ Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres má
 si se establece en un valor bajo, los clústeres encontrados serán más dispersos.
 \break
 Por lo que para encontrar los valores de estos 2 parámetros fue experimentando y quedandonos con el mejor resultado. En nuestro caso la distancia máxima tendra un valor de 10 
-y el número mínimo de muestras sera de 5 muestras. Lo que significa que la distancia máxima que tendrán los puntos para pertenecer al mismo grupo de clusteres sera de 10 de distancia en pixeles
+y el número mínimo de muestras sera de 5 muestras. Lo que significa que la distancia máxima que tendrán los puntos para pertenecer al mismo grupo de clústeres sera de 10 de distancia en pixeles
 con un mínimo de muestras pertenecientes de 5 muestras. 
 
-Para entender un poco más como funciona el algoritmo, en la siguiente figura recogida por Research: 
+Para entender un poco más como funciona el algoritmo, en la siguiente figura recogida por este árticulo\cite{DBSCAN}: 
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[width=0.8\textwidth,height=0.3\textwidth]{figs/Diseño/DBSCAN/DBSCAN-Illustration.png}
+    \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/DBSCAN-Illustration.png}
   \end{center}
-  \caption{Resultados de los pesos preentrenados del modelo YOLOP}
+  \caption{Ejemplo ilustrativo de como funciona el algoritmo de DBSCAN}
   \label{fig:pesos_preentrenados}
 \end{figure}\
 
-En la figura \ref{fig:pesos_preentrenados} se ilustra un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
+Se ilustra un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
 teniendo como valor el número mínimo de muestras 3, eso significa que para que se considere una muestra a un grupo de cluster tendrá que tener una densidad de 3. El algoritmo itera por
 las muestras y compara el valor de la distancia máxima y el número mínimo de muestras. 
 Si ningún de estos dos parámetros no se cumpliese ya que puede darse que una muestra se encuentra lejana del grupo de muestras será etiquetado como ruido, esto quiere decir
-que no pertenecerá a ningún grupo de clusteres. Dicho resultado se puede observar en la figura \ref{fig:pesos_preentrenados} como el algoritmo ha catalogado dos grupos de clusteres y 3 muestras
+que no pertenecerá a ningún grupo de clústeres. Dicho resultado se puede observar en la figura \ref{fig:pesos_preentrenados} como el algoritmo ha catalogado dos grupos de clústeres y 3 muestras
 como puntos de ruido. 
 \break
 
 Centrandonos en nuestra implementación con el algoritmo de DBSCAN, le pasaremos la imagen de salida de la red neuronal pero con la particularidad que DBSCAN necesitaria que la imagen sea
-representada por un array bidimensional de coordenadas x e y de puntos. Para ello utilizaremos la función de Numpy column\_stack, dicha función transforma un array simple de una dimensión a
-un array de 2 dimensiones, una vez se realice esto obtendremos un array bidimensional para el algoritmo DBSCAN.\newline
+representada por un array bidimensional de coordenadas x e y de puntos. Para ello utilizaremos la función de Numpy column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} , 
+dicha función transforma un array simple de una dimensión a un array de 2 dimensiones, una vez se realice esto obtendremos un array bidimensional para el algoritmo DBSCAN.\newline
+
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+    def clustering(self,cv_image):
+
+    #--Convert image in points
+    points_lane = np.column_stack(np.where(cv_image > 0))
+    dbscan = DBSCAN(eps=10, min_samples=5,metric="euclidean")
+    
+
+    if points_lane.size > 0:
+        dbscan.fit(points_lane)
+        labels = dbscan.labels_
+
+        # Ignore noise if present
+        clusters = set(labels)
+        if -1 in clusters:
+            clusters.remove(-1)
+      
+      
+            
+        for cluster in clusters:
+            points_cluster = points_lane[labels==cluster,:]
+            centroid = points_cluster.mean(axis=0).astype(int)
+            color = self.colors[cluster % len(self.colors)]
+            cv_image[points_cluster[:,0], points_cluster[:,1]] = color
+
+        return cv_image
+  
+  \end{lstlisting}
+  \caption[Algoritmo de custering utilizando DBSCAN]{Algoritmo de custering utilizando DBSCAN}
+  \label{cod:codejemplo}
+  \end{code}  
+  
 
 Obtenemos el resultado de DBSCAN con los parámetros configurados de eps = 10 y min\_samples = 5, dicho resultado será una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
 n el último grupo de clusters detectado. De las listas de etiquetas se eliminarán los clusters que hallan sido etiquetados como ruido, para ello solo basta encontrar la etiqueta con valor -1 ya que
 DBSCAN cataloga las muestras ruidosas con -1 y para obtener el resultado solamente bastará iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida
 
-
+\subsection{Clasificación de clústeres}
+\label{clasificación:cluster}
 Una vez realizado el algoritmo de DBSCAN necesitamos quedarnos con el grupo de clusters que pertenezcan al carril que queremos seguir, para ello calcularemos los centroides de cada
 grupo de clusters detectado y los clasificaremos en función de si se encuentran en la derecha o izquierda de la imagen, es decir, la imagen tiene unas dimensiones de 320x320 por lo tanto 
-nos fijaremos en el valor del eje x en el ecuador con valor 160, por lo que cuando calculemos los clusters serán clasificados en función de los valores de x si se encuentran a la derecha u izquierda de 160 
-que es la mitad de la imagen. 
+nos fijaremos en el valor del eje x en el ecuador con valor 160, por lo que cuando calculemos los clústeres serán clasificados en función de los valores de x si se encuentran a la derecha u izquierda de 160 
+que es la mitad de la imagen. \newline
 
-Al clasificar de esta forma el grupo de clusters será más sencillo escoger cuales de la derecha e izquierda necesitamos, para ello escogeremos dichos grupos mediante una función máximizada
-la cual escoge dicho grupo de clusters de la derecha u izquierda en función de la cercania de un punto central P escogido como valor (220,160) siendo 220 el valor de las y e 160 el valor de las x, 
-es importante mencionar que cuando trabajamos con puntos en numpy las coordenadas estan dados la vuelta, es decir, en vez de estar (x,y) como estamos acostumbrados a trabajar están colocados
-como (y,x). A parte de escoger en función de la cercania de un punto P también esta en función de la densidad de puntos de dicho grupo de clusters de la derecha u izquierda detectados, con
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+    # Check if the centroid is within the desired lane
+
+    WIDTH = cv_image.shape[1]
+    if centroid[1] < WIDTH/2:  # left lane
+        left_clusters.append((points_cluster,centroid))
+       
+    elif centroid[1] >= WIDTH/2:  # right lane
+        right_clusters.append((points_cluster, centroid))
+       
+  
+  \end{lstlisting}
+  \caption[Clasificación de clústeres según las dimensiones de la imagen ]{Clasificación de clústeres según las dimensiones de la imagen}
+  \label{cod:codejemplo}
+  \end{code}  
+
+
+Cuando tengamos clasificado los grupos de los clústeres, necesitamos quedarnos con qué subgrupo de cada grupo de clústeres (izquierda e derecha) nos queremos quedar respecto al carril. Para ello escogeremos dichos grupos mediante una función máximizada
+la cual escoge dicho grupo de clusters de la derecha u izquierda en función de la cercania de un punto central P escogido como valor (220,160) siendo 220 el valor de las y e 160 el valor de las x. \newline
+
+Es importante mencionar que cuando trabajamos con puntos en numpy las coordenadas estan opuestas, es decir, en vez de tener el formato (x,y) como estamos acostumbrados a trabajar tienen el formato(y,x). A parte de escoger en función de la cercania de un punto P también esta en función de la densidad de puntos de dicho grupo de clusters de la derecha u izquierda detectados, con
 esto conseguimos que no solamente escojamos en función de la cercania si no que también lo haremos según la cantidad de puntos. \newline
 
 \begin{code}[h]
@@ -450,7 +511,7 @@ esto conseguimos que no solamente escojamos en función de la cercania si no que
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/resultado.png}
+    \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/resultado.png}
   \end{center}
   \caption{Ilustración del proceso de elección de clústeres }
   \label{fig:DBSCAN_imagen}
@@ -458,12 +519,11 @@ esto conseguimos que no solamente escojamos en función de la cercania si no que
 Cuando tengamos el resultado de los clusters de la derecha e izquierda escogidos procederemos a realizar dos regresiones cuadráticas para construir las lineas del carril que queremos seguir.
 \subsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
-Como anteriormente hemos mencionado, cuando tengamos los clusters escogidos correctamente daremos pie a la construcción de dos regresiones cuadráticas. \newline 
-\newline 
-La regresión es un método de aprendizaje supervisado el cual consiste en aproximar un número N de puntos a una recta, curva, etc, en nuestro caso hemos escogido realizar una regresión cuadrática ya que el recorrido
-que vamos a realizar las lineas detectadas por la red neuronal no son totalmente rectas si no que se tratan de lineas curvilineas por lo que la regresión cuadrática en este papel puede 
-funcionar perfectamente. \newline
+Como anteriormente hemos mencionado, cuando tengamos los clústeres escogidos correctamente daremos pie a la construcción de dos regresiones cuadráticas. \newline 
 
+La regresión es un método de aprendizaje supervisado el cual consiste en aproximar un número N de puntos a una recta, curva, etc, en nuestro caso hemos escogido realizar una regresión cuadrática ya que el recorrido
+que vamos a realizar las lineas detectadas por la red neuronal no son totalmente rectas si no que se tratan de lineas curvilíneas por lo que la regresión cuadrática en este papel puede 
+funcionar perfectamente. 
 Para la construcción de las regresiones cuadráticas utilizaremos las funciones de la libreria Numpy denominada Polyfit\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
 y Polyval\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
 Polyfit es una función que calcula los  coeficientes del polinomio que mejor se ajusta a los datos utilizando el método de los mínimos 
@@ -472,14 +532,88 @@ cuadrados para la ecuación cuadrática,obtendremos tres coeficientes, denominad
 Con dichos coeficientes realizaremos una media de los últimos diez valores y por cada cinco iteraciones dicha media se volverá a calcular, este paso lo realizamos ya que 
 queremos disminuir las oscilaciones causadas de las detencciones de la red neuronal. Una vez calculados los coeficientes, realizaremos la regresión cuadrática mediante la función Polyval, dicha función calcula
 la función cuadrática con los coeficientes calculados anteriormente. \newline 
-Una vez obtengamos los valores de la función cuadrática, realizaremos una clasificación para quedarnos con los puntos obtenidos
+Cuando obtengamos los valores de la función cuadrática, realizaremos una clasificación para quedarnos con los puntos obtenidos
 de dicha función los que se encuentren en el eje y entre los valores 0 a 319, esto se debe hacer ya que dicha función como resultado puede dar numeros negativos realizando dicha regresión y en una 
 imagen no se trabaja con números negativos, lo cual habrá que seleccionar los puntos correspondientes donde se encuentran en la imagen para poder seleccionarlos \newline
 
-Este proceso se realizará dos veces, una regresión cuadrática para el grupo de clusteres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clusteres detectados
+\begin{code}[H]
+  \begin{lstlisting}[language=Python]
+    def calculate_cuadratic_regression(self,points_cluster,cv_image):
+
+    FACTOR_PIXEL = 20
+    MIN_VALUE_X = (cv_image.shape[1] // 2) + FACTOR_PIXEL
+    MAX_VALUE_X = cv_image.shape[1]
+  
+    valuesX = np.arange(MIN_VALUE_X,MAX_VALUE_X) 
+    point = np.array([cv_image.shape[1]/1.104,cv_image.shape[1]])
+    line = None
+    extrem_point_line = None
+    a = 0
+    b = 0
+    c = 0
+
+    points_cluster = np.vstack((points_cluster,point))
+    coefficients = np.polyfit(points_cluster[:,0],points_cluster[:,1],2)
+
+    self.list_coeff_a.append(coefficients[0])
+    self.list_coeff_b.append(coefficients[1])
+    self.list_coeff_c.append(coefficients[2])
+
+    a = np.mean(self.list_right_coeff_a[-10:])
+    b = np.mean(self.list_right_coeff_b[-10:])
+    c = np.mean(self.list_right_coeff_c[-10:])
+
+    mean_coeff = np.array([a,b,c])
+
+    self.counter_it_right += 1
+
+    if(self.counter_it_right  > 5):
+      self.list_right_coeff_a.clear()
+      self.list_right_coeff_b.clear()
+      self.list_right_coeff_c.clear()  
+
+
+    values_fy = np.polyval(mean_coeff,valuesX).astype(int)
+    fitLine_filtered = [(x, y) for x, y in zip(valuesX, values_fy) if 0 <= y <= (cvimage.shape[1] - 1)]
+    line = np.array(fitLine_filtered)
+     
+    return line
+
+  \end{lstlisting}
+  \caption[Función del cálculo de la regresión cuadrática]{Función del cálculo de la regresión cuadrática}
+  \label{cod:codejemplo}
+  \end{code}  
+
+Este proceso se realizará dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
 escogidos de la izquierda. \newline
 Finalmente, con dichas regresiones cuadráticas se realizará una dilatación de los puntos para tener un resultado más llamativo y visual al poder
 ver las regresiones cuadráticas.\newline
+
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+    def dilate_lines(self,left_line_points,right_line_points):
+
+
+    img_left_line = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
+    img_right_line = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
+
+    img_left_line[left_line_points[:,0],left_line_points[:,1]] = 255
+    img_right_line[right_line_points[:,0],right_line_points[:,1]] = 255
+
+    
+    img_left_line_dilatada = binary_dilation(img_left_line, structure=self.kernel)
+    img_left_line_dilatada = (img_left_line_dilatada).astype(np.uint8)
+
+    img_right_line_dilatada = binary_dilation(img_right_line, structure=self.kernel)
+    img_right_line_dilatada = (img_right_line_dilatada).astype(np.uint8)
+
+
+    return img_left_line_dilatada,img_right_line_dilatada
+
+  \end{lstlisting}
+  \caption[Función de dilatación de los puntos de las regresiones]{Función de dilatación de los puntos de las regresiones}
+  \label{cod:codejemplo}
+  \end{code}  
 
 \begin{figure} [H]
   \begin{center}
@@ -492,12 +626,11 @@ ver las regresiones cuadráticas.\newline
 \subsection{Interpolación y cálculo del centro de masas del carril}
 \label{sec:Interpolación y cálculo del centro de masas del carril}
 
-Una vez obtenido las lineas que nos interesa, necesitamos quedarnos con el carril que se encuentren contenido entre ambas lineas. Para ello realizaremos una interpolación que consiste en recorrer
+Para poder saber qué puntos se encuentran dentro de ambas regresiones cuadráticas, realizaremos una interpolación. La interpolación consiste en recorrer
 los puntos de la imagen original y quedarnos con los puntos que se encuentren dentro de los límites de ambas regresiones. Se realizará dos interpolaciones, una interpolación para los puntos de la derecha
-y otra interpolación para los puntos de la izquierda, Estas funciones interpolan los valores de y en función de los valores de x. 
-A continuación se evalúan las funciones de interpolación en los valores de x de los puntos de la imagen que serán los índices de los puntos que están entre las líneas. Una vez realizado esta evaluación
-se filtrará dichos puntos que tengan un valor en la coordenada x mayor a 180, esto es debido a que queremos representar un fragmento del carril, dicho fragmento se representará en color azul 
-en la imagen final.
+y otra interpolación para los puntos de la izquierda, estas funciones interpolan los valores de y en función de los valores de x se evaluará los valores de las puntos que se encuentren entre 
+ambas regresiones cuadráticas. Cuando realizemos dicha evaluación realizaremos un filtro para seleccionar el rango de puntos que representar un fragmento del carril de color azul en la imagen
+final.\newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -547,8 +680,7 @@ en la imagen final.
     \newline
   \end{equation} 
  
-  Para ello, 
-  supondremos que todos los puntos tienen la misma masa (m\_i = 1). Esto simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar.
+  Supondremos que todos los puntos tienen la misma masa (m\_i = 1). Esto simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar.
   El segundo paso será el calculo de la masa total, se calcula multiplicando la masa individual (m\_i) por la cantidad de puntos en el carril. A continuación calcularemos
   la suma de las posiciones de los puntos ponderadas por su masa y dividimos por la masa total calculada anteriormente. El resultado es una centro de masas conocido como centroide
   con coordenada x e y. 
@@ -561,111 +693,191 @@ en la imagen final.
     \label{fig:centro de masas}
   \end{figure}\
 
-  \section{Navegación autonóma mediante un controlador PID}
+  Finalmente, realizamos un analisis de tiempos de cada parte para saber cuánto tiempo tarda en realizarse la percepción completa. Dicho análisis se llama profiling, con esta técnica 
+  nos ayuda ver el rendimiento que podemos llegar a tener análisis global del algoritmo de percepción en cuanto a eficiencia. En la fígura , se nuestra cuanto tarda cada parte que compone 
+  la percepción en segundos.
+
+  \begin{figure} [H]
+    \begin{center}
+      \includegraphics[scale=0.4]{figs/Diseño/Percepcion/time_profiling.png}
+    \end{center}
+    \caption{Profiling de las partes de la percepción}
+    \label{fig:centro de masas}
+  \end{figure}\
+
+  Como podemos apreciar, la parte de la percepción que tarda más es la inferencia del modelo de YOLOP siendo el siguiente la parte de clustering utilizando el algoritmo de 
+
+  \section{Seguimiento del carril mediante control clásico}
   \label{sec:Control}
 
-  Una vez realizado el comportamiento de la percepción, construiremos un comportamiento autónomo con el dron basandonos en un simple controlador PID utilizando como controladores de vuelo
-  y movimiento con PX4 y Mavros. 
-  Como comentamos en la sección \ref{subsec:Configuración del dron y del entorno} configuramos dichos parametros de PX4 para el comportamiento del dron. A continuación comentaremos los parametros
-  y para que nos sirve cada uno de ellos:
+  Una vez realizado el comportamiento de la percepción, construiremos un comportamiento autónomo con el dron basandonos en un simple controlador PID. 
+ Con este primer comportamiento queremos demostrar la funcionalidad de la percepción utilizando un controlador de movimiento sencillo. \newline
 
-  \begin{enumerate}
-    \item CBRK\_IO\_SAFETY: Es un interruptor de seguridad 
-    \item COM\_ARM\_CHK\_ESCS: 
-    \item COM\_ARM\_EKF\_HGT: 
-    \item COM\_ARM\_EKF\_POS:
-    \item COM\_ARM\_EKF\_VEL:
-    \item COM\_ARM\_EKF\_YAW:
-    \item COM\_FAIL\_ACT\_T:
-    \item COM\_FLIGHT\_UUID:
-    \item COM\_OBL\_RC\_ACT:
-    \item COM\_PREARM\_MODE:
-    \item FD\_ACT\_EN:
-    \item LPE\_LAT:
-    \item LPE\_LON:
-    \item MIS\_TAKEOFF\_ALT:
-    \item MPC\_TKO\_SPEED:
-    \item MPC\_Z\_VEL\_MAX\_DN:
-    \item MPC\_Z\_VEL\_MAX\_UP:
-    \item MPC\_Z\_V\_AUTO\_DN:
-    \item MPC\_Z\_V\_AUTO\_UP:
-    \item NAV\_DLL\_ACT:
-    \item NAV\_RCL\_ACT:
-    \item SIM\_BAT\_DRAIN:
-    \item SIM\_BAT\_MIN\_PCT:
-    \item SYS\_FAILURE\_EN:
-    \item SYS\_HITL:
-  \end{enumerate}
-
-  PX4 ofrece bastantes parametros según las necesidades del desarrollador, en nuestro con estos veinticinco parametros nos bastará para realizar el comportamiento autonónomo junto con los
-  modos de vuelo mencionados en la sección \ref{sec:flight modes}. \newline
-
-  Con este primer comportamiento queremos demostrar la funcionalidad de la percepción utilizando un controlador de movimiento sencillo. Un controlador PID (proporcional, derivativo e integral) es un 
+ Un controlador PID (proporcional, derivativo e integral) es un 
   es un sistema que es capaz de mantener una variable (como la temperatura, velocidad o posición) cercana a un valor deseado o de referencia. Cada componente de un controlador tiene un papel 
-  importante. \break
-  La componente P (proporcional) ajusta la salida del controlador en función de la diferencia entre el valor medido y el valor deseado. 
+  importante,
+  la componente P (proporcional) ajusta la salida del controlador en función de la diferencia entre el valor medido y el valor deseado. 
   Cuanto mayor sea esta diferencia (error), mayor será la corrección aplicada. Sin embargo, el control proporcional solo no puede eliminar completamente el error por ello se utiliza
-  las componentes derivativa e integral. La componente D (derivativa) considera la tasa de cambio del error. 
-  Si el error cambia rápidamente, el término derivativo aplicará una corrección para evitar oscilaciones o inestabilidad. Es especialmente útil para sistemas con inercia o retraso.
-  Y con el término integral acumula el error a lo largo del tiempo y ajusta la salida del controlador en función de esta acumulación. 
+  las componentes derivativa e integral. La componente D (derivativa) considera la tasa de cambio del error,
+  si el error cambia rápidamente, el término derivativo aplicará una corrección para evitar oscilaciones o inestabilidad.
+  Con el término integral acumula el error a lo largo del tiempo y ajusta la salida del controlador en función de esta acumulación. 
   Ayuda a eliminar el error persistente o constante. Si el error es pequeño pero persistente, el término integral lo corregirá gradualmente.
   \newline
- 
 
   Lo cual con este controlador PID sencillo controlaremos las velocidades respecto al error que se produce entre posición deseada y la que obtenemos. La variable deseada para estar alineados con el carril escogeremos 
   en el eje de las x el valor central de la imagen, ya que queremos en todo momento permanecer centrales, para calcular el error realizaremos la diferencia del valor deseado que seria 
   el valor central de la imagen y el valor del centroide del carril mencionado en la sección \ref{sec:Interpolación y cálculo del centro de masas del carril}. 
-  A parte de este controlador, utilizaremos un pequeño controlador PD para la altitud del vehículo, aunque PX4 tenga sus controladores internos con ellos no es suficiente ya que al tener
-  la componente de la altura con el comportamiento de la percepción, unas desviaciones de altura pueden hacer que la percepción la parte de la red neuronal no tenga una buena detencción, 
-  por ello con esta solución es factible para controlar las pequeñas desviaciones de altitud que tenga el vehículo. Para saber a que altitud nos encontramos utilizaremos el sensor del Lidar
-  que nos proporciona AirSim ROS Wrapper Node ya que Mavros no proporciona ningún topic con este sensor.
+  A parte de este controlador, utilizaremos un pequeño controlador PD para controlar la altura del vehículo y tengamos una altura medianamente constante.Para saber a que altitud nos encontramos utilizaremos el sensor del Lidar. \newline
 
   Para encontrar las valores de cada término que compone ambos controladores se ha realizado a base de experimentación, empezando de manera creciente, es decir, primero utilizariamos
   la componente proporcional para ver su comportamiento, una vez que tengamos el valor del término proporcional pasaremos al termino derivativo para suavizar los movimientos que puede
-  producir este término y por último utilizariamos la parte integral para eliminar el error. 
+  producir este término y por último utilizariamos la parte integral para eliminar el error. El controlador PID se usará para controlar la velocidad de giro del dron en cuanto a la velocidad lineal. \newline
+  tendremos un valor constante. 
 
-  Además el controlador PID mantendrá una velocidad lineal fija determinada con un valor de 1.5 m/s, dicha velocidad lineal es baja ya que si dicha velocidad es alta puede desembocar
-  un comportamiento demasiado agresivo para controlar la posición del vehículo con el carril.
+  \begin{code}[h]
+    \begin{lstlisting}[language=Python]
 
-  \section{Navegación autonóma mediante Reinforcement learning}
+      kp_height = 0.1
+      kd_height = 0.4
+
+      kp_speed_controller = 0.09
+      kd_speed_controller = 0.1
+      ki_speed_controller = 0.008
+     
+    \end{lstlisting}
+    \caption[Valores de las variables del PD del control de altura y del PID del controlador de velocidad angular]{Valores de las variables del PD del control de altura y del PID del controlador de velocidad angular}
+    \label{cod:codejemplo}
+    \end{code} 
+
+  \section{Seguimiento del carril mediante aprendizaje por refuerzo}
   \label{sec:Reinforcement learning}
-  En esta sección se explicará el funcionamiento del control mediante un Reinforcement Learning. \newline
-  Como mencionamos en la sección \ref{sec:IA},Reinforcement Learning es una disciplina de Q-Learning que consiste en enseñar un agente 
-  desempeñar un comportamiento mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
-  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Además, reinforcement learning es un algoritmo muy potente, 
-  ya que puede aprender las acciones que conducen al éxito en un entorno desconocido sin la ayuda de un supervisor. \newline
 
-  Este algoritmo se compone se varios componentes que hay que conocer para desarrollar el comportamiento: 
+  Como mencionamos en la sección \ref{sec:IA},el aprendizaje por refuerzo consiste en enseñar un agente 
+  desempeñar un comportamiento mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
+  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Se compone de diferentes elementos claves:
   \begin{itemize} 
-    \item Agente: El agente es una entidad o modelo que pretendemos entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que nos encontremos.
-    \item Entorno: Ambiente en donde interactua el agente para que pueda aprendar el comportamiento deseado.
-    \item Estados: Condiciones en las que se puede encontrar el agente en ese instante de tiempo
-    \item Acciones: Movimientos que puede realizar el agente dentro del estado en el entorno de entrenamiento.
-    \item Función de Recompensa o Penalizaciones: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
-    en una función, dicha función es independiente en cada diseño del objetivo que quiere completar el agente. 
-    \item Política: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir dentro de Reinforcement learning.
-    Puede ser determinista o estocástica. 
+    \item \textbf{Agente}: El agente es una entidad o modelo que pretendemos entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que nos encontremos. Nuestro 
+    agente será el dron.
+    \item \textbf{Entorno}: Ambiente en donde interactua el agente para que pueda aprendar el comportamiento deseado. El dron estará interectuando sobre el entorno de Coastline que nos proporciona Airsim 
+    durante las fases de pruebas. 
+    \begin{figure} [H]
+      \begin{center}
+        \includegraphics[scale=0.5]{figs/Diseño/RL/entorno.png}
+      \end{center}
+      \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
+      \label{fig:Entorno}
+    \end{figure}\
+
+    Dentro de este circuito, hemos escogido tres localizaciones distintas para el vehículo a la hora de realizar el entrenamiento con el algoritmo de QLearning. Como se puede apreciar en la figura \ref{fig:Entorno} las posiciones
+    tienen una distancia entre ellas considerablemente. 
+    \item \textbf{Estados}: Condiciones en las que se puede encontrar el agente en ese instante de tiempo. Para la definición de los estados, dividiremos la imagen que damos como la salida de la detencción del carril en 14 franjas, dichas franjas tendrán una 
+    separación de 10 pixeles. Las franjas representarán cada estado en el que se puede encontrar el agente.Empezaremos a definir el primer estado desde la izquierda hasta la derecha
+    hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. 
+    \item \textbf{Acciones}: Movimientos que puede realizar el agente dentro del estado en el entorno de entrenamiento.Tendremos en total 21 acciones que podrá escoger el agente en el algoritmo de Q-Learning, se componen de pares de velocidades lineales y angulares. Las velocidades lineales
+    tendrán un intervalo de 0.1 m/s hasta 2.0 m/s, así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
+    de velocidades serán formados a partir de la función que nos proporciona Numpy llamada linspace\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. \newline
+  
+    \begin{code}[h]
+      \begin{lstlisting}[language=Python]
+  
+        
+        def build_actions():
+            ACTIONS = []
+            speeds_actions = np.linspace(0.1,2.0,11, dtype=float)
+            angular_speeds = np.linspace(-25,25, 21)
+        
+            left_angular_speeds = angular_speeds[:10]
+            right_angular_speeds = np.flip(angular_speeds[-10:])
+            central_angular_speed = angular_speeds[10]
+            speeds = speeds_actions[:10]
+            central_speed = speeds_actions[10]
+        
+            for i in range(len(speeds)):
+                ACTIONS.append([round(speeds[i],3),round(left_angular_speeds[i],3)])
+        
+            ACTIONS.append([round(central_speed,3),0.0])
+        
+            for  i in reversed (range(len(speeds))):
+                ACTIONS.append([round(speeds[i],3),round(right_angular_speeds[i],3)])
+  
+            return ACTIONS
+       
+      \end{lstlisting}
+      \caption[Construcción de las acciones para Q-Learning]{Construcción de las acciones para Q-Learning}
+      \label{cod:codejemplo}
+      \end{code}
+      
+    \item \textbf{Función de Recompensa o Penalizaciones}: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
+    en una función, dicha función es independiente en cada diseño del objetivo que quiere completar el agente. La función de recompensa constará de dos partes premiando al dron de que se 
+    permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que se navegue de forma paralela al mismo. Tanto la recompensa por 
+    mantenerse centrado en el carril como la orientación respecto al carril será normalizada entre valores de 0-, penalizando con un valor constante al dron cuando se salga del carril o 
+    se pierda la percepción. La implementación de la función de recompensa y las penalizaciones se puede ver el siguiente código:
+
+    \begin{code}[H]
+      \begin{lstlisting}[language=Python]
+  
+        def reward_function(self,cx,angle):
+
+        reward = 0
+        target_heading = 0
+        error_lane_center = (WIDTH/2 - cx)
+        heading_difference = (target_heading - angle) 
+        
+        MIN_ERROR = 0
+        MAX_ERROR = 80
+
+        MIN_ANGLE = 0
+        MAX_ANGLE = 70
+
+        CENTRE_WEIGHT = 0.85
+        ANGLE_WEIGHT = 0.15
+        
+        if (self.is_exit_lane(cx)):
+            
+            reward = -10
+
+        else:
+
+            
+            normalise_error_centre = (abs(error_lane_center) - MIN_ERROR) / (MAX_ERROR - MIN_ERROR)
+            reward_centre = 1 - normalise_error_centre
+
+            
+            normalise_error_angle = (abs(heading_difference) - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE)
+            reward_angle = 1 - normalise_error_angle
+
+
+            reward = (reward_centre * CENTRE_WEIGHT) + (reward_angle * ANGLE_WEIGHT)
+            
+        return reward
+       
+      \end{lstlisting}
+      \caption[Función de recompensa]{Función de recompensa}
+      \label{cod:codejemplo}
+      \end{code}
+    \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir dentro de Reinforcement learning.
+    Puede ser determinista o estocástica. \newline
+
+    Seguiremos la política epsilon-greedy\cite{Epsilon-greedy}, que consiste 
+ equilibrar la exploración y explotación en la fase de entrenamiento. Cuando el agente tenga que escoger la acción que tomar tendra en cuenta dos enfoques:
+ 
+ \begin{itemize}
+   \item Exploración (con probabilidad $\epsilon$): El agente escogerá una acción al azar para explorar
+   \item Explotación(con probabilidad $ 1 - \epsilon$): El agente escogerá la acción con el valor de la tabla Q(S,A) más alto, es decir, la mejor acción conocida
+ \end{itemize}
+ 
+ El parámetro $\epsilon$ es el responsable de controlar la proporción de exploración frente a explotación, si $\epsilon$  es alto el agente explorará más en cambio si $\epsilon$ es bajo
+ el agente se centrará en la explotación. Por lo que en la elección de acción se generará un numero n aleatoriamente, si n es menor que la probabilidad $\epsilon$ la acción se escogerá aleatoriamente
+ en cambio si n es mayor que la probabilidad de $\epsilon$ la acción será que mayor valor tenga en la tabla Q(S,A) para dicho estado. \newline
+ 
+ Dentro de esta política la probabilidad de $\epsilon$ será decayente, es decir, no ser un valor constante en cada episodio que nos encontremos, lo que realizaremos sera una disminuición 
+ de esta probabilidad para conseguir que el agente con el paso del tiempo poco a poco explote lo que ha aprendido y que el modelo llegue a una convergencia óptima. Para llevar a cabo el descenso
+ de $\epsilon$ se puede realizar de varias formas, por ejemplo podemos realizarlo linealmente, logaritmicamente, exponencial o escalonado. \newline
   \end{itemize}
 
-  \begin{figure} [H]
-    \begin{center}
-      \includegraphics[width=0.5\textwidth,height=0.5\textwidth]{figs/Diseño/RL/Esquema.jpeg}
-    \end{center}
-    \caption{Esquema de Reinforcement Learning}
-    \label{fig:esquemaRL}
-  \end{figure}
-
-  Reinforcement learning puede seguir distintos enfoques respecto al algoritmo que tenga como por ejemplo Q-Learning, Deep Q Networks, Policy Gradient Methods, Actor-Critic, 
-  Proximal Policy Optimization (PPO) y Métodos de Monte Carlo. Nosotros seguiremos un algoritmo Q-Learning. 
+  El algoritmo Q-Learning  se basa en seguir una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación
+  de Bellman\cite{Bellman}:
   
-  
-  \subsection{Sigue carril mediante Q-Learning}
-  \label{sec:QLearning}
-  \subsubsection{Q-Learning}
-  \label{sec:QLearning}
-  QLearning es un algoritmo de aprendizaje basado en una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación 
-  de Bellman: 
-
   \begin{equation} 
     Q(s, a) = Q(s, a) + \alpha \cdot [R(s, a) + \gamma \cdot \max Q(s', a') - Q(s, a)]
   \end{equation} 
@@ -673,95 +885,50 @@ en la imagen final.
   en donde, 
 
   \begin{itemize}
-    \item $Q(s, a)$: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción.
-    \item $\alpha$: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, si dicho valor es alto daremos más peso al valor aprendido 
-    \item $R(s, a)$: Recompensa por tomar la acción $a$ en el estado $s$. La función de recompensa es crucial en el proceso de aprendizaje del agente, evalua como es favorable o deseable
+    \item \textbf{$Q(s, a)$}: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción.
+    \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, si dicho valor es alto daremos más peso al valor aprendido 
+    \item \textbf{$R(s, a)$}: Recompensa por tomar la acción $a$ en el estado $s$. La función de recompensa es crucial en el proceso de aprendizaje del agente, evalua como es favorable o deseable
     es una acción tomada por el agente en el estado que se encuentre. Proporciona información al agente sobre que acciones maximizan la recompensa total a lo largo del tiempo. Dicha función
     de recompensa es diseñada dependiendo de cual sea el objetivo de tu agente. 
-    \item $\gamma$: Factor de descuento entre un valor de 0 a 1. Modela la importancia de las recompensas futuras en relación con las recompensas inmediatas, refleja la importancia del agente
+    \item \textbf{$\gamma$}: Factor de descuento entre un valor de 0 a 1. Modela la importancia de las recompensas futuras en relación con las recompensas inmediatas, refleja la importancia del agente
     por las recompensas a largo plazo. Un valor alto sifnigicará que le agente valorará mucho las recompensas futuras, mientras que un valor bajo indica que se enfocará más en las recompensas
     inmediatas
-    \item $\max Q(s', a')$: Valor Q máximo en el próximo estado $s'$ para todas las acciones posibles $a'$.
+    \item \textbf{$\max Q(s', a')$}: Valor Q máximo en el próximo estado $s'$ para todas las acciones posibles $a'$.
 \end{itemize}
 
-\subsubsection{Fases de Q-Learning}
+A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando la tabla Q(s,a) para más adelante indexar en ella en la fase de inferencia
+
+\subsubsection{Fase de entrenamiento}
 \label{sec:fases_ql}
- El proceso de aprendizaje de Q-Learning se compone en dos fases: Entrenamiento e Inferencia. 
- Antes de comenzar explicando cada parte, definiremos algunos conceptos dentro de estas fases: 
+ Antes de adentrarnos en esta fase, definiremos dos conceptos importantes:
  \begin{itemize}
-  \item Episodios: Se define episodio como una secuencia completa de interacciones que se produce entre el agente y el entorno. Cada episodio comienza con un estado inicial y consta de una serie 
+  \item \textbf{Episodios}: Se define episodio como una secuencia completa de interacciones que se produce entre el agente y el entorno. Cada episodio comienza con un estado inicial y consta de una serie 
   de pasos o acciones tomadas por el agente.
-  \item Iteraciones (steps): Son los pasos que puede dar un agente en el entorno dentro de un episodio. Estos pasos pueden incluir observaciones del entorno, decisiones tomadas por el agente
+  \item \textbf{Iteraciones (steps)}: Son los pasos que puede dar un agente en el entorno dentro de un episodio. Estos pasos pueden incluir observaciones del entorno, decisiones tomadas por el agente
   y las consecuentes recompensas o penalizaciones recibidas.
 \end{itemize}
 
  
  La fase de entrenamiento consiste en el que el agente explore todo lo máximo posible en el entorno respecto a los estados que tiene y las acciones que puede tomar, es decir, al comienzo del entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores, esta representación
  al comienzo es así ya que el agente desconoce por completo el entorno hasta que poco a poco vaya iterando sobre el en cada estado tomando x accion. \newline
- \newline
- Basicamente, en cada iteración del algoritmo se escogerá una acción según la política que queremos seguir, dicha acción puede ser aleatoria o no, cuando la acción es aleatoria se denomina exploración ya que estamos dejando que el 
- agente inspeccioné las acciones en ese estado concreto y obtenga la mayor recompensa que pueda tener. 
- En cambio si la acción no es aleatoria, se denonima explotación, el objetivo
- principal que tiene la explotación es escoger la acción más conocida que obtenga mayor recompensa en ese estado en el que se encuentre el agente. Cuando se habla de escoger la acción debe 
- haber un equilibrio entre exploración y explotación ya que si la explotación es mayor frente a la exploración puede que el agente no haya inspeccionado todos los estados y acciones 
- posibles y no pueda cumplir el objetivo, también ocurre que si la exploración es mayor que la explotación puede que el agente pierda obtener recompensas altas. \newline
- \newline
- Cuando se escogé la acción ya sea exploración o explotación, dicha acción se ejecuta, se calcula la recompensa obtenida en dicho estado tomando la acción, se obtiene el estado nuevo en el que 
- nos encontramos y calculamos el valor en la tabla Q(S,A), y volvemos a iterar desde el comienzo. \newline
- \newline
+ 
+ Basicamente, en cada iteración del algoritmo se escogerá una acción según si estamos en exploración o explotación, se calculará la recompensa obtenida e iteraremos de nuevo sobre el algoritmo.
+
  El entrenamiento finaliza cuando el agente haya aprendido el objetivo que queremos seguir, esto se sabe cuando las iteraciones del algoritmo y la recompensa acumulada del agente en esta 
- fase se estabilice y tenga valores constantes, es decir, no cambia significativamente con más iteraciones, esto se denomina que el modelo ha convergido y pasaremos a la fase de inferencia. 
+ fase se estabilice y tenga valores constantes, es decir, no cambia significativamente con más iteraciones, esto se denomina que el modelo ha convergido y pasaremos a la fase de inferencia. \newline
+
+Durante esta fase, dejamos el algoritmo de Q-Learning entrenando durante aproximadamente 12 horas. De esta manera, nos podemos asegurar que el algoritmo completará el entrenamiento de manera correcta y poco a poco 
+acabará convergiendo. En las fíguras , se presentan dos gráficas respecto 
 
 
- \begin{figure} [H]
-  \begin{center}
-    \includegraphics[width=0.8\textwidth,height=0.5\textwidth]{figs/Diseño/RL/entrenamiento.png}
-  \end{center}
-  \caption{Esquema general del algoritmo de Q-Learning en la fase de entrenamiento}
-  \label{fig:algoritmo de Q-Learning}
-\end{figure}
-
+\subsubsection{Fase de inferencia}
+\label{sec:fases_inferencia}
 La fase de inferencia consiste en indexar la tabla Q(S,A) que hemos ido rellenando en la fase de entrenamiento. El agente cuando se encuentré en un estado especifico consultará la tabla Q(S,A) para
-encontrar la mejor acción en ese estado, cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado, el agente toma dicha acción y se mueve al siguiente estado
+encontrar la mejor acción en ese estado (cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado). Cuando el agente tome dicha acción se moverá al siguiente estado
 siendo así un proceso iterativo hasta alcanzar la meta. En esta fase, los valores de la tabla permanecen constantes y se utiliza para la toma de decisiones basadas en el conocimiento
 aprendido en la fase de entrenamiento. 
 
-\subsubsection{ Decayed Epsilon-greedy}
-\label{sec:epsilon}
-Dentro de Q-Learning existen multiples tecnicas a seguir, nosotros seguiremos la política de epsilon-greedy\footnote{\textbf{Epsilon-Greedy}: \url{https://www.baeldung.com/cs/epsilon-greedy-q-learning}}. Epsilon-greedy consiste es una estrategia utilizada dentro del algoritmo
-de Q-learning para equilibrar la exploración y explotación en la fase de entrenamiento de Q-Learning. \newline
 
-El agente en la fase de entrenamiento cuando tiene que escoger la acción que tomar como hemos explicado en la sección \ref{sec:fases_ql} puede ser aleatoria o no dependiendo de la política.
-Siguiendo esta política, permite al agente tomar decisiones basadas en dos enfoques:
-
-\begin{itemize}
-  \item Exploración (con probabilidad $\epsilon$): El agente escogerá una acción al azar para explorar
-  \item Explotación(con probabilidad $ 1 - \epsilon$): El agente escogerá la acción con el valor de la tabla Q(S,A) más alto, es decir, la mejor acción conocida
-\end{itemize}
-
-El parámetro $\epsilon$ es el responsable de controlar la proporción de exploración frente a explotación, si $\epsilon$  es alto el agente explorará más en cambio si $\epsilon$ es bajo
-el agente se centrará en la explotación. Por lo que en la elección de acción se generará un numero n aleatoriamente, si n es menor que la probabilidad $\epsilon$ la acción se escogerá aleatoriamente
-en cambio si n es mayor que la probabilidad de $\epsilon$ la acción será que mayor valor tenga en la tabla Q(S,A) para dicho estado. \newline
-
-Dentro de esta política la probabilidad de $\epsilon$ sera decayente, es decir, no ser un valor constante en cada episodio que nos encontremos, lo que realizaremos sera una disminuición 
-de esta probabilidad para conseguir que el agente con el paso del tiempo poco a poco explote lo que ha aprendido y que el modelo llegue a una convergencia óptima. Para llevar a cabo el decaimiento
-de $\epsilon$ se puede realizar de varias formas, por ejemplo podemos realizarlo linealmente, logaritmicamente, exponencial o escalonado. 
-
-\subsubsection{Definición de variables en el sigue carril mediante Q-Learning}
-\label{sec:QLearning}
-
-Una vez definido y explicado detalladamente el algoritmo de Q-learning con la política Decayed Epsilon-greedy, proderemos a definir los componentes
-para abordar el problema del sigue carril para un dron
-
-\begin{itemize}
-  \item Estados: Para la definición de los estados, dividiremos la imagen que damos como la salida de la detencción del carril en 14 franjas, dichas franjas tendrán una 
-  separación de 10 pixeles. Las franjas representarán cada estado en el que se puede encontrar el agente.Empezaremos a definir el primer estado desde la izquierda hasta la derecha
-  hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. 
-  \item Acciones: Tendremos en total 21 acciones que podrá escoger el agente en el algoritmo de Q-Learning, se componen de pares de velocidades lineales y angulares. Las velocidades lineales
-  tendrán un intervalo de 1.45 m/s hasta 2.45 m/s, así siendo el intervalo de la velocidad angular de -0.25 hasta 0.25, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
-  de velocidades serán formados a partir de la función que nos proporciona numpy linspace  
-  
-\end{itemize}
 
 
 
