@@ -39,7 +39,7 @@ llevado acabo son principalmente dos como se muestra en la figura \ref{fig:infra
 \begin{enumerate}
   \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y control clásico}: Utiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
    y un control clásico basado en un controlador PID para el seguimiento de carriles.
-  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y Q-learning}: tiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
+  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y Q-learning}: Utiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
   con la diferencia de que el control se realiza con un algoritmo de aprendizaje por refuerzo en especial Q-learning para realizar el seguimiento de carriles.
 \end{enumerate}
 
@@ -70,7 +70,7 @@ tiende a asignar más recursos a las aplicaciones gráficas junto con la gráfic
 mucho más considerable que la primera opción con un sistema operativo Linux lo cual hace interesante tener Airsim en un entorno que tenga como sistema operativo como Windows. \newline
 
 Por otra parte, para poder utilizar las herramientas junto con el simulador necesitariamos Linux ya que estas herramientas de desarrollo como ROS funcionan con un sistema como Linux lo cual se necesitaria 
-tener 2 sistemas operativos diferentes en un mismo equipo. Como se necesitaba desarrollar una comportamiento robusto, eficiente y en tiempo real para el seguimiento de un carril con un dron se decidió
+tener dos sistemas operativos diferentes en un mismo equipo. Como se necesitaba desarrollar una comportamiento robusto, eficiente y en tiempo real para el seguimiento de un carril con un dron se decidió
 la separación en dos equipos para así conseguir el mejor rendimiento por ambas partes. \newline
 
 El entorno de simulación Airsim se puede comunicar como hemos mencionado con PX4 y Mavros siguiendo un esquema de comunicaciones marcado por la propia página oficial de 
@@ -97,17 +97,18 @@ API de Mavlink además de tener la posibilidad con PX4 de comunicarnos con QGC.
 
 A lo largo del desarrollo de este trabajo, nos hemos encontrado diferentes difultades respecto a la comunicación directa entre PX4 y el simulador, ya que a menudo cuando se llegaba a 
 comunicar las plataformas de desarrollo entre PX4 y Airsim se producian latencias afectando a la sincronización del comportamiento autónomo que queremos desarrollar. Además de que al tener
-una capa de comunicación extra con la propia herramienta PX4 Autopilot, Mavros. El acceso no es totalmente directo y puede llegar a ser dificultosopor lo que se optó a utilizar 
-Client Airsim por su comunicación directa con el simulador y al estar construida desde la base que se puede llegar acceder directamente al simulador sin llegar a producir capas externas y 
-esta pensanda para realizar comportamientos en tiempo real. 
+una capa de comunicación extra con la propia herramienta PX4 Autopilot, Mavros el acceso no es totalmente directo y puede llegar a ser dificultoso. Por lo que se optó a utilizar 
+Client Airsim por su comunicación directa con el simulador y se puede llegar a comunicar directamente con el simulador sin llegar a producir capas externas por su arquitectura, también
+esta pensada para realizar comportamiento en tiempo real con el simulador.  \newline
 
-En resumen, la comunicación constará de Airsim ROS Wrapper para acceder a los diferentes sensores como Cámara, Lidar y GPS, Client Airsim para el control del vehículo y el entorno
-de simulación Airsim. El diagrama de comunicaciones que se muestra en la figura \ref{fig:diagramadeAirsim} consiste en una sencilla implementación de tener 2 equipos diferentes que
-constan del entorno de simulación y de las plataformas en donde iremos desarrollando los diferentes comportamientos como los algoritmos de percepción y control. 
+En resumen, la comunicación constará de Airsim ROS Wrapper para acceder a los diferentes sensores y Client Airsim para el control del vehículo más el entorno
+de simulación Airsim. El diagrama de comunicaciones que se muestra en la figura \ref{fig:diagramadeAirsim} consiste en una sencilla implementación de tener dos equipos diferentes que
+constan del entorno de simulación y de las plataformas en donde iremos desarrollando los diferentes comportamientos como los algoritmos de percepción y control que serán capaces
+de comunicarse entre sí en la mismo entorno de red mediante un router, cada equipo constará de dos direcciones IP diferentes. 
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.3]{figs/Diseño/Comunicaciones/diagrama_comunicaciones_airsim.png}
+    \includegraphics[scale=0.2]{figs/Diseño/Comunicaciones/Comunicaciones.png}
   \end{center}
   \caption{Diagrama de comunicaciones}
   \label{fig:diagramadeAirsim}
@@ -129,33 +130,10 @@ es bastante cómodo ya que podemos realizar la modificación de dicho archivo a 
 
 En primer lugar utilizaremos el entorno de simulación Coastline de los diferentes entornos que nos ofrece Airsim para Windows. Al descargarnos dicha carpeta, contendrá el ejecutable para
 poder abrir el entorno con Airsim junto con las carpetas de modelos de simulación, como las carreteras, montañas y plantas. Dentro de estas carpetas, eliminaremos dichos componentes 
-de simulación que nos puede dificultar cuando desarrollemos la percepción como plantas y señales de tráfico que se ubican encima de las lineas de detencción del carril ya que esto nos puede perjudicar
-en un futuro en la detencción con la red neuronal YOLOP.\newline
+de simulación que nos puede dificultar cuando desarrollemos la percepción como plantas y señales de tráfico que se ubican encima de las líneas de detección del carril ya que esto nos puede perjudicar
+en un futuro en la detección con la red neuronal YOLOP.\newline
 Por defecto, la primera vez que ejecutamos un entorno en Airsim, se crea el archivo settings.json en donde se almancenará por defecto en una carpeta 
 llamada airsim ubicada en Documentos en Windows. \newline
-
-Cuando tengamos el fichero settings.json creado, ya podremos equipar al vehículo con características como qué sensores utilizará, 
-el tipo de vehículo, el tipo de simulación, la comunicación y más. 
-
-\begin{enumerate}
-  \item \textbf{SimMode}: Multirotor
-  \item \textbf{ClockType}: SteppableClock. Este tipo de reloj permite un control efectivo y manual sobre el avance en el propio simulador, es particularmente útil en simulaciones
-  de pruebas donde buscamos un control detallado del tiempo.
-  \item \textbf{Vehicles}: En esta sección definiremos las características del vehículo y su comunicación
-  \begin{itemize}
-    \item \textbf{VehicleType}: SimpleFlight
-    \item \textbf{UseSerial}: False
-    \item \textbf{ControlIp}: Remote
-    \item \textbf{LocalHostIp}: 192.168.2.16
-    \item \textbf{Sensors}: Definiremos una pequeña sección de sensores
-      \begin{itemize}
-        \item \textbf{Lidar}: Definiremos caracteristicas del propio sensor como el tipo, su rango, el número de canales
-      \end{itemize}
-  \end{itemize}
-\end{enumerate}
-
-Si no se define la posición inicial del dron, por defecto el propio simulador te establece el vehiculo en el punto que decida Airsim. 
-
 
 \begin{figure} [H]
   \begin{center}
@@ -166,14 +144,107 @@ Si no se define la posición inicial del dron, por defecto el propio simulador t
   \label{fig:CoastlineModificado}
 \end{figure}\
 
+Cuando tengamos el fichero settings.json creado, ya podremos equipar al vehículo con características como qué sensores utilizará, 
+el tipo de vehículo, el tipo de simulación, la comunicación y más. En este TFG se definirá como sensores el lidar para saber a que áltura esta volando 
+el dron respecto al suelo, el gps para saber que localización tiene en el entorno y la cámara. Cada sensor debe llevar su propia configuración, como se muestra 
+en el código \ref{cod:settings} se configuró cada sensor siguiendo sus propios parámetros que dicta la guía oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/sensors/}}
+. La cámara tiene una peculiaridad de que se configura siendo otro sensor a parte de la lista de sensores de Airsim, consta de varios parametros que se tendran que configurar como 
+el tamaño de la imagen, si queremos ROS, los FPS de la imagen transmitida, la posición y más.
+
+\begin{code}[H]
+  \begin{lstlisting}[language=json,basicstyle=\tiny]
+    {
+      "SettingsVersion":1.2,
+      "SimMode":"Multirotor",
+      "ClockType":"SteppableClock",
+      "Vehicles":{
+         "Drone":{
+            "VehicleType":"SimpleFlight",
+            "ControlIp":"remote",
+            "LocalHostIp":"192.168.2.16",
+            "Sensors":{
+               "LidarCustom":{
+                  "SensorType":6,
+                  "Enabled":true,
+                  "Range":10,
+                  "NumberOfChannels":16,
+                  "RotationsPerSecond":10,
+                  "PointsPerSecond":10000,
+                  "X":0,
+                  "Y":0,
+                  "Z":-1,
+                  "DrawDebugPoints":false,
+                  "DataFrame":"SensorLocalFrame"
+               },
+               "Gps":{
+                  "SensorType":3,
+                  "Enabled":true,
+                  "EphTimeConstant":0.9,
+                  "EpvTimeConstant":0.9,
+                  "EphInitial":25,
+                  "EpvInitial":25,
+                  "EphFinal":0.1,
+                  "EpvFinal":0.1,
+                  "EphMin3d":3,
+                  "EphMin2d":4,
+                  "UpdateLatency":0.2,
+                  "UpdateFrequency":50,
+                  "StartupDelay":1
+               }
+            },
+            "Cameras":{
+               "front_center_custom":{
+                  "CaptureSettings":[
+                     {
+                        "PublishToRos":1,
+                        "ImageType":0,
+                        "Width":620,
+                        "Height":620,
+                        "FOV_Degrees":90,
+                        "ImageRate_FPS":30,
+                        "TargetGamma":1.5,
+                        "AutoExposure":true,
+                        "MotionBlur":false,
+                        "PostProcess":true
+                     }
+                  ],
+                 
+                  "X":0.50,
+                  "Y":0,
+                  "Z":0.10,
+                  "Pitch":0,
+                  "Roll":0,
+                  "Yaw": 0
+               }
+            },
+         "X": 22.474933624267578,
+         "Y": -25.63629913330078,
+         "Z":  0,
+         "Pitch": 0,
+         "Roll": 0,
+         "Yaw":  30
+         }
+      }
+   }
+
+  \end{lstlisting}
+  \caption[Configuración del vehículo mediante el fichero settings.json]{Configuración del vehículo mediante el fichero settings.json}
+  \label{cod:settings}
+  \end{code}  
+
+Si no se define la posición inicial del dron como aparece en la última parte del fichero settings.json, por defecto el propio simulador te establece el vehiculo en el punto que decida Airsim. 
+
+
+
   \subsection{Instalación de las herramientas de desarrollo}
   \label{subsec:Instalación de las herramientas de desarrollo}
-  La instalación de las herramientas de desarrollo se realizarán en el segundo ordenador con el sistema operativo Linux. Constará de las 
-  siguientes:
+  La instalación de las herramientas de desarrollo se realizarán en el segundo ordenador con el sistema operativo Linux.
   \begin{enumerate}
-    \item \textbf{ROS}: Como se menciona en la documentación oficial de ROS \cite{roswiki} , ROS consta de diferentes conjuntos de paquetes versionados que permiten a los desarrolladores
+    \item \textbf{ROS}: Como se menciona en la documentación oficial de ROS \cite{Dis_ROS}, ROS consta de diferentes conjuntos de paquetes versionados que permiten a los desarrolladores
     trabajar con un código relativamente estable hasta que estén preparados y puedan publicar versiones robustas y eficientes. En nuestro caso, utilizaremos la distribución Noetic\footnote{\url{http://wiki.ros.org/noetic}}
-    debido al uso de Airsim debido a que esta distribucion se encuentra siendo una de las más estables para poder trabajar junto con Airsim\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}}. 
+    debido a que esta distribucion se encuentra siendo una de las más estables para poder trabajar junto con Airsim\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}}.
+
+    Para su instalación nos guiaremos en la guía oficial de ROS noetic\footnote{\url{https://wiki.ros.org/noetic/Installation/Ubuntu}}
 
     \begin{figure} [H]
       \begin{center}
@@ -182,26 +253,40 @@ Si no se define la posición inicial del dron, por defecto el propio simulador t
       \caption{Logotipo de ROS noetic}
       \label{fig:ROS noetic}
     \end{figure}\
-    \item \textbf{Airsim ROS Wrapper}: Descargaremos del repositorio de Airsim a través de su página de github \footnote{\url{https://github.com/microsoft/AirSim}}. \newline
-    \begin{lstlisting}
-      git clone https://github.com/microsoft/AirSim.git
-    \end{lstlisting}
-    Cuando tengamos dicho repositorio descargado, lo que realizaremos sera la compilación y configuración de Airsim mediante los scripts build y setup como se pauta en la guía oficial.
-    \newline
+    \item \textbf{Airsim ROS Wrapper}: Descargaremos del repositorio de Airsim a través de su página de github\footnote{\url{https://github.com/microsoft/AirSim}}.
+    Cuando tengamos dicho repositorio descargado, lo que realizaremos será la compilación y configuración de Airsim mediante los scripts build y setup como se pauta en la guía oficial. \newline
+    \begin{code}[H]
+      \begin{lstlisting}
+        git clone https://github.com/microsoft/AirSim.git
+      \end{lstlisting}
+      \caption[gitclone]{Comando para poder clonar el repositorio de Airsim}
+      \label{cod:gitclone}
+    \end{code}
+  
     Ahora para poder utilizar el Airsim ROS Wrapper que nos proporciona ROS, tendremos que irnos a la carpeta dentro del repositorio de Airsim clonado previamente y buscar la carpeta de ros y construir el paquete 
-    mediante el comando \texttt{catkin\_make}. Cuando tengamos realizado dicho paso tendremos que activar el wrapper en el fichero .bashrc de Linux mediante la siguiente linea:\newline
+    mediante el comando \texttt{catkin\_make}. Cuando tengamos realizado dicho paso tendremos que activar el wrapper en el fichero .bashrc de Linux mediante la siguiente linea: \newline
 
-    \begin{lstlisting}
-      source /home/$USER/Airsim/ros/devel/setup.bashrc
-    \end{lstlisting}
+    \begin{code}  [H]
+      \begin{lstlisting}
+        source /home/$USER/Airsim/ros/devel/setup.bashrc
+      \end{lstlisting}
+      \caption[bash]{Comando para activar el entorno de trabajo en el fichero bashrc}
+      \label{cod:bashrc}
+    \end{code} 
+
+
      siendo \$USER la variable de entorno que contiene el nombre del usuario que actualmente tiene iniciada sesión en el equipo.
 
      A partir de activar el entorno de trabajo para ros, utilizaremos el nodo AirSim ROS Wrapper Node \ref{sec:wrapper} junto con un launcher airsim\_node.launch proporcionando
      la dirección IP en donde se encuentra Airsim.\newline
 
-     \begin{lstlisting}
-      roslaunch airsim_ros_pkgs airsim_node.launch output:=screen host:=192.168.2.16
-    \end{lstlisting}
+     \begin{code}  [H]
+      \begin{lstlisting}
+        roslaunch airsim_ros_pkgs airsim_node.launch output:=screen host:=192.168.2.16
+      \end{lstlisting}
+      \caption[comando]{Lanzamiento del nodo AirSim ROS Wrapper Node especificando la dirección IP del simulador}
+      \label{cod:roslaunch}
+    \end{code} 
 
   \end{enumerate}
 
@@ -209,9 +294,9 @@ Si no se define la posición inicial del dron, por defecto el propio simulador t
 \label{sec:Percepción}
 Para el desarrollo de la percepción una primera aproximación fue utilizar
 procedimientos de visión clásica, es decir, procesar la imagen y mediante métodos de la libreria OpenCV
-poder detectar las diferentes líneas que pueden haber en la carretera. El problema que nos podemos encontrar que al realizar esta primera proximación, al tener un 
+poder detectar las diferentes líneas que pueden haber en la carretera. El problema que nos podemos con esta primera proximación que al tener un 
 entorno fotorrealista, estos métodos se quedan bastante pobres desembocando una percepción muy poco robusta e ineficiente. Por lo que se optó la utilización
-de una red neuronal llamada YOLOP y algoritmos de aprendizaje automático poder construir la percepción. \newline
+de la red neuronal YOLOP y algoritmos de aprendizaje automático poder construir la percepción. \newline
 
 Para obtener la imagen del entorno, nos subscribiremos al topic /airsim\_node/Drone/front\_center\_custom/Scene que ofrece el nodo AirSim ROS Wrapper Node
  y mediante un método de ROS denonimado CvBridge\footnote{\url{http://wiki.ros.org/cv_bridge}} podremos convertir dicha imagen en formato OpenCV y trabajar con ella a traves de OpenCv.\newline
@@ -235,8 +320,8 @@ especificando el modelo de la red neuronal y la opción 'pretrained' colocada co
   \label{cod:codejemplo}
   \end{code}  
 
-Una vez tengamos el modelo cargado del repositorio, podemos escoger si queremos hacer la inferencia en la CPU o GPU, para ello tendremos que especificar como 
-lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inferencia y le asignaremos al modelo que realizaremos la inferencia por GPU.\newline
+Una vez tengamos el modelo cargado del repositorio, podemos escoger si queremos hacer la inferencia en la CPU o GPU, tendremos que especificar como 
+lo queremos hacer. En nuestro, elegiremos la opción de GPU para realizar la inferencia y le asignaremos al modelo que realizaremos la inferencia por GPU.\newline
 
   
   \begin{code}[h]
@@ -252,7 +337,7 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inf
 
     Por último, nos quedaria convertir la imagen en un tensor antes de realizar la inferencia. Para poder realizarlo, utilizaremos la funcion transforms.toTensor\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
     y después añadiremos una dimensión más con unsqueeze(0) , esto se debe 
-    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imagenes que se procesarán juntas
+    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imágenes que se procesarán juntas
     (generalmente 1 para inferencia) por lo que el tensor tendrá esta forma: (batch\_size, channels, height, width)\newline
 
     \begin{code}[h]
@@ -271,18 +356,18 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inf
       \end{code}  
 
     \newpage
-    Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detencción de la segmentación
-    de la calzada y la detencciñon de las lineas de la calzada. Dicho tensor habrá que convertirlo en una imagen para poder visualizar
+    Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detección de la segmentación
+    de la calzada y la detección de las líneas de la calzada. Dicho tensor habrá que convertirlo en una imagen para poder visualizar
     dicho resultado como una imagen. 
     Por ello, convertiremos el tensor en un array numpy y realizaremos una transformacion para cambiar las dimensiones de (H,W,C) 
-    a (C,H,W) esto se realiza ya que en Opencv representa imagenes en formato Numpy array y se transpone las dimensiones porque las
-    imagenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
+    a (C,H,W) esto se realiza ya que en Opencv representa imágenes en formato Numpy array y se transpone las dimensiones porque las
+    imágenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
     \newline
 
-    Obtendremos un array de Numpy que normalizaremos con valores de 0-1.La normalización 
+    Obtendremos un array de Numpy que normalizaremos con valores de 0-1. La normalización 
     ayudar a igualar la escala de los pixeles de la imagen. Finalmente se podrá mostrar el resultado de la inferencia de la red 
     en una imagen. Al normalizar los valores de 0-1, los pixeles con un valor 1 se mostrarán en la imagen final, asignándoles un color
-    para visualiza el resultado de la segmentación de la calzada y de la detencción de las lineas de la calzada. \newline
+    para visualiza el resultado de la segmentación de la calzada y de la detección de las líneas de la calzada. \newline
     \newpage
     \begin{code}[h]
       \begin{lstlisting}[language=Python]
@@ -307,12 +392,12 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inf
 
     
       \end{lstlisting}
-      \caption[Resultado de la inferencia del modelo YOLOP]{Resultado de la inferencia del modelo YOLOP}
+      \caption[Resultado de la inferencia del modelo YOLOP]{Inferencia de YOLOP mediante los pesos End-to-end.pth}
       \label{cod:codejemplo}
       \end{code}  
 
       Para poder utilizar los pesos preentrenados de Onnx, tendremos que realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
-      dichas versiones tienen que ser compatible entre si mismas. Para ello nos guiaremos por la tabla requisitos de la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}. \newline
+      dichas versiones tienen que ser compatible entre sí. Para ello nos guiaremos por la tabla requisitos de la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}. \newline
 
       Cuando tengamos todo preparado y configurado ya podremos realizar los pasos de la inferencia con los pesos preentrenados de Onnx. En primer lugar,cargaremos el modelo
       
@@ -324,16 +409,16 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inf
           ort_session = ort.InferenceSession(ROUTE_MODEL,providers=['CUDAExecutionProvider'])
       
         \end{lstlisting}
-        \caption[Cargar modelo]{Cargar modelo YOLOP-320-320.onnx}
-        \label{cod:codejemplo}
+        \caption[Cargar modelo]{Cargar modelo por ejemplo YOLOP-320-320.onnx}
+        \label{yolop320}
         \end{code}  
 
-        Como se observa en el código 4.5, a la hora de cargar el modelo escogemos como provider CUDAExecutionProvider. Cuando trabajamos con ONNX Runtime, 
+        Como se observa en el código \ref{yolop320}, a la hora de cargar el modelo escogemos como provider CUDAExecutionProvider. Cuando trabajamos con ONNX Runtime, 
         podemos especificar qué proveedores de ejecución utilizar para ejecutar el modelo ONNX que escojamos, cada proveedor contiene un conjunto de núcleos optimizados para un objetivo específico (por ejemplo, CPU, GPU, IoT) y 
         se especifican como una lista en el orden de prioridad. En nuestro caso escogeremos CUDA para ejecutar mediante la GPU. 
         \newline
-        A continuación preprocesaremos las imagenes de entrada que le daremos al modelo, al escoger el modelo de yolop-320-320.onnx, las imagenes deben tener una dimensión de 320x320, para ello
-        utilizaremos un método implementado por ellos, en el cuál redimensionaremos la imagen como se pide para el modelo. 
+        A continuación preprocesaremos las imágenes de entrada que le daremos al modelo, al escoger el modelo de yolop-320-320.onnx, las imágenes deben tener una dimensión de 320x320, para ello
+        utilizaremos un método implementado por ellos que se puede encontrar en la siguiente página\footnote{\url{https://debuggercafe.com/yolop-onnx-inference-on-cpu}} , en el cuál redimensionaremos la imagen como se pide para el modelo. 
         Una vez que tengamos la imagen preparada, daremos comienzo a la inferencia del modelo de yolop-320-320.onnx. \newline
       
         \begin{code}[h]
@@ -348,13 +433,13 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPUp ara realizar la inf
           \label{cod:codejemplo}
           \end{code}  
 
-        La inferencia del resto de modelos de Onnx se realizan de la misma forma pero teniendo en cuenta que se tendrá que cambiar las dimensiones de las imagenes de entrada y la ruta
+        La inferencia del resto de modelos de Onnx se realizan de la misma forma pero teniendo en cuenta que se tendrá que cambiar las dimensiones de las imágenes de entrada y la ruta
         en donde se almacena dicho modelo. 
 
 
 \subsubsection{Resultados de YOLOP }
 \label{sec:resultados}
-En esta sección contrastaremos los resultados dde los diferentes pesos preentrenados que ofrece la red neuronal YOLOP. Como podemos observar en la figura \ref{fig:pesos_preentrenados} 
+En esta sección contrastaremos los resultados de los diferentes pesos preentrenados que ofrece la red neuronal YOLOP. Como podemos observar en la figura \ref{fig:resultados_pesos_preentrenados} 
 mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preentrenados End-to-end.pth, yolop-320-320.onnx,yolop-640-640.onnx e yolop-1280-1280.onnx en segundos.
 
 \begin{figure} [H]
@@ -362,15 +447,16 @@ mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preen
     \includegraphics[scale=0.6]{figs/Diseño/Percepcion/Results-Yolop.png}
   \end{center}
   \caption{Resultados de los pesos preentrenados del modelo YOLOP}
-  \label{fig:pesos_preentrenados}
+  \label{fig:resultados_pesos_preentrenados}
 \end{figure}\
 
-Como podemos observar en la figura 4.6, los pesos preentrenados que tiene una inferencia menor al resto se trata de yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 0.010s, esto
+Los pesos preentrenados que tiene una inferencia menor al resto se trata de yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 0.010s, esto
 significa que el modelo YOLOP con estos pesos tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes pesos, es el ganador en cuanto 
 en tiempo de inferencia, rate y mejores resultados. 
 Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
 del modelo, añadiendo de tener una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, nosostros
-buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detencción como se mostraban en los resultados de la red neuronal \ref{f:resultadosYOLOP}. \newline
+buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección como se mostraban en los resultados de la red neuronal \ref{f:resultadosYOLOP}. 
+Por ello nos descantaremos por escoger el modelo yolop320-320.onnx.\newline
 
 \begin{figure} [H]
   \begin{center}
@@ -380,13 +466,13 @@ buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cua
   \label{fig:pesos_preentrenados}
 \end{figure}\
 
-Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las lineas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
+Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las líneas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
 
 \subsection{DBSCAN}
 \label{sec:DBSCAN}
 
-Para saber con qué lineas detectadas por la red nos quedaremos, utilizaremos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
-utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{scikitlearndbscan}.\newline
+Para saber con qué líneas detectadas por la red nos quedaremos, utilizaremos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
+utilizaremos DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{ski_dbs}.\newline
 
 Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
 \begin{enumerate}
@@ -396,15 +482,15 @@ Dicho algoritmo contiene varios parámetros que son importantes conocerlos y con
   \item \textbf{Metric}: La métrica utilizada para calcular la distancia entre los conjuntos de clústeres (por defecto es la distancia euclidiana). 
 \end{enumerate}
 Los valores de los parámetros de la distancia máxima y el número mínimo de muestras se deben elegir cuidadosamente, es decir, si colocamos una distancia 
-máxima alta puede provocar que los clusters que queramos que pertenezcan a un distinto grupo pertenezcan al mismo grupo. 
+máxima alta puede provocar que los clústeres que queramos que pertenezcan a un distinto grupo pertenezcan al mismo grupo. 
 Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres más densos y 
-si se establece en un valor bajo, los clústeres encontrados serán más dispersos.
-\break
-Por lo que para encontrar los valores de estos 2 parámetros fue experimentando y quedandonos con el mejor resultado. En nuestro caso la distancia máxima tendra un valor de 10 
-y el número mínimo de muestras sera de 5 muestras. Lo que significa que la distancia máxima que tendrán los puntos para pertenecer al mismo grupo de clústeres sera de 10 de distancia en pixeles
-con un mínimo de muestras pertenecientes de 5 muestras. 
-
-Para entender un poco más como funciona el algoritmo, en la siguiente figura recogida por este árticulo\cite{DBSCAN}: 
+si se establece en un valor bajo, los clústeres encontrados serán más dispersos. \newline
+Para entender un poco más como funciona el algoritmo, en la siguiente figura recogida por este árticulo\cite{DBSCAN} se ilustra 
+un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
+teniendo como valor el número mínimo de muestras 3, eso significa que para que se considere una muestra a un grupo de cluster tendrá que tener una densidad de 3. El algoritmo itera por
+las muestras y compara el valor de la distancia máxima y el número mínimo de muestras. 
+Si ningún de estos dos parámetros no se cumpliese ya que puede darse que una muestra se encuentra lejana del grupo de muestras será etiquetado como ruido, esto quiere decir
+que no pertenecerá a ningún grupo de clústeres. El resultado del algoritmo ha catalogado dos grupos de clústeres y 3 muestras. \newline
 
 \begin{figure} [H]
   \begin{center}
@@ -414,17 +500,12 @@ Para entender un poco más como funciona el algoritmo, en la siguiente figura re
   \label{fig:pesos_preentrenados}
 \end{figure}\
 
-Se ilustra un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
-teniendo como valor el número mínimo de muestras 3, eso significa que para que se considere una muestra a un grupo de cluster tendrá que tener una densidad de 3. El algoritmo itera por
-las muestras y compara el valor de la distancia máxima y el número mínimo de muestras. 
-Si ningún de estos dos parámetros no se cumpliese ya que puede darse que una muestra se encuentra lejana del grupo de muestras será etiquetado como ruido, esto quiere decir
-que no pertenecerá a ningún grupo de clústeres. Dicho resultado se puede observar en la figura \ref{fig:pesos_preentrenados} como el algoritmo ha catalogado dos grupos de clústeres y 3 muestras
-como puntos de ruido. 
-\break
+Por lo que para encontrar los valores de estos dos parámetros durante el desarrollo del TFG fue experimental y quedandonos con el mejor resultado. La distancia máxima tendra un valor de 10 
+y el número mínimo de muestras será de 5 muestras. Lo que significa que la distancia máxima que tendrán los puntos para pertenecer al mismo grupo de clústeres será de 10 de distancia en pixeles
+con un mínimo de muestras pertenecientes de 5 muestras. Para poder aplicar este algoritmo a partir del resultado de la imagen de la red neuronal se tendrá que convertir la imagen resultante
+de la red neuronal en un array bidimensional de coordenadas x e y de puntos con la ayuda de la función de Numpy column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} , 
+transformando un array simple de una dimensión a un array de dos dimensiones. Una vez se realice lo anterior, obtendremos un array bidimensional listo para el algoritmo DBSCAN.\newline
 
-Centrandonos en nuestra implementación con el algoritmo de DBSCAN, le pasaremos la imagen de salida de la red neuronal pero con la particularidad que DBSCAN necesitaria que la imagen sea
-representada por un array bidimensional de coordenadas x e y de puntos. Para ello utilizaremos la función de Numpy column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} , 
-dicha función transforma un array simple de una dimensión a un array de 2 dimensiones, una vez se realice esto obtendremos un array bidimensional para el algoritmo DBSCAN.\newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -460,16 +541,17 @@ dicha función transforma un array simple de una dimensión a un array de 2 dime
   \end{code}  
   
 
-Obtenemos el resultado de DBSCAN con los parámetros configurados de eps = 10 y min\_samples = 5, dicho resultado será una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
-n el último grupo de clusters detectado. De las listas de etiquetas se eliminarán los clusters que hallan sido etiquetados como ruido, para ello solo basta encontrar la etiqueta con valor -1 ya que
-DBSCAN cataloga las muestras ruidosas con -1 y para obtener el resultado solamente bastará iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida
+El resultado de DBSCAN es una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
+n el último grupo de clusters detectado. De las listas de etiquetas se eliminarán los clusters que hallan sido etiquetados como ruido (-1). Para obtener el resultado solamente bastará iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida.
+
+FOTO DE DBSCAN
 
 \subsection{Clasificación de clústeres}
 \label{clasificación:cluster}
-Una vez realizado el algoritmo de DBSCAN necesitamos quedarnos con el grupo de clusters que pertenezcan al carril que queremos seguir, para ello calcularemos los centroides de cada
-grupo de clusters detectado y los clasificaremos en función de si se encuentran en la derecha o izquierda de la imagen, es decir, la imagen tiene unas dimensiones de 320x320 por lo tanto 
-nos fijaremos en el valor del eje x en el ecuador con valor 160, por lo que cuando calculemos los clústeres serán clasificados en función de los valores de x si se encuentran a la derecha u izquierda de 160 
-que es la mitad de la imagen. \newline
+Una vez realizado el algoritmo de DBSCAN necesitaremos quedarnos con el grupo de clústeres que pertenezcan al carril que queremos seguir. Para conseguirlo, se calcula los centroides de cada
+grupo de clústeres detectado y los clasificaremos en función de sí se encuentran en la derecha o izquierda respecto al centro de la imagen. La imagen tiene unas dimensiones de 320x320 píxeles, 
+siendo su centro (160,160) pixeles, x = 160 e y = 160. Nos fijaremos solamente en los valores de x de los centroides para poder clasificarlos en función del centro de la 
+imagen, a partir de ello serán divididos en dos grupos distinguidos: derecha e izquierda de la imagen. \newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -484,15 +566,15 @@ que es la mitad de la imagen. \newline
        
   
   \end{lstlisting}
-  \caption[Clasificación de clústeres según las dimensiones de la imagen ]{Clasificación de clústeres según las dimensiones de la imagen}
-  \label{cod:codejemplo}
+  \caption[Clasificación de clústeres según las dimensiones de la imagen ]{Clasificación de clústeres respecto a las dimensiones de la imagen}
+  \label{cod:Clasificación de clústeres}
   \end{code}  
 
 
-Cuando tengamos clasificado los grupos de los clústeres, necesitamos quedarnos con qué subgrupo de cada grupo de clústeres (izquierda e derecha) nos queremos quedar respecto al carril. Para ello escogeremos dichos grupos mediante una función máximizada
-la cual escoge dicho grupo de clusters de la derecha u izquierda en función de la cercania de un punto central P escogido como valor (220,160) siendo 220 el valor de las y e 160 el valor de las x. \newline
-
-Es importante mencionar que cuando trabajamos con puntos en numpy las coordenadas estan opuestas, es decir, en vez de tener el formato (x,y) como estamos acostumbrados a trabajar tienen el formato(y,x). A parte de escoger en función de la cercania de un punto P también esta en función de la densidad de puntos de dicho grupo de clusters de la derecha u izquierda detectados, con
+Cuando sean clasificado los grupos de los clústeres, necesitamos quedarnos con qué subgrupo de cada grupo de clústeres (izquierda e derecha) nos queremos quedar respecto al carril. Escogeremos dichos grupos mediante una función máximizada
+respecto a un punto central P predefinido con valor (220,160) siendo 220 el valor de las y e 160 el valor de las x, dichos valores son calculados respecto 
+a las dimensiones de la imagen 320x320 píxeles. Es importante mencionar que cuando trabajamos con puntos en numpy las coordenadas estan opuestas, es decir, en vez de tener el formato (x,y) como estamos acostumbrados a trabajar tienen el formato(y,x). 
+A parte de escoger lo sugrupos respecto a un punto central P también se realizará en función de la densidad de puntos de dicho grupo de clústeres de la derecha u izquierda detectados, con
 esto conseguimos que no solamente escojamos en función de la cercania si no que también lo haremos según la cantidad de puntos. \newline
 
 \begin{code}[h]
@@ -509,20 +591,23 @@ esto conseguimos que no solamente escojamos en función de la cercania si no que
   \label{cod:codejemplo}
   \end{code}  
 
+  En la figura \ref{fig:DBSCAN_imagen} se muestra todo el proceso desde el uso del algoritmo de DBSCAN hasta la clasificación de clústeres respecto al carril. 
+  Después de tener la clasificación de los grupos de clústeres procederemos a realizar dos regresiones cuadráticas para construir las líneas del carril que queremos seguir.
+
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/resultado.png}
   \end{center}
-  \caption{Ilustración del proceso de elección de clústeres }
+  \caption{Ilustración del proceso de clasificación de líneas detectadas}
   \label{fig:DBSCAN_imagen}
 \end{figure}\
-Cuando tengamos el resultado de los clusters de la derecha e izquierda escogidos procederemos a realizar dos regresiones cuadráticas para construir las lineas del carril que queremos seguir.
+
 \subsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
-Como anteriormente hemos mencionado, cuando tengamos los clústeres escogidos correctamente daremos pie a la construcción de dos regresiones cuadráticas. \newline 
+Como anteriormente hemos mencionado, cuando se clasifique los clústeres correctamente daremos pie a la construcción de dos regresiones cuadráticas. \newline 
 
 La regresión es un método de aprendizaje supervisado el cual consiste en aproximar un número N de puntos a una recta, curva, etc, en nuestro caso hemos escogido realizar una regresión cuadrática ya que el recorrido
-que vamos a realizar las lineas detectadas por la red neuronal no son totalmente rectas si no que se tratan de lineas curvilíneas por lo que la regresión cuadrática en este papel puede 
+que vamos a realizar las líneas detectadas por la red neuronal no son totalmente rectas si no que se tratan de líneas curvilíneas por lo que la regresión cuadrática en este papel puede 
 funcionar perfectamente. 
 Para la construcción de las regresiones cuadráticas utilizaremos las funciones de la libreria Numpy denominada Polyfit\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
 y Polyval\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
@@ -530,11 +615,13 @@ Polyfit es una función que calcula los  coeficientes del polinomio que mejor se
 cuadrados para la ecuación cuadrática,obtendremos tres coeficientes, denominados a,b y c. \newline
 \newline
 Con dichos coeficientes realizaremos una media de los últimos diez valores y por cada cinco iteraciones dicha media se volverá a calcular, este paso lo realizamos ya que 
-queremos disminuir las oscilaciones causadas de las detencciones de la red neuronal. Una vez calculados los coeficientes, realizaremos la regresión cuadrática mediante la función Polyval, dicha función calcula
+queremos disminuir las oscilaciones causadas de las detenciones de la red neuronal. Una vez calculados los coeficientes, realizaremos la regresión cuadrática mediante la función Polyval, dicha función calcula
 la función cuadrática con los coeficientes calculados anteriormente. \newline 
 Cuando obtengamos los valores de la función cuadrática, realizaremos una clasificación para quedarnos con los puntos obtenidos
-de dicha función los que se encuentren en el eje y entre los valores 0 a 319, esto se debe hacer ya que dicha función como resultado puede dar numeros negativos realizando dicha regresión y en una 
-imagen no se trabaja con números negativos, lo cual habrá que seleccionar los puntos correspondientes donde se encuentran en la imagen para poder seleccionarlos \newline
+de dicha función los que se encuentren en el eje y entre los valores 0 hasta el máximo de la imagen mneos una unidad que sería 319, esto se debe hacer ya que dicha función como resultado puede 
+dar números negativos realizando dicha regresión además de que en una imagen no se puede indexar con números negativos. \newline
+
+
 
 \begin{code}[H]
   \begin{lstlisting}[language=Python]
@@ -589,32 +676,6 @@ escogidos de la izquierda. \newline
 Finalmente, con dichas regresiones cuadráticas se realizará una dilatación de los puntos para tener un resultado más llamativo y visual al poder
 ver las regresiones cuadráticas.\newline
 
-\begin{code}[h]
-  \begin{lstlisting}[language=Python]
-    def dilate_lines(self,left_line_points,right_line_points):
-
-
-    img_left_line = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
-    img_right_line = np.zeros((WIDTH, HEIGH), dtype=np.uint8)
-
-    img_left_line[left_line_points[:,0],left_line_points[:,1]] = 255
-    img_right_line[right_line_points[:,0],right_line_points[:,1]] = 255
-
-    
-    img_left_line_dilatada = binary_dilation(img_left_line, structure=self.kernel)
-    img_left_line_dilatada = (img_left_line_dilatada).astype(np.uint8)
-
-    img_right_line_dilatada = binary_dilation(img_right_line, structure=self.kernel)
-    img_right_line_dilatada = (img_right_line_dilatada).astype(np.uint8)
-
-
-    return img_left_line_dilatada,img_right_line_dilatada
-
-  \end{lstlisting}
-  \caption[Función de dilatación de los puntos de las regresiones]{Función de dilatación de los puntos de las regresiones}
-  \label{cod:codejemplo}
-  \end{code}  
-
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.4]{figs/Diseño/Regresiones/regresion.jpg}
@@ -627,8 +688,9 @@ ver las regresiones cuadráticas.\newline
 \label{sec:Interpolación y cálculo del centro de masas del carril}
 
 Para poder saber qué puntos se encuentran dentro de ambas regresiones cuadráticas, realizaremos una interpolación. La interpolación consiste en recorrer
-los puntos de la imagen original y quedarnos con los puntos que se encuentren dentro de los límites de ambas regresiones. Se realizará dos interpolaciones, una interpolación para los puntos de la derecha
-y otra interpolación para los puntos de la izquierda, estas funciones interpolan los valores de y en función de los valores de x se evaluará los valores de las puntos que se encuentren entre 
+los puntos de la imagen original y quedarnos con los puntos que se encuentren dentro de los límites de ambas regresiones. Se realizará dos interpolaciones, una interpolación para 
+los puntos de la regresión de la  derecha
+y otra interpolación para los puntos de la regresión izquierda. Estas funciones interpolan los valores de los puntos en  y en función de los valores de los puntos en x, más adelante se evaluará los valores de las puntos que se encuentren entre 
 ambas regresiones cuadráticas. Cuando realizemos dicha evaluación realizaremos un filtro para seleccionar el rango de puntos que representar un fragmento del carril de color azul en la imagen
 final.\newline
 
@@ -693,9 +755,12 @@ final.\newline
     \label{fig:centro de masas}
   \end{figure}\
 
-  Finalmente, realizamos un analisis de tiempos de cada parte para saber cuánto tiempo tarda en realizarse la percepción completa. Dicho análisis se llama profiling, con esta técnica 
-  nos ayuda ver el rendimiento que podemos llegar a tener análisis global del algoritmo de percepción en cuanto a eficiencia. En la fígura , se nuestra cuanto tarda cada parte que compone 
-  la percepción en segundos.
+  \subsection{Análisis del algoritmo de percepción}
+  \label{sec:Análisis del algoritmo de percepción}
+  Por último, realizamos un analisis de tiempos de cada parte para saber cuánto tiempo tarda en realizarse la percepción completa. Dicho análisis se llama profiling, con esta técnica 
+  nos ayuda ver el rendimiento que podemos llegar a tener análisis global del algoritmo de percepción en cuanto a eficiencia. En la fígura \ref{fig:centro de masas}, 
+  se muestra cuanto tarda cada parte que compone la percepción en segundos.
+
 
   \begin{figure} [H]
     \begin{center}
@@ -705,7 +770,11 @@ final.\newline
     \label{fig:centro de masas}
   \end{figure}\
 
-  Como podemos apreciar, la parte de la percepción que tarda más es la inferencia del modelo de YOLOP siendo el siguiente la parte de clustering utilizando el algoritmo de 
+  Como podemos apreciar, la parte de la percepción que tarda más es el cálculo de la regresiones cuadráticas, la interpolación y el cálculo del centroide. Esto se debe a que
+  cuando se realiza el cálculo de las regresiones hay que recorrer los puntos de los grupos de clústeres y cálcular sus funciones para obtener las regresiones. Respecto al 
+  tiempo que tarda el algoritmo de DBSCAN junto con la clasficación de los clústeres es el ganador en cuanto menor tiempo de cómputo lo cual es interesante trabajar 
+  con dicho algoritmo de clustering. En conclusión, sumando todos los tiempos de cada parte obtenemos un tiempo global de 0.029 segundos pasado a FPS conseguimos un rate aproximadamente
+  de 38 FPS. 
 
   \section{Seguimiento del carril mediante control clásico}
   \label{sec:Control}
@@ -725,14 +794,14 @@ final.\newline
   \newline
 
   Lo cual con este controlador PID sencillo controlaremos las velocidades respecto al error que se produce entre posición deseada y la que obtenemos. La variable deseada para estar alineados con el carril escogeremos 
-  en el eje de las x el valor central de la imagen, ya que queremos en todo momento permanecer centrales, para calcular el error realizaremos la diferencia del valor deseado que seria 
+  en el eje de las x el valor central de la imagen, ya que queremos en todo momento permanecer centrales respecto al carril. Para calcular el error realizaremos la diferencia del valor deseado que seria 
   el valor central de la imagen y el valor del centroide del carril mencionado en la sección \ref{sec:Interpolación y cálculo del centro de masas del carril}. 
-  A parte de este controlador, utilizaremos un pequeño controlador PD para controlar la altura del vehículo y tengamos una altura medianamente constante.Para saber a que altitud nos encontramos utilizaremos el sensor del Lidar. \newline
+  A parte de este controlador, utilizaremos un pequeño controlador PD para controlar la altura del vehículo y tengamos una altura medianamente constante. Para saber a que altitud nos encontramos utilizaremos el sensor del Lidar. \newline
 
-  Para encontrar las valores de cada término que compone ambos controladores se ha realizado a base de experimentación, empezando de manera creciente, es decir, primero utilizariamos
-  la componente proporcional para ver su comportamiento, una vez que tengamos el valor del término proporcional pasaremos al termino derivativo para suavizar los movimientos que puede
-  producir este término y por último utilizariamos la parte integral para eliminar el error. El controlador PID se usará para controlar la velocidad de giro del dron en cuanto a la velocidad lineal. \newline
-  tendremos un valor constante. 
+  Para encontrar los valores de cada término que compone ambos controladores se ha realizado a base de experimentación, empezando de manera creciente, es decir, primero utilizariamos
+  la componente proporcional para ver su comportamiento, una vez que tengamos el valor del término proporcional pasaremos al término derivativo para suavizar los movimientos que puede
+  producir este término y por último utilizariamos la parte integral para eliminar el error. El controlador PID se usará para controlar la velocidad de giro del dron en cuanto a la velocidad lineal 
+  tendremos un valor constante. \newline
 
   \begin{code}[h]
     \begin{lstlisting}[language=Python]
@@ -770,14 +839,14 @@ final.\newline
 
     Dentro de este circuito, hemos escogido tres localizaciones distintas para el vehículo a la hora de realizar el entrenamiento con el algoritmo de QLearning. Como se puede apreciar en la figura \ref{fig:Entorno} las posiciones
     tienen una distancia entre ellas considerablemente. 
-    \item \textbf{Estados}: Condiciones en las que se puede encontrar el agente en ese instante de tiempo. Para la definición de los estados, dividiremos la imagen que damos como la salida de la detencción del carril en 14 franjas, dichas franjas tendrán una 
+    \item \textbf{Estados}: Condiciones en las que se puede encontrar el agente en ese instante de tiempo. Para la definición de los estados, dividiremos la imagen que damos como la salida de la detección del carril en 14 franjas, dichas franjas tendrán una 
     separación de 10 pixeles. Las franjas representarán cada estado en el que se puede encontrar el agente.Empezaremos a definir el primer estado desde la izquierda hasta la derecha
     hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. 
     \item \textbf{Acciones}: Movimientos que puede realizar el agente dentro del estado en el entorno de entrenamiento.Tendremos en total 21 acciones que podrá escoger el agente en el algoritmo de Q-Learning, se componen de pares de velocidades lineales y angulares. Las velocidades lineales
     tendrán un intervalo de 0.1 m/s hasta 2.0 m/s, así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
     de velocidades serán formados a partir de la función que nos proporciona Numpy llamada linspace\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. \newline
   
-    \begin{code}[h]
+    \begin{code}[H]
       \begin{lstlisting}[language=Python]
   
         
@@ -809,8 +878,9 @@ final.\newline
       
     \item \textbf{Función de Recompensa o Penalizaciones}: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
     en una función, dicha función es independiente en cada diseño del objetivo que quiere completar el agente. La función de recompensa constará de dos partes premiando al dron de que se 
-    permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que se navegue de forma paralela al mismo. Tanto la recompensa por 
-    mantenerse centrado en el carril como la orientación respecto al carril será normalizada entre valores de 0-, penalizando con un valor constante al dron cuando se salga del carril o 
+    permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que se navegue de forma paralela al mismo. Cada parte tendrá un peso
+    de importancia, siendo el peso que se permanezca del carril del 85\% y la orientación respecto al carril de un 15\%. Tanto la recompensa por mantenerse centrado en el carril 
+    como la orientación respecto al carril será normalizada entre valores de 0-1, penalizando con un valor constante al dron cuando se salga del carril o 
     se pierda la percepción. La implementación de la función de recompensa y las penalizaciones se puede ver el siguiente código:
 
     \begin{code}[H]
@@ -870,7 +940,7 @@ final.\newline
  el agente se centrará en la explotación. Por lo que en la elección de acción se generará un numero n aleatoriamente, si n es menor que la probabilidad $\epsilon$ la acción se escogerá aleatoriamente
  en cambio si n es mayor que la probabilidad de $\epsilon$ la acción será que mayor valor tenga en la tabla Q(S,A) para dicho estado. \newline
  
- Dentro de esta política la probabilidad de $\epsilon$ será decayente, es decir, no ser un valor constante en cada episodio que nos encontremos, lo que realizaremos sera una disminuición 
+ Dentro de esta política la probabilidad de $\epsilon$ será decayente, es decir, no ser un valor constante en cada episodio que nos encontremos, lo que realizaremos será una disminuición 
  de esta probabilidad para conseguir que el agente con el paso del tiempo poco a poco explote lo que ha aprendido y que el modelo llegue a una convergencia óptima. Para llevar a cabo el descenso
  de $\epsilon$ se puede realizar de varias formas, por ejemplo podemos realizarlo linealmente, logaritmicamente, exponencial o escalonado. \newline
   \end{itemize}
@@ -886,17 +956,18 @@ final.\newline
 
   \begin{itemize}
     \item \textbf{$Q(s, a)$}: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción.
-    \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, si dicho valor es alto daremos más peso al valor aprendido 
+    \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, 
+    si dicho valor es alto daremos más peso al valor aprendido. Dicho valor será de 0.5 
     \item \textbf{$R(s, a)$}: Recompensa por tomar la acción $a$ en el estado $s$. La función de recompensa es crucial en el proceso de aprendizaje del agente, evalua como es favorable o deseable
     es una acción tomada por el agente en el estado que se encuentre. Proporciona información al agente sobre que acciones maximizan la recompensa total a lo largo del tiempo. Dicha función
     de recompensa es diseñada dependiendo de cual sea el objetivo de tu agente. 
     \item \textbf{$\gamma$}: Factor de descuento entre un valor de 0 a 1. Modela la importancia de las recompensas futuras en relación con las recompensas inmediatas, refleja la importancia del agente
     por las recompensas a largo plazo. Un valor alto sifnigicará que le agente valorará mucho las recompensas futuras, mientras que un valor bajo indica que se enfocará más en las recompensas
-    inmediatas
+    inmediatas. Este parámetro tendrá un valor de 0.7.
     \item \textbf{$\max Q(s', a')$}: Valor Q máximo en el próximo estado $s'$ para todas las acciones posibles $a'$.
 \end{itemize}
 
-A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando la tabla Q(s,a) para más adelante indexar en ella en la fase de inferencia
+A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando la tabla Q(s,a) para más adelante indexar en ella en la fase de inferencia.
 
 \subsubsection{Fase de entrenamiento}
 \label{sec:fases_ql}
@@ -910,15 +981,28 @@ A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando
 
  
  La fase de entrenamiento consiste en el que el agente explore todo lo máximo posible en el entorno respecto a los estados que tiene y las acciones que puede tomar, es decir, al comienzo del entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores, esta representación
- al comienzo es así ya que el agente desconoce por completo el entorno hasta que poco a poco vaya iterando sobre el en cada estado tomando x accion. \newline
+ al comienzo es así ya que el agente desconoce por completo el entorno hasta que poco a poco vaya iterando sobre él en cada estado tomando x accion. \newline
  
  Basicamente, en cada iteración del algoritmo se escogerá una acción según si estamos en exploración o explotación, se calculará la recompensa obtenida e iteraremos de nuevo sobre el algoritmo.
 
  El entrenamiento finaliza cuando el agente haya aprendido el objetivo que queremos seguir, esto se sabe cuando las iteraciones del algoritmo y la recompensa acumulada del agente en esta 
  fase se estabilice y tenga valores constantes, es decir, no cambia significativamente con más iteraciones, esto se denomina que el modelo ha convergido y pasaremos a la fase de inferencia. \newline
 
-Durante esta fase, dejamos el algoritmo de Q-Learning entrenando durante aproximadamente 12 horas. De esta manera, nos podemos asegurar que el algoritmo completará el entrenamiento de manera correcta y poco a poco 
-acabará convergiendo. En las fíguras , se presentan dos gráficas respecto 
+Durante esta fase, dejamos el algoritmo de Q-Learning entrenando durante aproximadamente 12 horas teniendo un rate del algoritmo de QLearning más el algoritmo de percepción aproximadamente de 
+unos 10 FPS. De esta manera, nos podemos asegurar que el algoritmo completará el entrenamiento de manera correcta y poco a poco 
+acabará convergiendo. En la fígura \ref{fig:entrenamiento} se ilustra tres fíguras distintas que consisten en comparar los episodios respecto a las iteraciones que ha podido 
+llegar a realizar el dron, la recompensa acumulada que ha obtenido en cada episodio y el valor de epislon. Podemos apreciar que al comienzo del algoritmo las iteraciones y la recompensa
+acumulada es baja ya que el dron desconoce por completo el entorno en el que va a trabajar pero a medida que vaya avanzando en los episodios y disminuyendo la probabilidad
+de exploración, consigue obtener una mayor recompensa acumulada e iteraciones consiguiendo estabilizarse y tener un valor constante, dicho resultado se puede observar a partir 
+del episodio 900 que es cuando la probabilidad tiene valor 0.
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.38]{figs/Diseño/RL/graficas-entrenamiento.png}
+  \end{center}
+  \caption{Gráficas de la fase de entrenamiento}
+  \label{fig:entrenamiento}
+\end{figure}\
 
 
 \subsubsection{Fase de inferencia}
