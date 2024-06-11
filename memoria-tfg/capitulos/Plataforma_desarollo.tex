@@ -130,7 +130,7 @@ de algoritmos de clasificación especificamente clustering.
 \label{sec:YOLOP}
 YOLOP \cite{YOLOP} (You Only Look Once for Panoptic Driving Perception) es una red de percepción
 de conducción panóptica que ofrece múltiples tareas que puede
-manejar simultaneamente tres tareas cruciales en la conducción autónoma: 
+manejar simultáneamente tres tareas cruciales en la conducción autónoma: 
 \begin{enumerate}
   \item \textbf{Detención de objetos de tráfico}: Identifica los objetos presentes en la carretera, como otros vehículos, peatones, señales de tráfico, etc.
   \item \textbf{Segmentación del área transitable}: Determina las áreas de la carretera por las que un vehículo puede conducir de manera segura.
@@ -175,7 +175,7 @@ representa si pertenece a una clase de objeto o al fondo.
 \subsubsection{Modelo de YOLOP}
 \label{sec:Modelo_YOLOP}
 
-YOLOP utiliza una arquitectura de red neuronal CNN(Convolutional Neuronal Network).Es un tipo de red neuronal artificial diseñada para procesar datos con una
+YOLOP utiliza una arquitectura de red neuronal CNN. Es un tipo de red neuronal artificial diseñada para procesar datos con una
 estructura de cuadrícula, como una imagen. Dicho modelo presenta unos pesos preentrenados: 
 
 \begin{enumerate}
@@ -207,27 +207,24 @@ Por lo que, utilizaremos esta red neuronal para poder detectar los carriles que 
 
 \begin{figure}[H]
   \begin{center}
-    \subfigure[yolop-320-320.onnx]{
-     \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-320-320.jpg}
-     \label{f:Yolop-320-320.onnx}}
-    \subfigure[yolop-640-640.onnx]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-640-640.jpg}
-      \label{yolop-640-640.onnx}}
-    \subfigure[yolop-1280-1280.onnx]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-1280-1280.jpg}
-      \label{f:yolop-1280-1280.onnx}}
-    \subfigure[end-to-end.pth]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/Pytorch.jpg}
-      \label{f:End-to-end.pth}}
-  \caption{Diferentes resultados utilizando la red neuronal YOLOP en el entorno de simulación}
+    \subfigure[Detención de tráfico]{
+     \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/detect.png}
+     \label{f:Detención de tráfico}}
+    \subfigure[Segmentación de área transitable]{
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/da.png}
+      \label{Segmentación}}
+    \subfigure[Líneas detectadas]{
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/ll.png}
+      \label{f:ll}}
+  \caption{Resultados de la salida de la red neuronal YOLOP\cite{YOLOP}}
   \label{f:resultadosYOLOP}
   \end{center}
  \end{figure}
  \newpage
 \section{ROS}
 \label{sec:ros}
-\textbf{ROS (Robot Operating System)}\footnote{\url{https://www.ros.org/}} es un sistema operativo de código abierto utilizado principalmente para aplicaciones robóticas. 
-Podemos definir este middleware de la siguiente forma:
+\textbf{ROS (Robot Operating System)}\footnote{\url{https://www.ros.org/}} es un conjunto de librerías de código abierto utilizadas principalmente para aplicaciones robóticas. 
+Podemos definir este middleware como se muestra en la figura \ref{fig:ROS}:
 
 \begin{figure} [H]
     \begin{center}
@@ -254,7 +251,7 @@ Este tipo sistema es bastante útil ya que permite a los desarrolladores cambiar
 el desarrollo iterativo, permitiendo construir sistemas robóticos complejos, escalables y robustos mejorando la eficiencia y permitiendo el desarrollo y mantenimiento de aplicaciones
 robóticas. \newline
 
-Utilizaremos ROS en el desarrollo del TFG para realizar la conexión con el simulador Airsim y el desarrollo del sistema de percepción del seguimiento del carril a través del controlador PID y 
+Utilizamos ROS en el desarrollo del TFG para realizar la conexión con el simulador Airsim y el desarrollo del sistema de percepción del seguimiento del carril a través del controlador PID y 
 aprendizaje por refuerzo. \newline
 
 
@@ -341,7 +338,41 @@ Para más detalles sobre el archivo de settings.json está la paǵina oficial de
 Los escenarios que ofrece Airsim depende en que sistema operativo nos encontremos, en nuestro caso al utilizar el escenario en Windows 
 tenemos más variedad que en comparación con Linux. \newline
 
-Tiene escenarios desde carreteras y cuidades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras. En nuestro caso
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/blocks.png}
+      \caption*{a) Blocks}
+  \end{minipage}%
+  \begin{minipage}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/landscapemountains.png}
+      \caption*{b) LandscapeMountains}
+  \end{minipage}
+
+  \begin{minipage}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/Coastline.png}
+      \caption*{c) Coastline}
+  \end{minipage}%
+  \begin{minipage}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/city_airsim.png}
+      \caption*{d) City}
+  \end{minipage}
+
+  \begin{minipage}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/AirsimNH.jpg}
+      \caption*{e) Neighborhood}
+  \end{minipage}
+  \caption{Ejemplos de escenarios en Airsim}
+  \label{f:escenarios_airsim}
+\end{figure}
+
+Tiene escenarios desde carreteras y cuidades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
+muestra en la figura \ref{f:escenarios_airsim}. En nuestro caso
 hemos utilizado el escenario Coastline,consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno tendremos la
 información del entorno para realizar el comportamiento sigue carril con el dron. \newline
 
@@ -349,28 +380,7 @@ Todos estos escenarios se pueden encontrar en las releases de Airsim\footnote{\u
 En nuestro caso hemos utilizado el escenario Coastline, ya que queremos desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
 a cabo.
 
-\begin{figure}[H]
-  \begin{center}
-    \subfigure[Blocks]{
-     \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/blocks.png}
-     \label{f:blocks}}
-    \subfigure[LandscapeMountains]{
-     \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/landscapemountains.png}
-     \label{f:LandscapeMountains}}
-    \subfigure[Coastline]{
-      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/Coastline.png}
-      \label{f:Coastline}}
-    \subfigure[City]{
-      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/city_airsim.png}
-      \label{f:City}}
-    \subfigure[Neigborhood]{
-      \includegraphics[width=0.3\textwidth,height=0.2\textwidth ]{figs/Plataformas_Desarollo/mapas_airsim/AirsimNH.jpg}
-      \label{f:Neigborhood}}
 
-  \caption{Ejemplos de escenarios en Airsim}
-  \label{f:escenarios_airsim}
-  \end{center}
- \end{figure}
 
 \subsubsection{Sensores}
 \label{sec:airsim}
