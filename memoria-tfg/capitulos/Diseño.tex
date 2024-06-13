@@ -31,7 +31,7 @@ tanto para el control de los actuadores como el manejo de los sensores. Dichos c
 trabajo como con el entorno de simulación para obtener comportamientos de navegación autónoma,facilitando la comunicación entre el entorno de simulación y los programas desarrollados.\newline
 
 Se realizan implementaciones de comportamientos de navegación autónoma basada en redes neuronales y algoritmos de aprendizaje automático, como control clásico basado en 
-un controlador Proporcional-Derivativo-Integral así como comportamientos más eficientes y complejos basados en reinforcement learning.
+un controlador Proporcional-Derivativo-Integral así como comportamientos más eficientes y complejos basados en aprendizaje por refuerzo.
 
 Así junto con el uso de herramientas como PX4 Autopilot y Mavros para así poder analizar la viabilidad junto con el entorno de desarollo Airsim. Las principales implementaciones que se han 
 llevado acabo son principalmente dos como se muestra en la figura \ref{fig:infraestructura}:
@@ -355,7 +355,6 @@ lo queremos hacer. En nuestro, elegiremos la opción de GPU para realizar la inf
       \label{cod:codejemplo}
       \end{code}  
 
-    \newpage
     Como resultado de la inferencia obtendremos un tensor de salida que corresponde la probabilidad de detección de la segmentación
     de la calzada y la detección de las líneas de la calzada. Dicho tensor habrá que convertirlo en una imagen para poder visualizar
     dicho resultado como una imagen. 
@@ -455,18 +454,30 @@ significa que el modelo YOLOP con estos pesos tiene aproximadamente un rate de 1
 en tiempo de inferencia, rate y mejores resultados. 
 Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
 del modelo, añadiendo de tener una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, nosostros
-buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección como se mostraban en los resultados de la red neuronal \ref{f:resultadosYOLOP}. 
-Por ello nos descantaremos por escoger el modelo yolop320-320.onnx.\newline
+buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección de las líneas de la calzada. 
+Por ello nos descantaremos por escoger el modelo yolop320-320.onnx ya que obtiene mejores resultados para poder realizar la detección de las líneas del carril que 
+queremos segir como se aprecia en la figura \ref{f:resultadosYOLOP}.\newline
 
-\begin{figure} [H]
+\begin{figure}[H]
   \begin{center}
-    \includegraphics[scale=1.0]{figs/Diseño/YOLOP/onnx-320-320.jpg}
+    \subfigure[yolop-320-320.onnx]{
+     \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-320-320.jpg}
+     \label{f:Yolop-320-320.onnx}}
+    \subfigure[yolop-640-640.onnx]{
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-640-640.jpg}
+      \label{yolop-640-640.onnx}}
+    \subfigure[yolop-1280-1280.onnx]{
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-1280-1280.jpg}
+      \label{f:yolop-1280-1280.onnx}}
+    \subfigure[end-to-end.pth]{
+      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/Pytorch.jpg}
+      \label{f:End-to-end.pth}}
+  \caption{Diferentes resultados utilizando la red neuronal YOLOP en el entorno de simulación}
+  \label{f:resultadosYOLOP}
   \end{center}
-  \caption{Resultados de los pesos preentrenados yolop320-320.onnx}
-  \label{fig:pesos_preentrenados}
-\end{figure}\
+ \end{figure}
 
-Una vez escogido el modelo yolop320-320.onnx procederemos a seleccionar las líneas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
+Finalizado este proceso, procederemos a seleccionar las líneas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
 
 \subsection{DBSCAN}
 \label{sec:DBSCAN}
@@ -485,7 +496,7 @@ Los valores de los parámetros de la distancia máxima y el número mínimo de m
 máxima alta puede provocar que los clústeres que queramos que pertenezcan a un distinto grupo pertenezcan al mismo grupo. 
 Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres más densos y 
 si se establece en un valor bajo, los clústeres encontrados serán más dispersos. \newline
-Para entender un poco más como funciona el algoritmo, en la siguiente figura recogida por este árticulo\cite{DBSCAN} se ilustra 
+Para entender como funciona el algoritmo, en la figura \ref{fig:Ejemplo_DBSCAN} recogida por este artículo\cite{DBSCAN} se ilustra 
 un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
 teniendo como valor el número mínimo de muestras 3, eso significa que para que se considere una muestra a un grupo de cluster tendrá que tener una densidad de 3. El algoritmo itera por
 las muestras y compara el valor de la distancia máxima y el número mínimo de muestras. 
@@ -496,8 +507,8 @@ que no pertenecerá a ningún grupo de clústeres. El resultado del algoritmo ha
   \begin{center}
     \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/DBSCAN-Illustration.png}
   \end{center}
-  \caption{Ejemplo ilustrativo de como funciona el algoritmo de DBSCAN}
-  \label{fig:pesos_preentrenados}
+  \caption{Ejemplo ilustrativo de como funciona el algoritmo de DBSCAN \cite{DBSCAN}}
+  \label{fig:Ejemplo_DBSCAN}
 \end{figure}\
 
 Por lo que para encontrar los valores de estos dos parámetros durante el desarrollo del TFG fue experimental y quedandonos con el mejor resultado. La distancia máxima tendra un valor de 10 
@@ -543,8 +554,25 @@ transformando un array simple de una dimensión a un array de dos dimensiones. U
 
 El resultado de DBSCAN es una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
 n el último grupo de clusters detectado. De las listas de etiquetas se eliminarán los clusters que hallan sido etiquetados como ruido (-1). Para obtener el resultado solamente bastará iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida.
+Visualmente se puede apreciar en la figura \ref{f:Rresultadosdbscan} los diferentes resultados que tiene este algoritmo en localizaciones distintas. 
 
-FOTO DE DBSCAN
+\begin{figure}[H]
+  \begin{center}
+    \subfigure[DBSCAN zona 1]{
+     \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan1.jpg}
+     \label{f:dbcan1}}
+    \subfigure[DBSCAN zona 2]{
+      \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan2.jpg}
+      \label{f:dbcan2}}
+    \subfigure[DBSCAN zona 3]{
+      \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan3.jpg}
+      \label{f:dbcan3}}
+  \caption{Diferentes resultados utilizando el algoritmo de DBSCAN}
+  \label{f:Rresultadosdbscan}
+  \end{center}
+ \end{figure}
+
+
 
 \subsection{Clasificación de clústeres}
 \label{clasificación:cluster}
@@ -598,7 +626,7 @@ esto conseguimos que no solamente escojamos en función de la cercania si no que
   \begin{center}
     \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/resultado.png}
   \end{center}
-  \caption{Ilustración del proceso de clasificación de líneas detectadas}
+  \caption{Ilustración del proceso de clasificación de líneas detectadas respecto al carril que queremos seguir}
   \label{fig:DBSCAN_imagen}
 \end{figure}\
 
@@ -674,11 +702,11 @@ dar números negativos realizando dicha regresión además de que en una imagen 
 Este proceso se realizará dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
 escogidos de la izquierda. \newline
 Finalmente, con dichas regresiones cuadráticas se realizará una dilatación de los puntos para tener un resultado más llamativo y visual al poder
-ver las regresiones cuadráticas.\newline
+ver las regresiones cuadráticas como se muestra en la figura \ref{fig:regresión cuadrática}.\newline
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.4]{figs/Diseño/Regresiones/regresion.jpg}
+    \includegraphics[scale=0.4]{figs/Diseño/Regresiones/Regresiones.jpg}
   \end{center}
   \caption{Resultado de la regresión cuadrática}
   \label{fig:regresión cuadrática}
@@ -692,7 +720,7 @@ los puntos de la imagen original y quedarnos con los puntos que se encuentren de
 los puntos de la regresión de la  derecha
 y otra interpolación para los puntos de la regresión izquierda. Estas funciones interpolan los valores de los puntos en  y en función de los valores de los puntos en x, más adelante se evaluará los valores de las puntos que se encuentren entre 
 ambas regresiones cuadráticas. Cuando realizemos dicha evaluación realizaremos un filtro para seleccionar el rango de puntos que representar un fragmento del carril de color azul en la imagen
-final.\newline
+final. Visualizando el resultado en la figura \ref{fig:interpolación} \newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -726,30 +754,33 @@ final.\newline
   \label{cod:codejemplo}
   \end{code}  
 
+
+
   \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale= 0.4]{figs/Diseño/Regresiones/interpolacion.jpg}
+      \includegraphics[scale= 0.4]{figs/Diseño/Regresiones/Interpolacion.jpg}
     \end{center}
     \caption{Resultado de la interpolación}
     \label{fig:interpolación}
   \end{figure}\
 
   Finalmente, cuando obtengamos el cálculo del carril que queremos seguir solamente faltará calcular el centro de masas de dicho fragmento conocido como el centroide siguiendo la ecuación
-  del cálculo de centro de masas de una superficie. \newline
+  del cálculo de centro de masas de una superficie: \newline
+  
 
   \begin{equation} 
     \vec{r}_{CM} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{\sum_{i}m_{i}} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{M} 
     \newline
   \end{equation} 
- 
+  \newline
   Supondremos que todos los puntos tienen la misma masa (m\_i = 1). Esto simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar.
   El segundo paso será el calculo de la masa total, se calcula multiplicando la masa individual (m\_i) por la cantidad de puntos en el carril. A continuación calcularemos
   la suma de las posiciones de los puntos ponderadas por su masa y dividimos por la masa total calculada anteriormente. El resultado es una centro de masas conocido como centroide
-  con coordenada x e y. 
+  con coordenada x e y como se muestra en la figura final \ref{fig:centro de masas}. 
 
   \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale=0.6]{figs/Diseño/Regresiones/percepcion.jpg}
+      \includegraphics[scale=0.4]{figs/Diseño/Regresiones/centroide.jpg}
     \end{center}
     \caption{Resultado del centro de masas}
     \label{fig:centro de masas}
@@ -773,8 +804,8 @@ final.\newline
   Como podemos apreciar, la parte de la percepción que tarda más es el cálculo de la regresiones cuadráticas, la interpolación y el cálculo del centroide. Esto se debe a que
   cuando se realiza el cálculo de las regresiones hay que recorrer los puntos de los grupos de clústeres y cálcular sus funciones para obtener las regresiones. Respecto al 
   tiempo que tarda el algoritmo de DBSCAN junto con la clasficación de los clústeres es el ganador en cuanto menor tiempo de cómputo lo cual es interesante trabajar 
-  con dicho algoritmo de clustering. En conclusión, sumando todos los tiempos de cada parte obtenemos un tiempo global de 0.029 segundos pasado a FPS conseguimos un rate aproximadamente
-  de 38 FPS. 
+  con dicho algoritmo de clustering. En conclusión, sumando todos los tiempos de cada parte obtenemos un tiempo global de 0.033 segundos pasado a FPS conseguimos un rate aproximadamente
+  de 30 FPS. 
 
   \section{Seguimiento del carril mediante control clásico}
   \label{sec:Control}
@@ -819,7 +850,7 @@ final.\newline
     \end{code} 
 
   \section{Seguimiento del carril mediante aprendizaje por refuerzo}
-  \label{sec:Reinforcement learning}
+  \label{sec:aprendizaje por refuerzo}
 
   Como mencionamos en la sección \ref{sec:IA},el aprendizaje por refuerzo consiste en enseñar un agente 
   desempeñar un comportamiento mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
@@ -831,7 +862,7 @@ final.\newline
     durante las fases de pruebas. 
     \begin{figure} [H]
       \begin{center}
-        \includegraphics[scale=0.5]{figs/Diseño/RL/entorno.png}
+        \includegraphics[scale=0.3]{figs/Diseño/RL/entorno.png}
       \end{center}
       \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
       \label{fig:Entorno}
@@ -840,8 +871,17 @@ final.\newline
     Dentro de este circuito, hemos escogido tres localizaciones distintas para el vehículo a la hora de realizar el entrenamiento con el algoritmo de QLearning. Como se puede apreciar en la figura \ref{fig:Entorno} las posiciones
     tienen una distancia entre ellas considerablemente. 
     \item \textbf{Estados}: Condiciones en las que se puede encontrar el agente en ese instante de tiempo. Para la definición de los estados, dividiremos la imagen que damos como la salida de la detección del carril en 14 franjas, dichas franjas tendrán una 
-    separación de 10 pixeles. Las franjas representarán cada estado en el que se puede encontrar el agente.Empezaremos a definir el primer estado desde la izquierda hasta la derecha
-    hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. 
+    separación de 10 pixeles. Las franjas representan cada estado en el que se puede encontrar el agente. Empezamos a definir el primer estado desde la izquierda hasta la derecha con una
+    hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. Se puede observar el resultado de los estados en la figura \ref{fig:Estados}
+
+    \begin{figure} [H]
+      \begin{center}
+        \includegraphics[scale=0.5]{figs/Diseño/RL/estados.jpg}
+      \end{center}
+      \caption{Estados definidos para el sigue carril basado en Q-Learning}
+      \label{fig:Estados}
+    \end{figure}\
+
     \item \textbf{Acciones}: Movimientos que puede realizar el agente dentro del estado en el entorno de entrenamiento.Tendremos en total 21 acciones que podrá escoger el agente en el algoritmo de Q-Learning, se componen de pares de velocidades lineales y angulares. Las velocidades lineales
     tendrán un intervalo de 0.1 m/s hasta 2.0 m/s, así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
     de velocidades serán formados a partir de la función que nos proporciona Numpy llamada linspace\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. \newline
@@ -873,7 +913,7 @@ final.\newline
        
       \end{lstlisting}
       \caption[Construcción de las acciones para Q-Learning]{Construcción de las acciones para Q-Learning}
-      \label{cod:codejemplo}
+      \label{cod:Acciones}
       \end{code}
       
     \item \textbf{Función de Recompensa o Penalizaciones}: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
@@ -925,7 +965,7 @@ final.\newline
       \caption[Función de recompensa]{Función de recompensa}
       \label{cod:codejemplo}
       \end{code}
-    \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir dentro de Reinforcement learning.
+    \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir dentro de aprendizaje por refuerzo.
     Puede ser determinista o estocástica. \newline
 
     Seguiremos la política epsilon-greedy\cite{Epsilon-greedy}, que consiste 
@@ -948,9 +988,9 @@ final.\newline
   El algoritmo Q-Learning  se basa en seguir una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación
   de Bellman\cite{Bellman}:
   
-  \begin{equation} 
+  \begin{equation}
     Q(s, a) = Q(s, a) + \alpha \cdot [R(s, a) + \gamma \cdot \max Q(s', a') - Q(s, a)]
-  \end{equation} 
+  \end{equation}
 
   en donde, 
 
@@ -969,7 +1009,7 @@ final.\newline
 
 A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando la tabla Q(s,a) para más adelante indexar en ella en la fase de inferencia.
 
-\subsubsection{Fase de entrenamiento}
+\subsection{Fase de entrenamiento}
 \label{sec:fases_ql}
  Antes de adentrarnos en esta fase, definiremos dos conceptos importantes:
  \begin{itemize}
@@ -990,44 +1030,120 @@ A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando
 
 Durante esta fase, dejamos el algoritmo de Q-Learning entrenando durante aproximadamente 12 horas teniendo un rate del algoritmo de QLearning más el algoritmo de percepción aproximadamente de 
 unos 10 FPS. De esta manera, nos podemos asegurar que el algoritmo completará el entrenamiento de manera correcta y poco a poco 
-acabará convergiendo. En la fígura \ref{fig:entrenamiento} se ilustra tres fíguras distintas que consisten en comparar los episodios respecto a las iteraciones que ha podido 
-llegar a realizar el dron, la recompensa acumulada que ha obtenido en cada episodio y el valor de epislon. Podemos apreciar que al comienzo del algoritmo las iteraciones y la recompensa
-acumulada es baja ya que el dron desconoce por completo el entorno en el que va a trabajar pero a medida que vaya avanzando en los episodios y disminuyendo la probabilidad
-de exploración, consigue obtener una mayor recompensa acumulada e iteraciones consiguiendo estabilizarse y tener un valor constante, dicho resultado se puede observar a partir 
-del episodio 900 que es cuando la probabilidad tiene valor 0.
+acabará convergiendo. 
+En la fígura \ref{fig:entrenamiento} se ilustra la fase de entrenamiento durante la navegación del dron. En la primera figura se corresponde al número de iteraciones de cada 
+episodio durante el entrenamiento, la segunda corresponde al valor que va teniendo épsilon en cada episodio y la tercera grafica se muestra el valor de la recompensa 
+acumulativa en cada episodio. \newline
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.38]{figs/Diseño/RL/graficas-entrenamiento.png}
+    \includegraphics[scale=0.44]{figs/Diseño/RL/graficas-entrenamiento.png}
   \end{center}
   \caption{Gráficas de la fase de entrenamiento}
   \label{fig:entrenamiento}
 \end{figure}\
 
+Al comienzo del entrenamiento, se puede observar que el dron obtiene pocas iteraciones y bajas recompensas acumulativas, 
+esto se debe a que el dron al comienzo del entrenamiento desconoce por completo el entorno. A medida que vamos avanzando en el entrenamiento, 
+las iteraciones y los valores de la recompensa acumulativa son mayores hasta que en el episodio 900 donde acaba la fase de exploración 
+siendo el valor de épsilon cero (las acciones no son aleatorias). A partir de ese punto, la recompensa y las iteraciones tienen una tendencia ascendente, y finalmente, 
+a lo largo del entrenamiento, ambas se estabilizan en un valor fijo sin cambiar considerablemente. Esto se debe a que el dron completa constantemente el circuito en cualquier
+punto de reinicio dentro del circuito sin cambiar considerablemente la tabla Q. En este momento, se puede decir que el algoritmo ha sido capaz de converger. Una vez se analice 
+los resultados del entrenamiento con las diferentes métricas daremos pie a la fase de inferencia para verificar el resultado obtenido con el modelo entrenado. 
 
-\subsubsection{Fase de inferencia}
+\subsection{Fase de inferencia}
 \label{sec:fases_inferencia}
-La fase de inferencia consiste en indexar la tabla Q(S,A) que hemos ido rellenando en la fase de entrenamiento. El agente cuando se encuentré en un estado especifico consultará la tabla Q(S,A) para
-encontrar la mejor acción en ese estado (cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado). Cuando el agente tome dicha acción se moverá al siguiente estado
+La fase de inferencia consiste en indexar la tabla Q(S,A) que hemos ido rellenando en la fase de entrenamiento. El dron cuando se encuentré en un estado especifico consultará la tabla Q(S,A) para
+encontrar la mejor acción en ese estado (cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado). Cuando el dron tome dicha acción se moverá al siguiente estado
 siendo así un proceso iterativo hasta alcanzar la meta. En esta fase, los valores de la tabla permanecen constantes y se utiliza para la toma de decisiones basadas en el conocimiento
-aprendido en la fase de entrenamiento. 
+aprendido en la fase de entrenamiento. \newline
+
+En la fígura \ref{fig:inferencia} se puede observar las diferentes acciones que ha utilizado el dron para completar el circuito de entrenamiento utilizando cuatro de veintiuno de acciones
+disponibles. Se destaca que la acción más usada se trata de una de las acciones que presentan poco giro y alta velocidad lineal dentro de las acciones con más velocidad lineal, esto se debe
+a la importancia de la función de recompensa al considerar que queremos que el dron se mantenga constantemente en el centro del carril manteniendo un angulo de orientación adecuado
+sin salirse del carril.
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.6]{figs/Diseño/RL/Acciones_inferidas.png}
+  \end{center}
+  \caption{Distribucción de acciones en el circuito de entrenamiento}
+  \label{fig:inferencia}
+\end{figure}\
+
+Como resultado al utilizar el algoritmo de Q-learning, el modelo entrenado ofreció ser un resultado eficaz a la hora de navegar por el circuito, pudiendo observar 
+el modelo entrenado final en diferentes localizaciones alteatorias en el entorno de la figura \ref{fig:Entorno}. Para poder obtener el máximo rendimiento del modelo entrenado se busco los límites de velocidad
+angular y lineal a la que podía ir el dron, esto significa multiplicar por un factor todas las acciones tanto las velocidades lineales y angulares. Este proceso es interesante 
+realizarlo para maximizar el comportamiento sin la necesidad de volver a entrenar un nuevo modelo. Estos factores se pueden ver en el código  \ref{cod:Factores} lo cual 
+las acciones se pueden aumentar un 100\% lo que podemos decir que el modelo entrenado es efectivo al aumentar el valor de las acciones. \newline
+
+\begin{code}[h]
+  \begin{lstlisting}[language=Python]
+
+    factor_speed = 2.0
+    factor_angular_speed = 1.8
+   
+  \end{lstlisting}
+  \caption[Factores]{Valores de los factores aplicados a las acciones de Q-learning}
+  \label{cod:Factores}
+  \end{code} 
+
+Siendo los nuevos valores de las acciones utilizados durante las fases de comparación entre el seguimiento de carril con el PID y el seguimiento de carril mediante Q-learning. Los nuevos
+valores de las acciones originales como se mostraba en el código \ref{cod:Acciones} son multiplicados por ambos factores
+y su gráfico de acciones en la figura \ref{fig:inferencia_factor}, se puede observar que en la distribución de acciones el dron
+sigue escogiendo acciones con velocidad lineal alta y velocidad angular baja para mantenerse dentro del recorrido sin salirse, además de aumentar el porcentaje de las acciones escogidas respecto a la distribución de acciones
+que se mostraba en la figura \label{fig:inferencia}
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/Acciones_inferidas_factor.png}
+  \end{center}
+  \caption{Distribucción de acciones en el circuito de entrenamiento multiplicadas por el factor}
+  \label{fig:inferencia_factor}
+\end{figure}\
 
 
-
-
-
-
-
-
+\subsection{Análisis y comparativa entre el seguiento de carril clásico}
+\label{sec:Análisis y comparativa entre el seguiento de carril clásico}
+Para comprobar la robustez y la eficacia que demuestra ser el modelo entrenado junto con el seguimiento de carril mediante el PID, se realizo varias comparativas en ambos
+comportamientos. Se ajusto las velocidades del controlador PID para que ambos tuviesen las mismas condiciones, para ello se utilizo un circuito en el que ambos son capaces 
+de recorrerlo sin salirse del carril. En la figura \ref{fig:comparativa} se muestra el resultado de ambos comportamientos, en la primera figura es todo el recorrido hasta el punto
+final y en la segunda figura se realiza zoom en una parte del recorrido, los datos fueron recogidos mediante la posición del dron guardandolos un fichero tanto las coordenadas 
+en el eje x como las coordenadas en el eje y. 
   
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{1.0\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/ruta.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{1.0\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/ruta_zoom.png}
+  \end{minipage}
+  \caption{Comparativa realizando un trayecto entre ambos comportamientos}
+  \label{fig:comparativa}
+\end{figure}
+
+Una de las principales diferencias entre ambos comportamientos es que el comportamiento con control clásico presenta oscilaciones durante el recorrido relizando eses 
+por ambas partes del recorrido hasta llegar al punto final del recorrido. En cambio, el comportamiento con aprendizaje por refuerzo destaca por su trayectoria constante 
+durante todo el recorrido sin apenas realizar oscilaciones, destacando que el trayecto para realizar la comparativa se trata de un trayecto recto sin apenas curvas como 
+se muestra en la figura . 
+
+Finalmente, en la figura se ilustra la media de velocidades angulares que han obtenido ambos comportamientos en el recorrido que se muestra en la fígura . Se puede apreciar 
+como el comportamiento de aprendizaje por refuerzo obtiene menor media de velocidad angular respecto al controlador PID manteniendo un trayectoria segura y eficaz en un recorrido 
+que nunca ha visto durante la fase de entrenamiento. Demostrando asi que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes
+al recorrido. 
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/medias_velocidades_angulares.png}
+  \end{center}
+  \caption{Media de velocidades angulares de ambos comportamientos desarrollados}
+  \label{fig:media_velocidades}
+\end{figure}\
 
 
-  
 
-
-
-
-  
 
 
 
