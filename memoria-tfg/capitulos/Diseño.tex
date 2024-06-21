@@ -3,55 +3,54 @@
 
 
 \vspace{1cm}
-El principal objetivo de este TFG es poder desarrollar un comportamiento de navegación autónoma en entornos de simulación 
-con el fin de que el dron pueda alcanzar el comportamiento deseado utilizando inteligencia artificial, específicamente redes neuronales
-y aprendizaje por refuerzo. Se tomará como entorno de simulación Airsim junto con el motor de videojuegos UnRealEngine, adicionalmente con 
-la comunicación de este entorno con AirSim ROS Wrapper Node y Client Airsim, además del estudio y 
-análisis de la comunicación entre Airsim, PX4 Autopilot, Mavros y AirSim ROS Wrapper Node .Así, pudiendo evaluar si es posible la unión de Airsim junto con ROS, PX4 y Mavros para
-herramientas de diseño en la navegación autónoma de drones. \newline
+El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación para un dron en entornos de simulación. Este dron debe ser capaz de desenvolverse
+por carreteras urbanas con un comportamiento reactivo y seguro. 
+Para lograr este objetivo, se implementa la infraestructura de comunicaciones entre el entorno de simulación y las diversas 
+plataformas de desarrollo. Esta infraestructura permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
+una comunicación fluida y eficiente.
 
-En primer lugar, en el contexto de la conducción autónoma de drones se evaluará el desarrollo de la percepción mediante redes neuronales y algoritmos de
-aprendizaje no supervisado, en especial, clustering y regresiones. 
-Posteriormente,el control del UAV se procederá una primera aproximación con un controlador Proporcional Derivativo Integral (PID) desenvolviéndose
-en un entorno de carreteras de ambos carriles. \newline
+Posteriormente, se desarollan comportamientos autónomos tradicionales utilizados en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados, se incluye 
+el control clásico basados en controladores y métodos de control avanzados basados en inteligencia artificial y aprendizaje por refuerzo, con el fin de que el dron aprenda y se 
+adapte a diferentes escenarios urbanos. 
 
-Luego una vez de tener un comportamiento de sigue carril mediante el algoritmo de percepción desarrollado, procederemos a desarrollar el algoritmo de 
-aprendizaje por refuerzo. Junto con este aprendizaje se realizará análisis de diferentes métricas y resultados
-por así entonces de poder encontrar una solución robusta y eficaz al problema que queremos enfrentarnos que será la navegación autónoma de drones en
-entornos de carreteras. \newline
+Una vez desarrollados estos comportamientos, se procede a realizar una evaluación exhaustiva de los resultados obtenidos, 
+recopilando diferentes métricas para determinar la efectividad de cada enfoque y adapatabilidad del dron. 
+Finalmente, se analizan los resultados y se realiza una comparativa, destacando las ventajas y limitaciones, proporcionando así una visión global del desesempeño del sistema autónomo 
+de navegación del dron utilizando aplicaciones de entornos urbanos. 
 
 
 \section{Arquitectura}
 \label{sec:Arquitectura}
 
-La arquitectura que se ha llevado a cabo en este trabajo se compone de varios elementos fundamentales que se integran entre sí para el desarrollo del seguimiento
-del carril. En primer lugar, tendremos un enfoque de simulación Airsim que ofrece la configuración directa de los modelos simulados, ofreciendo la modificación de los sensores
-y actuadores disponibles en el entorno de trabajo para obtener los comportamientos deseados. Así de tener una comunicación directa con los componentes intermediarios 
-tanto para el control de los actuadores como el manejo de los sensores. Dichos componentes intermediarias se comunican tanto con los programas desarrollados durante en este 
-trabajo como con el entorno de simulación para obtener comportamientos de navegación autónoma,facilitando la comunicación entre el entorno de simulación y los programas desarrollados.\newline
+La arquitectura propuesta para este trabajo como se muestra en la figura \ref{fig:infraestructura} consta de dos componentes principales 
+comunicados entre sí: El entorno de simulación y las plataformas de desarrollo. En estas plataformas se desarrolla tanto el sistema perceptivo 
+como el de control.
 
-Se realizan implementaciones de comportamientos de navegación autónoma basada en redes neuronales y algoritmos de aprendizaje automático, como control clásico basado en 
-un controlador Proporcional-Derivativo-Integral así como comportamientos más eficientes y complejos basados en aprendizaje por refuerzo.
-
-Así junto con el uso de herramientas como PX4 Autopilot y Mavros para así poder analizar la viabilidad junto con el entorno de desarrollo Airsim. Las principales implementaciones que se han 
-llevado acabo son principalmente dos como se muestra en la figura \ref{fig:infraestructura}:
+Por un lado, el primer componente se compone del entorno de simulador Airsim junto con la configuración de sensores y actuadores para el dron. Este componente 
+se comunica con el segundo componente a través de dos formas: 
 
 \begin{enumerate}
-  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y control clásico}: Utiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
-   y un control clásico basado en un controlador PID para el seguimiento de carriles.
-  \item \textbf{Seguimiento de carril basado en redes neuronales, algoritmos de aprendizaje automático y Q-learning}: Utiliza la red neuronal YOLOP junto con algoritmos de aprendizaje automático para 
-  con la diferencia de que el control se realiza con un algoritmo de aprendizaje por refuerzo en especial Q-learning para realizar el seguimiento de carriles.
+  \item ROS Wrapper Airsim: Con este componente genera dos tipos de salidas. Primero, imagenes de tipo RGB obtenidas del sensor de la cámara 
+  del dron. Segundo, la altura del dron obtenida del Lidar.
+
+  \item Client Airsim: A través de este componente, se controlan las velocidades lineales y angulares del dron para permitir su navegación en el entorno.
 \end{enumerate}
+
+Dentro del segundo componente tenemos los componentes anteriormente mencionados que se comunica con el primer componente. Con el componente ROS Wrapper Airsim 
+se generan dos salidas. La salida de las imagenes RGB se utiliza para el sistema perceptivo, él cual da una salida de la detección del carril para poder 
+realizar el comportarmiento sigue-carril. 
+
+
 
 \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale=0.40]{figs/Diseño/Comunicaciones/diagrama-modulos.jpg}
+      \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/digrama_arquitectura.png}
     \end{center}
-    \caption{Arquitectura de los componentes utilizados en el TFG}
+    \caption{Arquitectura general del desarrollo en este TFG}
     \label{fig:infraestructura}
   \end{figure}\
 
-\subsection{Configuración de Integración Distribuida en equipos separados}
+\section{Configuración de Integración Distribuida en equipos separados}
 En el desarrollo de este TFG, hemos tomado la decisión de tener dos enfoques:
 
 \begin{enumerate}
@@ -1127,12 +1126,23 @@ en el eje x como las coordenadas en el eje y.
 
 Una de las principales diferencias entre ambos comportamientos es que el comportamiento con control clásico presenta oscilaciones durante el recorrido relizando eses 
 por ambas partes del recorrido hasta llegar al punto final del recorrido. En cambio, el comportamiento con aprendizaje por refuerzo destaca por su trayectoria constante 
-durante todo el recorrido sin apenas realizar oscilaciones, destacando que el trayecto para realizar la comparativa se trata de un trayecto recto sin apenas curvas. 
+durante todo el recorrido sin apenas realizar oscilaciones, destacando que el trayecto para realizar la comparativa se trata de un trayecto recto sin apenas curvas que se 
+puede visualizar en la figura \ref{fig:trayectoPID}.
 
-Finalmente, en la figura se ilustra la media de velocidades angulares que han obtenido ambos comportamientos en el recorrido. Se puede apreciar 
-como el comportamiento de aprendizaje por refuerzo obtiene menor media de velocidad angular respecto al controlador PID manteniendo un trayectoria segura y eficaz en un recorrido 
-que nunca ha visto durante la fase de entrenamiento, lo cual dicha velocidad angular es notable durante el recorrido sin realizar demasiadas
-oscilaciones. 
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/trayecto1.png}
+  \end{center}
+  \caption{Trayecto en donde se realiza la comparativa entre el PID y aprendizaje por refuerzo}
+  \label{fig:trayectoPID}
+\end{figure}\
+
+Finalmente, en la figura \ref{fig:media_velocidades} se ilustra la media de velocidades angulares que han obtenido ambos comportamientos en el recorrido. Dichas velocidades
+se han ido almacenando a la medida que el dron recorría el trayecto. Se puede apreciar como el comportamiento de aprendizaje por refuerzo obtiene menor media de velocidad angular respecto al controlador PID manteniendo un trayectoria segura y eficaz en un recorrido 
+que nunca ha visto durante la fase de entrenamiento sin realizar apenas oscilaciones durante todo el trayecto. Respecto, al controlador PID, mantiene una media angular alta debido a que 
+necesita realizar ajustes para mantenerse en el trayecto constantemente resultando tener una mayor giro para permanecer central al carril. \newline
+En este tipo de trayectos, el comportamiento de aprendizaje por refuerzo demuestra ser más eficiente que el controlador PID sin requerir muchos ajustes respecto a la velocidad
+angular para manterse en la trayectoria y es capaz de adaptarse a cualquier recorrido del entorno.
 
 \begin{figure} [H]
   \begin{center}
@@ -1143,8 +1153,8 @@ oscilaciones.
 \end{figure}\
 
 Demostrando asi que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes
-al recorrido de entrenamento u recorridos que no ha visto durante en la fase de entrenamiento. En la figura, se muestra como el comportamiento de aprendizaje 
-por refuerzo se mantiene en el centro durante el recorrido realizado en la comparativa anterior descrita. 
+al recorrido de entrenamento u recorridos que no ha visto durante en la fase de entrenamiento. En la figura \ref{fig:comparativa}, se muestra diferentes frames 
+durante el recorrido siendo capaz de manternerse centrado al carril. 
 
 \begin{figure}[H]
   \centering
