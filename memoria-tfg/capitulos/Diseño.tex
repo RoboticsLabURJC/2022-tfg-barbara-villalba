@@ -9,8 +9,8 @@ Para lograr este objetivo, se implementa la infraestructura de comunicaciones en
 plataformas de desarrollo. Esta infraestructura permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
 una comunicación fluida y eficiente.
 
-Posteriormente, se desarollan comportamientos autónomos tradicionales utilizados en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados, se incluye 
-el control clásico basados en controladores y métodos de control avanzados basados en inteligencia artificial y aprendizaje por refuerzo, con el fin de que el dron aprenda y se 
+Posteriormente, se desarolla el sistema perceptivo mediante inteligencia artificial junto con el desarrollo de comportamientos autónomos tradicionales utilizados en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados, se incluye 
+el control clásico basados en controladores y métodos de control avanzados basados en aprendizaje por refuerzo, con el fin de que el dron aprenda y se 
 adapte a diferentes escenarios urbanos. 
 
 Una vez desarrollados estos comportamientos, se procede a realizar una evaluación exhaustiva de los resultados obtenidos, 
@@ -23,224 +23,217 @@ de navegación del dron utilizando aplicaciones de entornos urbanos.
 \label{sec:Arquitectura}
 
 La arquitectura propuesta para este trabajo como se muestra en la figura \ref{fig:infraestructura} consta de dos componentes principales 
-comunicados entre sí: El entorno de simulación y las plataformas de desarrollo. En estas plataformas se desarrolla tanto el sistema perceptivo 
-como el de control.
+comunicados entre sí: El entorno de simulación  y las plataformas de desarrollo. En estas plataformas se desarrollan tanto el sistema perceptivo 
+como el de control, permitiendo una integración robusta y eficiente de las funcionalidades del dron en un entorno controlado y seguro. Estos componentes 
+están distribuidos en dos ordenadores distintos, denonimados PC1 y PC2. 
 
-Por un lado, el primer componente se compone del entorno de simulador Airsim junto con la configuración de sensores y actuadores para el dron. Este componente 
-se comunica con el segundo componente a través de dos formas: 
+Por un lado, el primer componente está compuesto por el entorno de simulación Airsim, ejecutado en el PC1. Incluye la configuración de sensores y actuadores necesarios 
+para la navegación del dron. La comunicación entre este componente y el segundo componente (PC2), se realiza a través de dos interfaces principales: 
 
 \begin{enumerate}
-  \item ROS Wrapper Airsim: Con este componente genera dos tipos de salidas. Primero, imagenes de tipo RGB obtenidas del sensor de la cámara 
-  del dron. Segundo, la altura del dron obtenida del Lidar.
+  \item \textbf{ROS Wrapper Airsim Node}: Este componente actúa como una interfaz que facilita la integración de Airsim con el middleware ROS. A través del ROS Wrapper Airsim, 
+  se recogen tres tipos de salidas: 
+    \begin{enumerate}
+      \item \textbf{Imágenes RGB}: Capturadas por las cámaras a bordo del dron, estas imágenes son fundamentales para el sistema perceptivo, permitiendo la detección y el 
+      seguimiento del carril.
+      \item \textbf{Altura}: Obtenida a través del sensor Lidar, esta medida es esencial para conocer la altura a la que vuela el dron durante su navegación. 
+      \item \textbf{Localización}: Proporcionada por el GPS, esta información permite conocer la posición del dron en el entorno simulado. 
+    \end{enumerate}
 
-  \item Client Airsim: A través de este componente, se controlan las velocidades lineales y angulares del dron para permitir su navegación en el entorno.
+  \item \textbf{Client Airsim}: Este componente permite el control del dron, gestionando las velocidades lineales y angulares necesarias para su navegación. 
 \end{enumerate}
 
-Dentro del segundo componente tenemos los componentes anteriormente mencionados que se comunica con el primer componente. Con el componente ROS Wrapper Airsim 
-se generan dos salidas. La salida de las imagenes RGB se utiliza para el sistema perceptivo, él cual da una salida de la detección del carril para poder 
-realizar el comportarmiento sigue-carril. 
+Dentro de PC2, se encuentra un componente denominado Nodo ROS que encapsula el sistema perceptivo y el seguimiento de carril, actuando como el nucleo de 
+procesamiento. Este nodo recibe y procesa las entradas de los sensores (imágenes RGB, altura y localización), y como salida genera velocidades lineales y angulares, teniendo
+como submódulos: 
 
+\begin{enumerate}
+  \item \textbf{Percepción}: Utilizando las imágenes RGB proporcionadas por ROS Wrapper Airsim a través del sensor de la cámara del dron, este sistema procesa la información
+  visual para detectar el carril en el que debe navegar el dron. La detección del carril es fundamental para la ejecución del comportamiento sigue-carril, que guía al dron 
+  a lo largo del carril deseado. 
+  \item \textbf{Sigue-Carril}: Este comportamiento se encarga de seguir una trayectoria predefinida basada en la detección del carril. Dentro de este componente, se 
+  utiliza dos enfoques diferentes: 
+  \begin{enumerate}
+    \item \textbf{PID}: Un enfoque clásico de control que ajusta las velocidades angulares y teniendo una velocidad lineal constante del dron en función de las desviaciones
+    del carril detectado.
+    \item \textbf{Aprendizaje por Refuerzo}: Un enfoque más avanzado que utiliza técnicas de aprendizaje automático para optimizar el comportamiento del dron. Este método 
+    permite al dron aprender de su entorno en diferentes condiciones. 
+  \end{enumerate}
 
+  Ambos enfoques de control generan comandos de velocidades lineales y angulares que son enviados al Client Airsim. Este, a su vez, traduce estos comandos en acciones físicas 
+  en el entorno simulado, permitiendo el movimiento controlado y preciso del dron. 
+\end{enumerate}
 
 \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/digrama_arquitectura.png}
+      \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/diagrama_arquitectura.png}
     \end{center}
     \caption{Arquitectura general del desarrollo en este TFG}
     \label{fig:infraestructura}
   \end{figure}\
 
-\section{Configuración de Integración Distribuida en equipos separados}
-En el desarrollo de este TFG, hemos tomado la decisión de tener dos enfoques:
+\section{Distribución de equipos}
+\label{distribución}
+En el desarrollo de este TFG, hemos decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador con un sistema 
+operativo Windows 10 y una GPU Nvidia RTX 2070 Super. Por otra parte, las plataformas de desarrollo, que incluyen ROS, AirSim ROS Wrapper Node y Client Airsim se ejecutan en un ordenador secundario 
+con un sistema operativo Ubuntu 20.04 y una GPU Nvidia RTX 2070.
 
-\begin{enumerate}
-  \item El entorno de simulación Airsim estará en un ordenador con un sistema operativo Windows 10, una gráfica Nvidia RTX 2070 Super con el pluggin de 
-  Airsim al cargar el entorno mediante el motor UnRealEngine.
-  \item Las plataformas de desarrollo como ROS, Mavros, PX4, QGC y Client Airsim API estarán un  ordenador secundario con un sistema operativo Ubuntu 20.04 con una gráfica Nvidia RTX
-  2070.
-\end{enumerate}
+Esta propuesta se tomó con la iniciativa de no encapsular en un único componente el entorno de simulación y las plataformas de desarrollo. Inicialmente, todo el sistema 
+seguía una configuración centrazalida en un solo equipo con Ubuntu 20.04, generando cuellos de botella y limitando al rendimiento del sistema. Para solventar estos problemas, 
+se diseñó una infraestructura distribuida entre dos ordenadores distintos, diviendo así la carga de trabajo entre los dos sistemas. Por un lado, el primer ordenador se
+ejecuta el entorno de simulación Airsim mientras que en el segundo ordenador se manejan las plataformas de desarrollo. \newline
 
-Esta propuesta fue tomada con la iniciativa de no tener encapsulado en un único componente el entorno de simulación y las plataformas de desarrollo, ya que desembocaba a tener un 
-bajo rendimiento en cuanto a velocidad de procesamiento del propio entorno de simulación. La primera aproximación se llegó a construir un entorno de desarrollo con un único ordenador con una gráfica
-de Nvidia RTX 2070 compuesto de un sistema operativo Linux en donde se integraba el simulador Airsim junto UnrealEngine y las plataformas de desarrollo, obteniendo una media de 60 FPS (Fotogramas por segundo)
-conllevando así a tener un comportamiento lento debido a la carga de procesamiento por parte del entorno de simulación. Por causa de Airsim, esta construido sobre un motor de videojuegos, maximizando los controladores
-de gráficos de NVIDIA, lo que puede afectar el rendimiento en sistemas menos optimizados. Por otro lado, si utilizamos un sistema operativo como Windows, es posible lograr un alto rendimiento debido a que Windows
-tiende a asignar más recursos a las aplicaciones gráficas junto con la gráfica Nvidia, lo que puede llegar a beneficiar a Airsim. Al tener Airsim en Windows llegamos tener una media 285 FPS siendo
-mucho más considerable que la primera opción con un sistema operativo Linux lo cual hace interesante tener Airsim en un entorno que tenga como sistema operativo como Windows. \newline
+Al principio del desarrollo de esta distribución de equipos, se utilizó una comunicación con PX4 y Mavros, siguiendo la documentación oficial\footnote{\url{https://docs.px4.io/main/en/simulation/}} 
+junto con el entorno de simulación Airsim. Sin embargo, se decidió cambiar por una nueva configuración que emplea ROS Wrapper Airsim Node y Client Airsim, ya que 
+la comunicación original añadía una capa adicional produciendo bajos rendimientos que afectaba a la sincronización con el simulador. 
 
-Por otra parte, para poder utilizar las herramientas junto con el simulador necesitaríamos Linux ya que estas herramientas de desarrollo como ROS funcionan con un sistema como Linux lo cual se necesitaría 
-tener dos sistemas operativos diferentes en un mismo equipo. Como se necesitaba desarrollar una comportamiento robusto, eficiente y en tiempo real para el seguimiento de un carril con un dron se decidió
-la separación en dos equipos para así conseguir el mejor rendimiento por ambas partes. \newline
-
-El entorno de simulación Airsim se puede comunicar como hemos mencionado con PX4 y Mavros siguiendo un esquema de comunicaciones marcado por la propia página oficial de 
-PX4\footnote{\url{https://docs.px4.io/main/en/simulation/}} como se muestra en la siguiete figura:
+En resumen, el sistema de comunicaciones se compone de dos ordenadores interconectados en la misma red. El diagrama 
+de comunicaciones ilustrado en la figura \ref{fig:diagramadeAirsim}, muestra esta implementación distribuida en diferentes ordenadores. Cada ordenador asume roles distintos: 
+El primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona las plataformas de desarrollo en donde se implementan los algoritmos 
+de percepción y seguimiento de carril. Ambos ordenadores se comunican a través de un router teniendo cada uno una dirección IP distinta. 
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.2]{figs/Diseño/Comunicaciones/diagrama_comunicaciones.png}
-  \end{center}
-  \caption{Diagrama de comunicaciones entre PX4, QGC y Airsim}
-  \label{fig:diagramapx4}
-\end{figure}\
-
-En donde las comunicaciones internas con PX4 Autopilot se realizan mediante la ejecución del programa px4\_sitl\_default none\_iris y los puertos asignados los realiza la propia
-API de Mavlink además de tener la posibilidad con PX4 de comunicarnos con QGC.
-
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.5]{figs/Diseño/Comunicaciones/puertos.png}
-  \end{center}
-  \caption{Salida de la terminal ejecutando PX4 SITL}
-  \label{fig:SalidaTerminal}
-\end{figure}\
-
-A lo largo del desarrollo de este trabajo, nos hemos encontrado diferentes difultades respecto a la comunicación directa entre PX4 y el simulador, ya que a menudo cuando se llegaba a 
-comunicar las plataformas de desarrollo entre PX4 y Airsim se producían latencias afectando a la sincronización del comportamiento autónomo que queremos desarrollar. Además de que al tener
-una capa de comunicación extra con la propia herramienta PX4 Autopilot, Mavros el acceso no es totalmente directo y puede llegar a ser dificultoso. Por lo que se optó a utilizar 
-Client Airsim por su comunicación directa con el simulador y se puede llegar a comunicar directamente con el simulador sin llegar a producir capas externas por su arquitectura, también
-esta pensada para realizar comportamiento en tiempo real con el simulador.  \newline
-
-En resumen, la comunicación constará de Airsim ROS Wrapper para acceder a los diferentes sensores y Client Airsim para el control del vehículo más el entorno
-de simulación Airsim. El diagrama de comunicaciones que se muestra en la figura \ref{fig:diagramadeAirsim} consiste en una sencilla implementación de tener dos equipos diferentes que
-constan del entorno de simulación y de las plataformas en donde iremos desarrollando los diferentes comportamientos como los algoritmos de percepción y control que serán capaces
-de comunicarse entre sí en la mismo entorno de red mediante un router, cada equipo constará de dos direcciones IP diferentes. 
-
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.2]{figs/Diseño/Comunicaciones/Comunicaciones.png}
+    \includegraphics[scale=0.18]{figs/Diseño/Comunicaciones/comunicaciones.png}
   \end{center}
   \caption{Diagrama de comunicaciones}
   \label{fig:diagramadeAirsim}
 \end{figure}\
 
-\section{Preparación del entorno de simulación}
+\subsection{Preparación del entorno de simulación}
 \label{sec:Preparación_entorno}
 
-Como mencionamos en la sección \ref{sec:Airsim}, utilizaremos como simulador Airsim junto con el motor UnRealEngine. Para llevar acabo la construcción del entorno, primero tendremos 
-que instalar UnrealEngine. Para ello, seguiremos las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}} y trabajaremos con la versión 4.27.2. 
+Como mencionamos en la sección \ref{sec:Airsim}, utilizamos como simulador Airsim junto con el motor UnRealEngine. Para construir el entorno de simulación, primero
+necesitamos instalar UnrealEngine. Para ello, seguimos las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}}, 
+utilizando la versión 4.27.2.
 
-Una vez se tenga UnRealEngine instalado, procederemos a configurar el entorno de simulación que necesitamos, para ello realizaremos la configuración del fichero settings.json con las diferentes
-secciones. Por defecto, cuando ejecutamos por primera vez Airsim, el propio simulador nos crea este fichero dentro de una carpeta denonimada Airsim dentro de la carpeta Documentos en Windows, lo cual
-es bastante cómodo ya que podemos realizar la modificación de dicho archivo a nuestras necesidades. 
+Una vez que UnrealEngine esté instalado, procedemos a configurar el entorno de simulación mediante el archivo settings.json. Por defecto, al ejecutar Airsim 
+por primera vez, el simulador crea este archivo automáticamente dentro de una carpeta denoninada Airsim en la carpeta Documentos en Windows. Esto 
+resulta conveniente, ya que podemos modificar este archivo según nuestras necesidades. 
 
 
-\subsection{Configuración del dron y del entorno}
+\subsubsection{Configuración del dron y del entorno}
 \label{subsec:Configuración del dron y del entorno}
 
-En primer lugar utilizaremos el entorno de simulación Coastline de los diferentes entornos que nos ofrece Airsim para Windows. Al descargarnos dicha carpeta, contendrá el ejecutable para
-poder abrir el entorno con Airsim junto con las carpetas de modelos de simulación, como las carreteras, montañas y plantas. Dentro de estas carpetas, eliminaremos dichos componentes 
-de simulación que nos puede dificultar cuando desarrollemos la percepción como plantas y señales de tráfico que se ubican encima de las líneas de detección del carril ya que esto nos puede perjudicar
-en un futuro en la detección con la red neuronal YOLOP.\newline
-Por defecto, la primera vez que ejecutamos un entorno en Airsim, se crea el archivo settings.json en donde se almacenara por defecto en una carpeta 
-llamada airsim ubicada en Documentos en Windows. \newline
+En primer lugar se utiliza el entorno de simulación Coastline de entre los diferentes entornos que nos ofrece Airsim para Windows. Al descargar esta carpeta, 
+se obtiene un fichero ejecutable para abrir el entorno con Airsim, junto con carpetas de modelos de simulación como las carreteras, montañas y vegetación. Dentro de estas carpetas, se eliminan dichos componentes 
+de simulación que pueden dificultar al sistema perceptivo, como plantas y señales de tráfico que se ubican en las carreteras, facilitando así la percepción del entorno 
+y haciéndolo más manejable. En la figura \ref{fig:CoastlineModificado} se muestra marcado en color rojo, los componentes eliminados del entorno para facilitar al sistema 
+perceptivo.
 
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.4]{figs/Diseño/coastline3.png}
   \end{center}
-  \caption{Visualización del entorno original ilustrando los objetos dificultando la
-  percepción de la carretera}
+  \caption{Visualización del entorno original ilustrando los objetos que dificultan al sistema perceptivo}
   \label{fig:CoastlineModificado}
 \end{figure}\
 
-Cuando tengamos el fichero settings.json creado, ya podremos equipar al vehículo con características como qué sensores utilizará, 
-el tipo de vehículo, el tipo de simulación, la comunicación y más. En este TFG se definirá como sensores el lidar para saber a que altura esta volando 
-el dron respecto al suelo, el gps para saber que localización tiene en el entorno y la cámara. Cada sensor debe llevar su propia configuración, como se muestra 
-en el código \ref{cod:settings} se configuró cada sensor siguiendo sus propios parámetros que dicta la guía oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/sensors/}}
-. La cámara tiene una peculiaridad de que se configura siendo otro sensor a parte de la lista de sensores de Airsim, consta de varios parámetros que se tendrán que configurar como 
-el tamaño de la imagen, si queremos ROS, los FPS de la imagen transmitida, la posición y más.
+Cuando el fichero settings.json este creado, ya podemos equipar al dron con características como qué sensores va a utilizar, 
+el tipo de vehículo, el tipo de simulación, la comunicación y más. Como se muestra en el código \ref{cod:settings}, se definen como sensores el Lidar para saber a que altura
+esta volando el dron respecto al suelo, el GPS para conocer la localización que tiene el dron en el entorno y la cámara con imagenes
+RGB. Cada sensor debe llevar su propia configuración, siguiendo sus propios parámetros que dicta la guía oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/sensors/}}
+. La cámara tiene una peculiaridad de que se configura siendo otro sensor a parte de la lista de sensores de Airsim, consta de varios parámetros que se tienen que configurar como 
+el tamaño de la imagen, el uso de ROS, los FPS de la imagen transmitida, la posición, etc. 
+Los actuadores no es necesario tener ninguna configuración respecto a ellos. 
 
-\begin{code}[H]
-  \begin{lstlisting}[language=json,basicstyle=\tiny]
-    {
-      "SettingsVersion":1.2,
-      "SimMode":"Multirotor",
-      "ClockType":"SteppableClock",
-      "Vehicles":{
-         "Drone":{
-            "VehicleType":"SimpleFlight",
-            "ControlIp":"remote",
-            "LocalHostIp":"192.168.2.16",
-            "Sensors":{
-               "LidarCustom":{
-                  "SensorType":6,
-                  "Enabled":true,
-                  "Range":10,
-                  "NumberOfChannels":16,
-                  "RotationsPerSecond":10,
-                  "PointsPerSecond":10000,
-                  "X":0,
-                  "Y":0,
-                  "Z":-1,
-                  "DrawDebugPoints":false,
-                  "DataFrame":"SensorLocalFrame"
-               },
-               "Gps":{
-                  "SensorType":3,
-                  "Enabled":true,
-                  "EphTimeConstant":0.9,
-                  "EpvTimeConstant":0.9,
-                  "EphInitial":25,
-                  "EpvInitial":25,
-                  "EphFinal":0.1,
-                  "EpvFinal":0.1,
-                  "EphMin3d":3,
-                  "EphMin2d":4,
-                  "UpdateLatency":0.2,
-                  "UpdateFrequency":50,
-                  "StartupDelay":1
-               }
-            },
-            "Cameras":{
-               "front_center_custom":{
-                  "CaptureSettings":[
-                     {
-                        "PublishToRos":1,
-                        "ImageType":0,
-                        "Width":620,
-                        "Height":620,
-                        "FOV_Degrees":90,
-                        "ImageRate_FPS":30,
-                        "TargetGamma":1.5,
-                        "AutoExposure":true,
-                        "MotionBlur":false,
-                        "PostProcess":true
-                     }
-                  ],
-                 
-                  "X":0.50,
-                  "Y":0,
-                  "Z":0.10,
-                  "Pitch":0,
-                  "Roll":0,
-                  "Yaw": 0
-               }
-            },
-         "X": 22.474933624267578,
-         "Y": -25.63629913330078,
-         "Z":  0,
-         "Pitch": 0,
-         "Roll": 0,
-         "Yaw":  30
-         }
-      }
-   }
-
-  \end{lstlisting}
+\begin{figure}[H]
+  \centering
+  \begin{multicols}{2}
+    \begin{lstlisting}[language=json,basicstyle=\tiny,numbers=none]
+{
+  "SettingsVersion":1.2,
+  "SimMode":"Multirotor",
+  "ClockType":"SteppableClock",
+  "Vehicles":{
+     "Drone":{
+        "VehicleType":"SimpleFlight",
+        "ControlIp":"remote",
+        "LocalHostIp":"192.168.2.16",
+        "Sensors":{
+           "LidarCustom":{
+              "SensorType":6,
+              "Enabled":true,
+              "Range":10,
+              "NumberOfChannels":16,
+              "RotationsPerSecond":10,
+              "PointsPerSecond":10000,
+              "X":0,
+              "Y":0,
+              "Z":-1,
+              "DrawDebugPoints":false,
+              "DataFrame":"SensorLocalFrame"
+           },
+           "Gps":{
+              "SensorType":3,
+              "Enabled":true,
+              "EphTimeConstant":0.9,
+              "EpvTimeConstant":0.9,
+              "EphInitial":25,
+              "EpvInitial":25,
+              "EphFinal":0.1,
+              "EpvFinal":0.1,
+              "EphMin3d":3,
+              "EphMin2d":4,
+              "UpdateLatency":0.2,
+              "UpdateFrequency":50,
+              "StartupDelay":1
+           }
+        }
+     }
+  }
+}
+    \end{lstlisting}
+    \columnbreak
+    \begin{lstlisting}[language=json,basicstyle=\tiny,numbers=none]
+{
+   "Cameras":{
+     "front_center_custom":{
+        "CaptureSettings":[
+           {
+              "PublishToRos":1,
+              "ImageType":0,
+              "Width":620,
+              "Height":620,
+              "FOV_Degrees":90,
+              "ImageRate_FPS":30,
+              "TargetGamma":1.5,
+              "AutoExposure":true,
+              "MotionBlur":false,
+              "PostProcess":true
+           }
+        ],
+        "X":0.50,
+        "Y":0,
+        "Z":0.10,
+        "Pitch":0,
+        "Roll":0,
+        "Yaw": 0
+     }
+   },
+   "X": 22.474933624267578,
+   "Y": -25.63629913330078,
+   "Z":  0,
+   "Pitch": 0,
+   "Roll": 0,
+   "Yaw":  30
+}
+    \end{lstlisting}
+  \end{multicols}
   \caption[Configuración del vehículo mediante el fichero settings.json]{Configuración del vehículo mediante el fichero settings.json}
   \label{cod:settings}
-  \end{code}  
+\end{figure}
 
 Si no se define la posición inicial del dron como aparece en la última parte del fichero settings.json, por defecto el propio simulador te establece el vehículo en el punto que decida Airsim. 
 
 
 
-  \subsection{Instalación de las herramientas de desarrollo}
+  \subsubsection{Instalación de las herramientas de desarrollo}
   \label{subsec:Instalación de las herramientas de desarrollo}
-  La instalación de las herramientas de desarrollo se realizarán en el segundo ordenador con el sistema operativo Linux.
+  La instalación de las herramientas de desarrollo como se comentó en la sección de \ref{distribución} se realiza en el segundo ordenador.
   \begin{enumerate}
     \item \textbf{ROS}: Como se menciona en la documentación oficial de ROS \cite{Dis_ROS}, ROS consta de diferentes conjuntos de paquetes versionados que permiten a los desarrolladores
-    trabajar con un código relativamente estable hasta que estén preparados y puedan publicar versiones robustas y eficientes. En nuestro caso, utilizaremos la distribución Noetic\footnote{\url{http://wiki.ros.org/noetic}}
+    trabajar con un código relativamente estable hasta que estén preparados y puedan publicar versiones robustas y eficientes. Se utiliza una distribución Noetic\footnote{\url{http://wiki.ros.org/noetic}}
     debido a que esta distribución se encuentra siendo una de las más estables para poder trabajar junto con Airsim\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}}.
 
     Para su instalación nos guiaremos en la guía oficial de ROS noetic\footnote{\url{https://wiki.ros.org/noetic/Installation/Ubuntu}}
@@ -252,32 +245,10 @@ Si no se define la posición inicial del dron como aparece en la última parte d
       \caption{Logotipo de ROS noetic}
       \label{fig:ROS noetic}
     \end{figure}\
-    \item \textbf{Airsim ROS Wrapper}: Descargaremos del repositorio de Airsim a través de su página de github\footnote{\url{https://github.com/microsoft/AirSim}}.
-    Cuando tengamos dicho repositorio descargado, lo que realizaremos será la compilación y configuración de Airsim mediante los scripts build y setup como se pauta en la guía oficial. \newline
-    \begin{code}[H]
-      \begin{lstlisting}
-        git clone https://github.com/microsoft/AirSim.git
-      \end{lstlisting}
-      \caption[gitclone]{Comando para poder clonar el repositorio de Airsim}
-      \label{cod:gitclone}
-    \end{code}
-  
-    Ahora para poder utilizar el Airsim ROS Wrapper que nos proporciona ROS, tendremos que irnos a la carpeta dentro del repositorio de Airsim clonado previamente y buscar la carpeta de ros y construir el paquete 
-    mediante el comando \texttt{catkin\_make}. Cuando tengamos realizado dicho paso tendremos que activar el wrapper en el fichero .bashrc de Linux mediante la siguiente linea: \newline
-
-    \begin{code}  [H]
-      \begin{lstlisting}
-        source /home/$USER/Airsim/ros/devel/setup.bashrc
-      \end{lstlisting}
-      \caption[bash]{Comando para activar el entorno de trabajo en el fichero bashrc}
-      \label{cod:bashrc}
-    \end{code} 
-
-
-     siendo \$USER la variable de entorno que contiene el nombre del usuario que actualmente tiene iniciada sesión en el equipo.
-
-     A partir de activar el entorno de trabajo para ros, utilizaremos el nodo AirSim ROS Wrapper Node \ref{sec:wrapper} junto con un launcher airsim\_node.launch proporcionando
-     la dirección IP en donde se encuentra Airsim.\newline
+    \item \textbf{Airsim ROS Wrapper}: Se descarga del repositorio de Airsim a través de su página de github\footnote{\url{https://github.com/microsoft/AirSim}}.
+    Una vez que el respitorio sea descargado, se realiza su configuración siguiendo la página oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}}.
+    A partir de su configuración completa, utilizamos el nodo AirSim ROS Wrapper Node \ref{sec:wrapper} junto con un launcher airsim\_node.launch proporcionando
+    la dirección IP en donde se encuentra el simulador Airsim como se muestra en el código \ref{cod:roslaunch}.\newline
 
      \begin{code}  [H]
       \begin{lstlisting}
@@ -286,6 +257,8 @@ Si no se define la posición inicial del dron como aparece en la última parte d
       \caption[comando]{Lanzamiento del nodo AirSim ROS Wrapper Node especificando la dirección IP del simulador}
       \label{cod:roslaunch}
     \end{code} 
+
+    \item \textbf{Client Airsim}: Se instala el paquete airsim desde la página oficial\footnote{\url{https://microsoft.github.io/AirSim/apis/}}
 
   \end{enumerate}
 
