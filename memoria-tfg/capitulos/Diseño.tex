@@ -220,7 +220,7 @@ Los actuadores no es necesario tener ninguna configuración respecto a ellos.
 }
     \end{lstlisting}
   \end{multicols}
-  \caption[Configuración del vehículo mediante el fichero settings.json]{Configuración del vehículo mediante el fichero settings.json}
+  \caption[Configuración del dron mediante el fichero settings.json]{Configuración del dron mediante el fichero settings.json}
   \label{cod:settings}
 \end{figure}
 
@@ -262,29 +262,95 @@ Si no se define la posición inicial del dron como aparece en la última parte d
 
   \end{enumerate}
 
-\section{Percepción}
+\section{Comportamiento de seguimiento de carril con drones}
+\label{sec:Comportamiento de seguimiento de carril con drones}
+Para desarrollar el comportamiento de seguimiento de carriles, es crucial diseñar un sistema perceptivo que detecte el carril a seguir. Una vez 
+construido este sistema, se procede al desarrollo de un algoritmo de seguimiento de carril. Dicho algoritmo se enfoca en dos estrategias distintas 
+para comandar las velocidades lineales y angulares del dron, como se comenta en la sección \ref{sec:Arquitectura}. 
+\subsection{Percepción}
 \label{sec:Percepción}
-Para el desarrollo de la percepción una primera aproximación fue utilizar
-procedimientos de visión clásica, es decir, procesar la imagen y mediante métodos de la librería OpenCV
-poder detectar las diferentes líneas que pueden haber en la carretera. El problema que nos podemos con esta primera proximación que al tener un 
-entorno fotorrealista, estos métodos se quedan bastante pobres desembocando una percepción muy poco robusta e ineficiente. Por lo que se optó la utilización
-de la red neuronal YOLOP y algoritmos de aprendizaje automático poder construir la percepción. \newline
 
-Para obtener la imagen del entorno, nos subscribiremos al topic /airsim\_node/Drone/front\_center\_custom/Scene que ofrece el nodo AirSim ROS Wrapper Node
- y mediante un método de ROS denominado CvBridge\footnote{\url{http://wiki.ros.org/cv_bridge}} podremos convertir dicha imagen en formato OpenCV y trabajar con ella a traves de OpenCv.\newline
+En las fases iniciales del desarrollo del sistema perceptivo, se optó por emplear técnicas de visión tradicional utilizando métodos que ofrece la biblioteca 
+OpenCV, tales como GaussianBlur, Canny e HoughLines. Antes de poder utilizarlos, se necesita obtener la imagen proporcionada por la cámara a bordo del dron. Esto se logra
+suscribiéndose al topic \texttt{/airsim\_node/Drone/front\_center\_custom/Scene}, facilitada por el nodo AirSim ROS Wrapper Node. Posteriormente, mediante el uso de 
+CvBridge\footnote{\url{http://wiki.ros.org/cv_bridge}}, se transforma la imagen al formato de OpenCV para su posterior procesamiento con esta biblioteca. \newline
 
-\subsection{Inferencia de YOLOP}
+Para los métodos GaussianBlur, Canny e HoughLines se necesita trabajar con imágenes en escala de grises, por lo tanto, primero se realiza una transformación de la imagen 
+de color a escala de grises. A continuación se utiliza el método GaussianBlur\footnote{\url{https://docs.opencv.org/4.x/d4/d13/tutorial_py_filtering.html}}, que aplica un desenfoque 
+gaussiano a la imagen. Este proceso suaviza la imagen, reduciendo el ruido y mejorando la detección de bordes y líneas. A contunuación, se aplica el método Canny\footnote{\url{https://docs.opencv.org/4.x/da/d22/tutorial_py_canny.html}} 
+para la detección de bordes en la imagen. Finalmente, se aplica el método HoughLines\footnote{\url{https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html}}
+para detectar líneas en la imagen mediante la transformación de Hough, permitiendo identificar líneas rectas dentro de una imagen. 
+
+El resultado final de la aplicación de estos algoritmos de visión clásica se puede observar en la figura \ref{Vision_clasica}. En la parte superior de la figura se presentan diferentes segmentos
+de carril: Una zona curvada, una zona recta y una zona semirecta. Estas imágenes representan la entrada original capturada por la cámara del dron. Respecto a la parte inferior de la figura, 
+se muestran los resultados de la detección de líneas sobre las imagenes originales mediante el uso de los algoritmos mencionados. En la zona recta se puede ver como las líneas
+detectadas son claramente visibles y paralelas, lo que indica una correcta detección en este tipo de trayectos rectos. Mientras que en las zona curvada y la zona semirecta, presentan
+dificultades en la detección de las lineas, debido a que HoughLines esta optimizada para la detección de líneas rectas y no para la detección de líneas curvadas. 
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/imagen-original.jpg}
+      \caption*{a: Zona curvada}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/imagen-original2.jpg}
+      \caption*{b: Zona recta}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/imagen-original3.jpg}
+      \caption*{c: Zona semirecta}
+  \end{minipage}
+  
+  \vspace{1cm}
+  
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/deteccion.jpg}
+      \caption*{d: Detección en la zona curvada}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/deteccion2.jpg}
+      \caption*{e: Detección en la zona recta}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Percepcion/vision_clasica/deteccion3.jpg}
+      \caption*{f: Detección en la zona semirecta}
+  \end{minipage}
+  \caption{Resultado de la detección de líneas utilizando visión clásica}
+  \label{Vision_clasica}
+\end{figure}
+
+Debido al mal funcionamiento de estos algoritmos de visión clásica en la detección de líneas en los carriles, 
+hemos optado por utilizar técnicas de inteligencia artificial, en especial Deep Learning, utilizando la red neuronal YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
+YOLOP es una red neuronal que realiza una detección de objetos de tráfico, detección del área segmentada transitable y una detección de las líneas que aparecen en las áreas transitables. Es importante 
+destacar que se realiza solamente la inferencia de los distintos modelos que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
+la detección de las líneas proporcionadas de la red para mejorar la percepción del entorno del dron, proporcionando una detección más robusta y precisa en una variedad de condiciones
+de las carreteras urbanas dentro del entorno de Airsim. 
+
+\subsubsection{Inferencia de YOLOP}
 \label{sec:Inferencia de YOLOP}
 
-Para realizar la deteción de las líneas en la carretera nos vamos ayudar de la red neuronal YOLOP\ref{sec:YOLOP}. En primer lugar, 
-como anteriormente hemos comentado, el archivo End-to-end.pth es un archivo de pesos construido en Pytorch, si queremos cargar
-dichos pesos con el modelo podemos hacerlo de dos maneras: Podemos realizarlo mediante la CPU o la GPU. 
-Para ello, si queremos cargar el modelo de YOLOP con los pesos preentrenados End-to-end.pth se realiza la carga del modelo de la red a través de su repositorio de github\footnote{\url{https://github.com/hustvl/YOLOP}}
-especificando el modelo de la red neuronal y la opción 'pretrained' colocada con valor True, especificando que los pesos del modelo de la red se cargan del archivo End-to-end.pth en formato pytorch.\newline
+Para realizar la deteción de las líneas en la carretera nos vamos ayudar de la red neuronal YOLOP\footnote{\url{https://github.com/hustvl/YOLOP}}. En primer lugar, 
+se realiza la inferencia del modelo End-to-end.pth y más adelante la inferencia de los modelos yolop-320-320.onnx, yolop-640-640.onnx e yolop-1280-1280.onnx mediante el Onnx Runtime. 
+El archivo End-to-end.pth es un modelo preentrenado construido en formato Pytorch que contiene los pesos y sesgos de la red neuronal después del entrenamiento. En el contexto de 
+redes neruronales, \texttt{end-to-end} significa que la red se entrena para realizar todas las etapas de un proceso completo, para YOLOP, esto significa que se ha entrenado de manera integral 
+para realizar simultáneamente todas sus tareas (detección de objetos, segmentación de áreas transitables y detección de líneas). Para poder cargar este modelo, se realiza 
+su carga mediante el repositorio de github\footnote{\url{https://github.com/hustvl/YOLOP}}
+especificando el modelo de la red neuronal y la opción 'pretrained' colocada con valor True, especificando que los pesos del modelo de la red se cargan del archivo End-to-end.pth.\newline
+
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
   import torch
-  
   model = torch.hub.load('hustvl/yolop', 'yolop', pretrained=True)
 
   \end{lstlisting}
@@ -292,14 +358,13 @@ especificando el modelo de la red neuronal y la opción 'pretrained' colocada co
   \label{cod:cargar_modelo}
   \end{code}  
 
-Una vez tengamos el modelo cargado del repositorio como se ilustra en el código \ref{cod:cargar_modelo}, podemos escoger si queremos hacer la inferencia en la CPU o GPU, tendremos que especificar como 
-lo queremos hacer. En nuestro, escogemos la opción de GPU para realizar la inferencia y se le asigna al modelo que realizaremos la inferencia por GPU 
-como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
+Una vez tengamos el modelo cargado del repositorio como se ilustra en el código \ref{cod:cargar_modelo}, se puede escoger 
+si se quiere realizar la inferencia mediante el uso de la CPU o el uso de la GPU. Para una mejor optimización de la red neuronal, se utiliza
+la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
 
   
-  \begin{code}[h]
+\begin{code}[h]
     \begin{lstlisting}[language=Python]
-   
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
   
@@ -308,69 +373,16 @@ como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
     \label{cod:codeloadYOLOP}
     \end{code}  
 
-    Por último, nos quedaria convertir la imagen en un tensor antes de realizar la inferencia. Para poder realizarlo, se utiliza la función transforms.toTensor\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
-    y después añadiremos una dimensión más con unsqueeze(0) como se muestra en el código \ref{cod:Inferencia}, esto se debe 
-    a que el modelo de YOLOP espera una entrada específica llamada batch\_size. Batch\_size es el número de imágenes que se procesarán juntas
-    (generalmente 1 para inferencia) por lo que el tensor tendrá esta forma: (batch\_size, channels, height, width)\newline
-
-    \begin{code}[h]
-      \begin{lstlisting}[language=Python]
-     
-        from torchvision import transforms
-
-        transform = transforms.ToTensor() 
-                    
-      imagen_tensor = transform(cv_image).to(device).unsqueeze(0)
-      _, da_seg_out, ll_seg_out = self.model(imagen_tensor)
-    
-      \end{lstlisting}
-      \caption[Inferencia del modelo]{Inferencia del modelo en Pytorch}
-      \label{cod:Inferencia}
-      \end{code}  
-
-    Como resultado de la inferencia se obtiene un tensor de salida que corresponde la probabilidad de detección de la segmentación
-    de la calzada y la detección de las líneas de la calzada. Dicho tensor se debe de convertir en una imagen para poder visualizar
-    dicho resultado como una imagen. 
-    Por ello, se convierte el tensor en un array numpy y se realiza una transformacion para cambiar las dimensiones de (H,W,C) 
-    a (C,H,W) esto se realiza ya que en Opencv representa imágenes en formato numpy array y se transpone las dimensiones porque las
-    imágenes de Opencv tiene la forma de (H, W, C)\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
-
-    Después de este proceso,obtenemos un array de numpy que se normaliza con valores de 0-1. La normalización 
-    ayuda a igualar la escala de los pixeles de la imagen. Finalmente se muestra el resultado de la inferencia de la red 
-    en una imagen como se ilustra en el codigo \ref{cod:Resultadoinferencia}. Al normalizar los valores de 0-1, los pixeles con un valor 1 se muestran en la imagen final, asignándoles un color
-    para visualizar el resultado de la segmentación de la calzada y de la detección de las líneas de la calzada. \newline
-    \newpage
-    \begin{code}[h]
-      \begin{lstlisting}[language=Python]
-        import cv2
-        import numpy as np
-        for image in (da_seg_out,ll_seg_out):
-
-          image_np = image.detach().cpu().numpy()
-          image_array = np.transpose(image_np, (2, 3, 1, 0))
-
-        
-          image_norm = cv2.normalize(image_array[:,:,1,:], None, 0,1, cv2.NORM_MINMAX, cv2.CV_8U)
-
-          images.append(image_norm)
-
-    
-        cv_image[images[0] == 1] = [0, 255, 0]
-        cv_image[images[1] == 1] = [0, 0, 255]
-
-        cv2.imshow('Image', cv_image)
-        cv2.waitKey(1)
-
-    
-      \end{lstlisting}
-      \caption[Resultado de la inferencia del modelo YOLOP]{Inferencia de YOLOP mediante los pesos End-to-end.pth}
-      \label{cod:Resultadoinferencia}
-      \end{code}  
-
-      Para poder utilizar los pesos preentrenados de Onnx, tendremos que realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
+      También esta red neuronal ofrece modelos con formato Onnx: \texttt{Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx}. Estos modelos son construidos a partir del archivo 
+      \texttt{End-to-end.pth} y se convierten en modelos con formato Onnx. Cada modelo proporcionado con formato onnx tiene una resolución distinta de entrada en cuanto a las dimensiones
+      de las imágenes. El archivo \texttt{Yolop-320-320.onnx} necesita una entrada con unas dimensiones de 320x320 píxeles en las imágenes, el archivo \texttt{Yolop-640-640.onnx} necesita 
+      una entrada con unas dimensiones de 640x640 píxeles en las imágenes y por último el archivo \texttt{Yolop-1280-1280.onnx} se necesita unas dimensiones de imágenes de 1280x1280 píxeles. 
+      En cuanto al uso de estos modelos, se debe realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
       dichas versiones tienen que ser compatible entre sí. Para ello nos vamos a guiar mediante la tabla requisitos de la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}. \newline
-
-      Cuando tengamos todo preparado y configurado ya podremos realizar los pasos de la inferencia con los pesos preentrenados de Onnx. En primer lugar, se carga el modelo
+      Cuando se trabaja con Onnx Runtime, se puede especificar qué proveedores de ejecución utilizar para ejecutar la inferencia del modelo de Onnx que se escoja. Cada proveedor 
+      contiene un conjunto de núcleos optimizados para un objetivo específico (por ejemplo, CPU, GPU, IoT), cada proveedor se especifica en una lista en orden de prioridad. Para realizar 
+      inferencia de estos modelos, se escoge CUDA para ejecutar mediante la GPU. En el código \ref{yolop320} se muestra la carga del modelo Yolop-320-320.onnx junto con la configuración
+      del provider CUDAExecutionProvider. 
       
       \begin{code}[h]
         \begin{lstlisting}[language=Python]
@@ -384,14 +396,10 @@ como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
         \label{yolop320}
         \end{code}  
 
-        Como se observa en el código \ref{yolop320}, a la hora de cargar el modelo escogemos como provider CUDAExecutionProvider. Cuando trabajamos con ONNX Runtime, 
-        podemos especificar qué proveedores de ejecución utilizar para ejecutar el modelo ONNX que escojamos, cada proveedor contiene un conjunto de núcleos optimizados para un objetivo específico (por ejemplo, CPU, GPU, IoT) y 
-        se especifican como una lista en el orden de prioridad. En nuestro caso escogemos CUDA para ejecutar mediante la GPU. 
-        \newline
-        A continuación se procesan las imágenes de entrada que le vamos a dar al modelo, al escoger el modelo de yolop-320-320.onnx, las imágenes deben tener una dimensión de 320x320, para ello
-        se utiliza un método implementado por ellos que se puede encontrar en la siguiente página\footnote{\url{https://debuggercafe.com/yolop-onnx-inference-on-cpu}}, en el cuál se redimensiona la imagen como se pide para el modelo. 
-        Una vez que tengamos la imagen preparada, se da pie a la inferencia del modelo de yolop-320-320.onnx como se ilustra en el código \ref{cod:Inferencia_onnx}. \newline
-      
+        Para realizar la redimensión de las imágenes dependiendo de cada modelo, se utiliza un método implementado por ellos 
+        que se puede encontrar en la siguiente página\footnote{\url{https://debuggercafe.com/yolop-onnx-inference-on-cpu}}, el cuál redimensiona la imagen de entrada según cada modelo. En el código 
+        \label{cod:Inferencia_onnx} se realiza la inferencia del modelo Yolop-320-320.onnx. 
+
         \begin{code}[h]
           \begin{lstlisting}[language=Python]
             _, da_seg_out, ll_seg_out = self.ort_session.run(
@@ -405,56 +413,116 @@ como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
           \end{code}  
 
         La inferencia del resto de modelos de Onnx se realizan de la misma forma pero teniendo en cuenta que se tendrá que cambiar las dimensiones de las imágenes de entrada y la ruta
-        en donde se almacena dicho modelo. 
+        en donde se almacena dicho modelo. \newline
+
+        Por último, para poder utilizar imágenes en la inferencia de YOLOP tanto del modelo de Pytorch como de los modelos de Onnx, se debe convertir la imagen en un tensor. Para poder realizarlo, se utiliza la función transforms.toTensor\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
+        para realizar la transformación a tensor. Una vez se obtenga el tensor, se puede realizar la inferencia del modelo end-to-end.pth como se ilustra en el código \ref{cod:Inferencia}.
+    
+        \begin{code}[h]
+          \begin{lstlisting}[language=Python]
+         
+            from torchvision import transforms
+    
+            transform = transforms.ToTensor() 
+                        
+          imagen_tensor = transform(cv_image).to(device).unsqueeze(0)
+          _, da_seg_out, ll_seg_out = self.model(imagen_tensor)
+        
+          \end{lstlisting}
+          \caption[Inferencia del modelo]{Inferencia del modelo en Pytorch}
+          \label{cod:Inferencia}
+          \end{code}  
+    
+        Como resultado de la inferencia se obtiene un tensor de salida que corresponde a la probabilidad de detección de la segmentación
+        y la detección de las líneas de la calzada. Dicho tensor se debe de convertir en una imagen para poder visualizar
+        dicho resultado como una imagen. 
+        Por ello, se convierte el tensor en un array numpy y se realiza una transformacion para cambiar las dimensiones de (H,W,C) 
+        a (C,H,W) esto se realiza ya que en OpenCV se representan imágenes en formato numpy array y se transpone las dimensiones\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
+    
+        Después de este proceso, se obtiene un array de numpy que se normaliza con valores de 0-1. Con la normalización 
+        se ayuda a igualar la escala de los píxeles de la imagen. Finalmente se muestra el resultado de la inferencia de la red 
+        en una imagen como se ilustra en el código \ref{cod:Resultadoinferencia}. Al normalizar los valores de 0-1, los píxeles con un valor 1 se muestran en la imagen final, asignándoles 
+        color verde el resultado de la segmentación de la calzada y de color rojo la detección de las líneas de la calzada. \newline
+    
+        \begin{code}[H]
+          \begin{lstlisting}[language=Python]
+            import cv2
+            import numpy as np
+            for image in (da_seg_out,ll_seg_out):
+              image_np = image.detach().cpu().numpy()
+              image_array = np.transpose(image_np, (2, 3, 1, 0))
+    
+              image_norm = cv2.normalize(image_array[:,:,1,:], None, 0,1, cv2.NORM_MINMAX, cv2.CV_8U)
+    
+              images.append(image_norm)
+    
+            cv_image[images[0] == 1] = [0, 255, 0]
+            cv_image[images[1] == 1] = [0, 0, 255]
+    
+            cv2.imshow('Image', cv_image)
+            cv2.waitKey(1)
+          \end{lstlisting}
+          \caption[Resultado de la inferencia del modelo YOLOP]{Inferencia de YOLOP mediante los pesos End-to-end.pth}
+          \label{cod:Resultadoinferencia}
+          \end{code}  
 
 
 \subsubsection{Resultados de YOLOP }
 \label{sec:resultados}
-En esta sección se constrastan los resultados de los diferentes pesos preentrenados que ofrece la red neuronal YOLOP. Como podemos observar en la figura \ref{fig:resultados_pesos_preentrenados} 
-mostramos la media en realizar la inferencia de YOLOP utilizando los pesos preentrenados End-to-end.pth, yolop-320-320.onnx,yolop-640-640.onnx e yolop-1280-1280.onnx en segundos.
+En esta sección se constrastan los resultados de la inferencia de YOLOP con los diferentes modelos que ofrece esta red. Para realizar esta comparación, se uso el ordenador 
+PC2 junto con la GPU Nvidia 2070 RTX para realizar la inferencia de cada modelo. Se recopilan datos del tiempo medio de inferencia en milisegundos de cada 
+modelo de YOLOP durante aproximadamente
+un mínuto, mientras se teleopera el dron por las carreteras. El objetivo de este análisis es determinar qué modelo ofrece mejores resultados en términos de eficiencia y rendimiento. 
+En la figura \ref{fig:resultados_pesos_preentrenados} se muestra este análisis mostrando la media en realizar la inferencia de YOLOP utilizando los modelos 
+End-to-end.pth, Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx en milisegundos.
+
+El modelo que tiene una inferencia menor al resto se trata de Yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 10 milisegundos, esto
+significa que el modelo Yolop-320-320.onnx tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes modelos, es el ganador en cuanto 
+en tiempo de inferencia, rate y mejores resultados. 
+Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
+del modelo, una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, 
+en este caso se busca un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección de las líneas de la calzada. 
 
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.4]{figs/Diseño/YOLOP/comparativa.png}
   \end{center}
-  \caption{Resultados de los diferentes pesos que ofrece el modelo YOLOP}
+  \caption{Resultados de los diferentes modelos que ofrece la red YOLOP}
   \label{fig:resultados_pesos_preentrenados}
 \end{figure}\
 
-Los pesos preentrenados que tiene una inferencia menor al resto se trata de yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 0.010 segundos, esto
-significa que el modelo YOLOP con estos pesos tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes pesos, es el ganador en cuanto 
-en tiempo de inferencia, rate y mejores resultados. 
-Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
-del modelo, una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, nosotros
-buscamos un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección de las líneas de la calzada. 
-Por ello nos decantamos por escoger el modelo yolop320-320.onnx ya que obtiene mejores resultados para poder realizar la detección de las líneas del carril que 
-queremos segir como se aprecia en la figura \ref{f:resultadosYOLOP}.\newline
-
-\begin{figure}[H]
+Por ello, se escoge el modelo Yolop320-320.onnx ya que obtiene mejores resultados para poder realizar la detección de las líneas del carril. 
+En cuanto a los resultados de la inferencia, en la figura \ref{f:resultadosYOLOP} 
+se puede observar los diferentes resultados que tiene la red neuronal YOLOP dependiendo de qué modelo utilizar. Para ello, se utiliza dos zonas totalmente distintas para realizar 
+la inferencia de los modelos. Aunque se escoja el modelo Yolop-320-320.onnx, la detección de las líneas no es perfecta como se muestra en la figura 
+\ref{f:Inferencia320-320}.
+\begin{figure} [H]
   \begin{center}
-    \subfigure[yolop-320-320.onnx]{
-     \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-320-320.jpg}
-     \label{f:Yolop-320-320.onnx}}
-    \subfigure[yolop-640-640.onnx]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-640-640.jpg}
-      \label{yolop-640-640.onnx}}
-    \subfigure[yolop-1280-1280.onnx]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/ONNX-1280-1280.jpg}
-      \label{f:yolop-1280-1280.onnx}}
-    \subfigure[end-to-end.pth]{
-      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/resultados-yolop/sitio1/Pytorch.jpg}
-      \label{f:End-to-end.pth}}
-  \caption{Diferentes resultados utilizando la red neuronal YOLOP en el entorno de simulación}
-  \label{f:resultadosYOLOP}
+    \includegraphics[scale=0.6]{figs/Diseño/YOLOP/resultados-yolop/sitio3/yolop-320-320.jpg}
   \end{center}
- \end{figure}
+  \caption{Resultados de la inferencia del modelo yolop-320-320.onnx}
+  \label{f:Inferencia320-320}
+\end{figure}\
 
-Finalizado este proceso, se procede a seleccionar las líneas detectadas que nos interesan mediante un algoritmo de aprendizaje no supervisado denonimado clustering.
+Depende de como se halla 
+entrenado la red neuronal. Para poder llegar a escoger qué líneas necesitamos del carril que queremos seguir, utilizaremos un algoritmo de aprendizaje automático llamado clustering, 
+en especial, DBSCAN. En donde, se realiza un post-procesado de las líneas detectadas por parte del modelo Yolop-320-320.onnx para utilizarlas en el algoritmo de DBSCAN y poder 
+construir el carril a partir de regresiones cuadráticas.
 
-\subsection{DBSCAN}
+
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.06]{figs/Diseño/YOLOP/resultados.png}
+  \end{center}
+  \caption{Resultados de los diferentes modelos de la red neuronal YOLOP}
+  \label{Resultados de los diferentes modelos de la red neuronal YOLOP}
+\end{figure}\
+
+\subsubsection{DBSCAN}
 \label{sec:DBSCAN}
 
-Para saber con qué líneas detectadas por la red nos quedaremos, utilizamos un algoritmo de aprendizaje no supervisado llamado clustering, en particular
+Para saber qué líneas detectadas por parte del modelo Yolop320-320.onnx se seleccionarán, se utiliza un algoritmo de aprendizaje no supervisado llamado clustering, en particular
 DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{ski_dbs}.\newline
 
 Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
@@ -489,27 +557,91 @@ con un mínimo de muestras pertenecientes de 5 muestras como se muestra en el c�
 de la red neuronal en un array bidimensional de coordenadas x e y de puntos con la ayuda de la función de numpy column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}}, 
 transformando un array simple de una dimensión a un array de dos dimensiones. Una vez se realice lo anterior, se obtiene un array bidimensional listo para el algoritmo DBSCAN .\newline
 
+El resultado de DBSCAN es una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
+n el último grupo de clusters detectado. De las listas de etiquetas se eliminan los clusters que hallan sido etiquetados como ruido (-1). Para obtener el resultado solamente basta con iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida.
+Visualmente se puede apreciar en la figura \ref{f:Rresultadosdbscan} los diferentes resultados que tiene este algoritmo en localizaciones distintas. 
+
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1-original.jpg}
+      \caption*{a: Zona curvada}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2-original.jpg}
+      \caption*{b: Zona recta}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4-original.jpg}
+      \caption*{c: Zona semirecta}
+  \end{minipage}
+  
+  \vspace{1cm}
+  
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop1.jpg}
+      \caption*{d: Detección en la zona curvada}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop2.jpg}
+      \caption*{e: Detección en la zona recta}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop3.jpg}
+      \caption*{f: Detección en la zona semirecta}
+  \end{minipage}
+
+  \vspace{1cm}
+  
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1.jpg}
+      \caption*{d: Detección en la zona curvada}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2.jpg}
+      \caption*{e: Detección en la zona recta}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4.jpg}
+      \caption*{f: Detección en la zona semirecta}
+  \end{minipage}
+  \caption{Resultado de la detección de líneas utilizando visión clásica}
+  \label{Vision_clasica}
+\end{figure}
+
+
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
     def clustering(self,cv_image):
-
-    #--Convert image in points
+    
     points_lane = np.column_stack(np.where(cv_image > 0))
     dbscan = DBSCAN(eps=10, min_samples=5,metric="euclidean")
-    
 
     if points_lane.size > 0:
         dbscan.fit(points_lane)
         labels = dbscan.labels_
 
-        # Ignore noise if present
         clusters = set(labels)
         if -1 in clusters:
             clusters.remove(-1)
-      
-      
-            
+    
         for cluster in clusters:
             points_cluster = points_lane[labels==cluster,:]
             centroid = points_cluster.mean(axis=0).astype(int)
@@ -522,31 +654,9 @@ transformando un array simple de una dimensión a un array de dos dimensiones. U
   \caption[Algoritmo de custering utilizando DBSCAN]{Algoritmo de clustering utilizando DBSCAN}
   \label{cod:DBSCAN}
   \end{code}  
-  
-
-El resultado de DBSCAN es una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
-n el último grupo de clusters detectado. De las listas de etiquetas se eliminan los clusters que hallan sido etiquetados como ruido (-1). Para obtener el resultado solamente basta con iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida.
-Visualmente se puede apreciar en la figura \ref{f:Rresultadosdbscan} los diferentes resultados que tiene este algoritmo en localizaciones distintas. 
-
-\begin{figure}[H]
-  \begin{center}
-    \subfigure[DBSCAN zona 1]{
-     \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan1.jpg}
-     \label{f:dbcan1}}
-    \subfigure[DBSCAN zona 2]{
-      \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan2.jpg}
-      \label{f:dbcan2}}
-    \subfigure[DBSCAN zona 3]{
-      \includegraphics[scale=0.4]{figs/Diseño/DBSCAN/dbscan3.jpg}
-      \label{f:dbcan3}}
-  \caption{Diferentes resultados utilizando el algoritmo de DBSCAN con valor de eps de 10 y valor de min\_samples de 5}
-  \label{f:Rresultadosdbscan}
-  \end{center}
- \end{figure}
 
 
-
-\subsection{Clasificación de clústeres}
+\subsubsection{Filtrado de clústeres}
 \label{clasificación:cluster}
 Una vez realizado el algoritmo de DBSCAN necesitamos quedarnos con el grupo de clústeres que pertenezcan al carril que queremos seguir. Para conseguirlo, se calcula los centroides de cada
 grupo de clústeres detectado y los clasificaremos en función de sí se encuentran en la derecha o izquierda respecto al centro de la imagen. La imagen tiene unas dimensiones de 320x320 píxeles, 
@@ -595,13 +705,23 @@ en el código \ref{cod:funcion_maximizada}.\newline
   En la figura \ref{fig:DBSCAN_imagen} se muestra todo el proceso desde el uso del algoritmo de DBSCAN hasta la clasificación de clústeres respecto al carril 
   representados en color verde y rojo. Después de tener la clasificación de los grupos de clústeres se procede a realizar dos regresiones cuadráticas para construir las líneas del carril que queremos seguir.
 
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/resultado.png}
-  \end{center}
-  \caption{Ilustración del proceso de clasificación de líneas detectadas respecto al carril que queremos seguir}
-  \label{fig:DBSCAN_imagen}
-\end{figure}\
+
+  \begin{figure}[H]
+    \centering
+    \begin{minipage}{0.3\textwidth}
+      \includegraphics[width=\linewidth]{figs/Diseño/DBSCAN/comparativa/dbscan1.jpg}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.3\textwidth}
+      \includegraphics[width=\linewidth]{figs/Diseño/DBSCAN/clustering_centroids.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.3\textwidth}
+      \includegraphics[width=\linewidth]{figs/Diseño/DBSCAN/filter_clustering.jpg}
+    \end{minipage}
+    \caption{Proceso de selección de las líneas del carril}
+    \label{fig:comparativa}
+  \end{figure}
 
 \subsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
