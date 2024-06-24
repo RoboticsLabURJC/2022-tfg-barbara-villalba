@@ -495,7 +495,7 @@ Por ello, se escoge el modelo Yolop320-320.onnx ya que obtiene mejores resultado
 En cuanto a los resultados de la inferencia, en la figura \ref{f:resultadosYOLOP} 
 se puede observar los diferentes resultados que tiene la red neuronal YOLOP dependiendo de qué modelo utilizar. Para ello, se utiliza dos zonas totalmente distintas para realizar 
 la inferencia de los modelos. Aunque se escoja el modelo Yolop-320-320.onnx, la detección de las líneas no es perfecta como se muestra en la figura 
-\ref{f:Inferencia320-320}.
+\ref{f:Inferencia320-320}. Depende de como se halla entrenado la red. 
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.6]{figs/Diseño/YOLOP/resultados-yolop/sitio3/yolop-320-320.jpg}
@@ -504,13 +504,10 @@ la inferencia de los modelos. Aunque se escoja el modelo Yolop-320-320.onnx, la 
   \label{f:Inferencia320-320}
 \end{figure}\
 
-Depende de como se halla 
-entrenado la red neuronal. Para poder llegar a escoger qué líneas necesitamos del carril que queremos seguir, utilizaremos un algoritmo de aprendizaje automático llamado clustering, 
-en especial, DBSCAN. En donde, se realiza un post-procesado de las líneas detectadas por parte del modelo Yolop-320-320.onnx para utilizarlas en el algoritmo de DBSCAN y poder 
-construir el carril a partir de regresiones cuadráticas.
-
-
-
+Para lograr una construcción del carril que se desea seguir, se selecciona las líneas que se necesitan mediante un algoritmo de aprendizaje no supervisado, denonimado clustering, en especial, 
+DBSCAN. Con este algoritmo, se realiza una clasificación de las diferentes líneas detectadas por parte del modelo Yolop-320-320.onnx para más adelante aplicar un filtro y seleccionar las líneas 
+para construir el carril. Las líneas de la red neuronal no llegan a ser exactas, lo cual aunque se realice el filtrado de estas líneas se necesita construir el carril a partir de unas líneas 
+definidas mediante regresiones cuadráticas. 
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.06]{figs/Diseño/YOLOP/resultados.png}
@@ -519,115 +516,36 @@ construir el carril a partir de regresiones cuadráticas.
   \label{Resultados de los diferentes modelos de la red neuronal YOLOP}
 \end{figure}\
 
+\newpage
 \subsubsection{DBSCAN}
 \label{sec:DBSCAN}
 
-Para saber qué líneas detectadas por parte del modelo Yolop320-320.onnx se seleccionarán, se utiliza un algoritmo de aprendizaje no supervisado llamado clustering, en particular
+Para clasificar las lineas detectadas por parte de la red neuronal, se utiliza un algoritmo de aprendizaje no supervisado llamado clustering, en particular
 DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{ski_dbs}.\newline
 
-Dicho algoritmo contiene varios parámetros que son importantes conocerlos y configurarlos: 
+Este algoritmo clasifica un conjunto de muestras en grupos (clústeres) basándose en la densidad de puntos en el espacio de caraterísticas, que es una forma de representar
+datos utilizando diferentes medidas o atributos. A diferencia de otros métodos de clustering, como K-Means, DBSCAN no quiere especificar el número de clústeres de antemano, 
+siendo capaz de identificar patrones de forma arbistraria, siendo especialmente útil para detectar estructuras complejas en los datos. 
+
+DBSCAN requiere la configuración de varios parámetros importantes:
 \begin{enumerate}
   \item \textbf{Eps}: Consiste en la distancia máxima que puede existir entre dos muestras para que una se considere vecina de la otra. Dicha distancia no se trata de un límite 
-  máximo entre las distancias que puede haber dentro de un cluster.
+  máximo entre las distancias que puede haber dentro de un cluster. Si se elige un valor de eps muy alto, puede provocar que los clústeres distintos se combinen en el mismo grupo. 
+  En cambio, un valor de eps muy pequeño puede resultar una mayor clasificación de clústeres pequeños.
   \item \textbf{Min\_samples}: Es el número mínimo de muestras dentro de un vecindario para que un punto se considere como un punto central incluyendo al propio punto.
-  \item \textbf{Metric}: La métrica utilizada para calcular la distancia entre los conjuntos de clústeres (por defecto es la distancia euclidiana). 
+  Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres más densos y 
+  si el valor de min\_samples es bajo, los clústeres serán más dispersos.
+  \item \textbf{Metric}: La métrica utilizada para calcular la distancia entre los conjuntos de clústeres. Por defecto se utiliza la distancia euclidea. 
 \end{enumerate}
-Los valores de los parámetros de la distancia máxima y el número mínimo de muestras se deben elegir cuidadosamente, es decir, si colocamos una distancia 
-máxima alta puede provocar que los clústeres que queramos que pertenezcan a un distinto grupo pertenezcan al mismo grupo. 
-Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres más densos y 
-si se establece en un valor bajo, los clústeres encontrados serán más dispersos. \newline
-Para entender como funciona el algoritmo, en la figura \ref{fig:Ejemplo_DBSCAN} recogida por este artículo\cite{DBSCAN} se ilustra 
-un ejemplo teniendo un número de muestras ubicadas aproximadamente cercanas unas de otras. Aplicamos el algoritmo de DBSCAN 
-teniendo como valor el número mínimo de muestras 3, eso significa que para que se considere una muestra a un grupo de cluster tendrá que tener una densidad de 3. El algoritmo itera por
-las muestras y compara el valor de la distancia máxima y el número mínimo de muestras. 
-Si ningún de estos dos parámetros no se cumpliese ya que puede darse que una muestra se encuentra lejana del grupo de muestras será etiquetado como ruido, esto quiere decir
-que no pertenecerá a ningún grupo de clústeres. El resultado del algoritmo ha catalogado dos grupos de clústeres y 3 muestras. \newline
 
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.5]{figs/Diseño/DBSCAN/DBSCAN-Illustration.png}
-  \end{center}
-  \caption{Ejemplo ilustrativo de como funciona el algoritmo de DBSCAN \cite{DBSCAN}}
-  \label{fig:Ejemplo_DBSCAN}
-\end{figure}\
-
-Por lo que para encontrar los valores de estos dos parámetros durante el desarrollo del TFG fue experimental y quedándonos con el mejor resultado. La distancia máxima tiene un valor de 10 
-y el número mínimo de muestras son de 5 muestras. Lo que significa que la distancia máxima que tienen los puntos para pertenecer al mismo grupo de clústeres es de 10 de distancia en pixeles
-con un mínimo de muestras pertenecientes de 5 muestras como se muestra en el código \ref{cod:DBSCAN}. Para poder aplicar este algoritmo a partir del resultado de la imagen de la red neuronal se convierte la imagen resultante
-de la red neuronal en un array bidimensional de coordenadas x e y de puntos con la ayuda de la función de numpy column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}}, 
-transformando un array simple de una dimensión a un array de dos dimensiones. Una vez se realice lo anterior, se obtiene un array bidimensional listo para el algoritmo DBSCAN .\newline
-
-El resultado de DBSCAN es una lista con etiquetas de 0 a n, siendo 0 el primer grupo de clusters detectado y 
-n el último grupo de clusters detectado. De las listas de etiquetas se eliminan los clusters que hallan sido etiquetados como ruido (-1). Para obtener el resultado solamente basta con iterar en dicha lista y mostrar los puntos correspondientes de cada etiqueta en la imagen de salida.
-Visualmente se puede apreciar en la figura \ref{f:Rresultadosdbscan} los diferentes resultados que tiene este algoritmo en localizaciones distintas. 
-
-
-\begin{figure}[H]
-  \centering
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1-original.jpg}
-      \caption*{a: Zona curvada}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2-original.jpg}
-      \caption*{b: Zona recta}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4-original.jpg}
-      \caption*{c: Zona semirecta}
-  \end{minipage}
-  
-  \vspace{1cm}
-  
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop1.jpg}
-      \caption*{d: Detección en la zona curvada}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop2.jpg}
-      \caption*{e: Detección en la zona recta}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop3.jpg}
-      \caption*{f: Detección en la zona semirecta}
-  \end{minipage}
-
-  \vspace{1cm}
-  
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1.jpg}
-      \caption*{d: Detección en la zona curvada}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2.jpg}
-      \caption*{e: Detección en la zona recta}
-  \end{minipage}
-  \hfill
-  \begin{minipage}[t]{0.3\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4.jpg}
-      \caption*{f: Detección en la zona semirecta}
-  \end{minipage}
-  \caption{Resultado de la detección de líneas utilizando visión clásica}
-  \label{Vision_clasica}
-\end{figure}
-
-
+Antes de ejecutar el algoritmo, es necesario convertir la imagen resultante de la red neuronal en un array bidimensional compuesto por coordenadas de puntos x e y, por ello se utiliza
+la función column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} de numpy, transformando un array
+unidimensional en uno bidimensional. Cuando se realice la conversión se da pie a escoger los valores del algoritmo DBSCAN. Se elige un valor de eps de 10, para que un punto permanezca 
+al mismo clúster, debe estar a una distancia de hasta 10 píxeles de otro punto en el clúster. El parámetro min\_samples se establece en 5, al menos 5 muestras 
+deben estar presentes en la vecindad de un punto para que se considere parte del mismo clúster. 
 
 \begin{code}[h]
+  \begin{footnotesize}
   \begin{lstlisting}[language=Python]
     def clustering(self,cv_image):
     
@@ -653,41 +571,126 @@ Visualmente se puede apreciar en la figura \ref{f:Rresultadosdbscan} los diferen
   \end{lstlisting}
   \caption[Algoritmo de custering utilizando DBSCAN]{Algoritmo de clustering utilizando DBSCAN}
   \label{cod:DBSCAN}
+  \end{footnotesize}
   \end{code}  
 
 
+Al aplicar DBSCAN, el algoritmo devuelve una lista de equiquetas que van desde 0 a n, 
+donde 0 representa el primer clúster detectado y n el último. Las muestras etiquetadas como ruido reciben la etiqueta -1 y se eliminan de la lista de clústeres. Para visualizar 
+el resultado, se itera sobre la lista de etiquetas y se muestran los puntos correspondientes de cada etiqueta en la imagen de salida. El proceso completo, incluyendo los valores 
+de los parámetros de DBSCAN así como el uso de la clasificación de las líneas, se puede ver en el código ilustrado \ref{cod:DBSCAN}. \newline
+
+La figura \ref{clasificación} los diferentes resultados que tiene este algoritmo en localizaciones distintas. En la primera fila, se muestra las imágenes originales. En la segunda 
+fila se muestra el resultado del modelo Yolop320-320.onnx y por último en la tercera fila se muestra el resultado de la clasificación de las líneas detectadas por la red 
+utilizando el algoritmo DBSCAN. Cada clúster detectado es representado por un color distinto para poder visualizar el total de grupos que ha sido capaz clasificar DBSCAN.
+Dependiendo de la ubicación del dron, DBSCAN clasifica las líneas en aproximadamente entre 3 y 4 grupos de clústeres. En función de la clasificación de DBSCAN, se realiza 
+un filtrado de clústeres para seleccionar especificamente aquellos grupos de clústeres que representan las líneas del carril deseado.
+
+\begin{figure}[H]
+  \centering
+
+  % Título para la primera fila
+  \textbf{Imágenes Originales}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1-original.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2-original.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4-original.jpg}
+      \caption*{}
+  \end{minipage}
+
+  \vspace{1cm}
+
+  % Título para la segunda fila
+  \textbf{Detección de Yolop-320-320.onnx}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/yolop3.jpg}
+      \caption*{}
+  \end{minipage}
+
+  \vspace{1cm}
+
+  % Título para la tercera fila
+  \textbf{Resultado de DBSCAN}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/DBSCAN/comparativa/dbscan4.jpg}
+      \caption*{}
+  \end{minipage}
+
+  % Caption general para la figura
+  \caption{Resultado de la clasificación de las líneas por DBSCAN}
+  \label{clasificación}
+\end{figure}
+
 \subsubsection{Filtrado de clústeres}
 \label{clasificación:cluster}
-Una vez realizado el algoritmo de DBSCAN necesitamos quedarnos con el grupo de clústeres que pertenezcan al carril que queremos seguir. Para conseguirlo, se calcula los centroides de cada
-grupo de clústeres detectado y los clasificaremos en función de sí se encuentran en la derecha o izquierda respecto al centro de la imagen. La imagen tiene unas dimensiones de 320x320 píxeles, 
-siendo su centro (160,160) pixeles, x = 160 e y = 160. Nos fijaremos solamente en los valores de x de los centroides para poder clasificarlos en función del centro de la 
-imagen, a partir de ello serán divididos en dos grupos distinguidos: derecha e izquierda de la imagen como se muestra en el código \ref{cod:Clasificación de clústeres}. \newline
+Después de jecutar el algoritmo DBSCAN, es crucial determinar qué grupos de clústeres pertenecen al carril que se desea seguir. Para lograrlo, se realiza un filtrado de los centroides de cada
+grupo de clústeres detectado y se filtran según su posición respecto al centro de la imagen. La imagen tiene unas dimensiones de 320x320 píxeles, con su centro en (160,160) píxeles 
+(es decir, x = 160 e y = 160). Se consideran exclusivamente los valores de x de los centroides para realizar el filtrado con respecto al centro de la imagen. Basándose en este filtrado, 
+los centroides se divicen en dos grupos distintos: Izquierda y derecha de la imagen, como se detalla en el código \ref{cod:Clasificación de clústeres}. \newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
-    # Check if the centroid is within the desired lane
-
     WIDTH = cv_image.shape[1]
     if centroid[1] < WIDTH/2:  # left lane
         left_clusters.append((points_cluster,centroid))
        
     elif centroid[1] >= WIDTH/2:  # right lane
         right_clusters.append((points_cluster, centroid))
-       
-  
   \end{lstlisting}
   \caption[Clasificación de clústeres según las dimensiones de la imagen ]{Clasificación de clústeres respecto a las dimensiones de la imagen}
   \label{cod:Clasificación de clústeres}
   \end{code}  
 
+Durante el proceso de filtrado de los grupos de clústeres, se seleccionan subgrupos específicos de cada grupo (izquierda y derecha). Los subgrupos se eligen utilizando una función 
+maximizada con respecto a un punto central predefinido P, cuyo valor es (160,220), ajustado según las dimensiones de la imagen de 320x320 píxeles (donde 220 representa la coordenada
+y e 160 la coordenada x). El resto de clústeres son descartados. Esta función maximizada se detalla en el código \ref{cod:funcion_maximizada}. 
 
-Cuando sean clasificados los grupos de los clústeres, necesitamos quedarnos con qué subgrupo de cada grupo de clústeres (izquierda e derecha) nos queremos quedar respecto al carril. Esogemos dichos grupos mediante una función máximizada 
-respecto a un punto central P predefinido con valor (220,160) siendo 220 el valor de las y e 160 el valor de las x, dichos valores son calculados respecto 
-a las dimensiones de la imagen 320x320 píxeles. Es importante mencionar que cuando trabajamos con puntos en numpy las coordenadas estan opuestas, es decir, en vez de tener el formato (x,y) como estamos acostumbrados a trabajar tienen el formato(y,x). 
-A parte de escoger lo sugrupos respecto a un punto central P también se realiza en función de la densidad de puntos de dicho grupo de clústeres de la derecha u izquierda detectados, 
-con esto conseguimos que no solamente se escoja en función de la cercania si no que también lo haremos según la cantidad de puntos. El proceso se ilustra 
-en el código \ref{cod:funcion_maximizada}.\newline
-
+Al manipular puntos en numpy, es importante recordar que las coordenadas estan invertidas (y,x en lugar de x,y). Además de seleccionar subgrupos en relación con el punto central P, 
+se considera también la densidad de puntos en los grupos de clústeres detectados tanto en la izquierda como en la derecha. Este enfoque garantiza que la selección no solo dependa 
+de la proximidad al punto central, sino también de la cantidad de puntos presentes.  \newline
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
     def score_cluster(self,cluster, center):
@@ -701,11 +704,11 @@ en el código \ref{cod:funcion_maximizada}.\newline
   \caption[Función maximizada para escoger el grupo de cluster más cercano y denso respecto al punto P]{Función maximizada para escoger el grupo de cluster más cercano y denso respecto al punto P}
   \label{cod:funcion_maximizada}
   \end{code}  
-
-  En la figura \ref{fig:DBSCAN_imagen} se muestra todo el proceso desde el uso del algoritmo de DBSCAN hasta la clasificación de clústeres respecto al carril 
-  representados en color verde y rojo. Después de tener la clasificación de los grupos de clústeres se procede a realizar dos regresiones cuadráticas para construir las líneas del carril que queremos seguir.
-
-
+ 
+  En la figura \ref{fig:comparativa} se muestra el proceso desde la clasificación de líneas por DBSCAN hasta el la selección de los clústeres. 
+  DBSCAN es capaz de detectar hasta 4 clústeres, a partir de los cuales se realiza un filtrado basado en las coordenadas x de cada centroide de cada clúster. Posteriormente, 
+  se aplica una función maximizada para obtener los 2 clústeres requeridos. Estos clústeres están representados en color rojo para el grupo izquierdo y en verde para el grupo 
+  derecho. 
   \begin{figure}[H]
     \centering
     \begin{minipage}{0.3\textwidth}
@@ -719,23 +722,25 @@ en el código \ref{cod:funcion_maximizada}.\newline
     \begin{minipage}{0.3\textwidth}
       \includegraphics[width=\linewidth]{figs/Diseño/DBSCAN/filter_clustering.jpg}
     \end{minipage}
-    \caption{Proceso de selección de las líneas del carril}
+    \caption{Proceso de filtrado de las líneas clásificadas por DBSCAN}
     \label{fig:comparativa}
   \end{figure}
 
 \subsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
-Como anteriormente hemos mencionado, cuando se clasifique los clústeres correctamente daremos pie a la construcción de dos regresiones cuadráticas. \newline 
+Al tener los clústeres seleccionados, es necesario construir dos líneas que representen la naturaleza del carril basándose en estos puntos. Para ello, se emplea una técnica de aprendizaje 
+automático conocida como regresión, que permite aproximar un número N de puntos a una recta, curva u otra forma matemática. Debido a que las líneas de los carriles rara vez son 
+completamente rectas, suelen ser curvilíneas, se opta por utilizar una regresión de tipo cuadrática. 
 
-La regresión es un método de aprendizaje supervisado el cual consiste en aproximar un número N de puntos a una recta, curva, etc, en nuestro caso hemos escogido realizar una regresión cuadrática ya que el recorrido
-que vamos a realizar las líneas detectadas por la red neuronal no son totalmente rectas si no que se tratan de líneas curvilíneas por lo que la regresión cuadrática en este papel puede 
-funcionar perfectamente. 
+La regresión cuadrática permite modelar los puntos de cada clúster como curvas, lo cual es más adecuado para capturar las variaciones y curvaturas típicas de los carriles. Esta técnica no solo
+ayuda a interpretar mejor la forma del carril, sino que también facilita la navegación del dron al seguir la trayectoria por el carril. \newline
+
 Para la construcción de las regresiones cuadráticas se utiliza las funciones de la librería numpy denominada Polyfit\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
 y Polyval\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
 Polyfit es una función que calcula los coeficientes del polinomio que mejor se ajusta a los datos utilizando el método de los mínimos 
-cuadrados para la ecuación cuadrática,obteniendo tres coeficientes, denominados a,b y c. Definimos los valores de las coordenadas x como los puntos que queremos
-realizar dicho calculo, se realiza un rango entre un mínimo y un máximo ajustándolo a las dimensiones de la imagen, además de 
-ayudarnos con dos puntos auxiliares en los extremos inferiores en el cálculo de la regresión como se muestra en el código \ref{cod:Calculocoeficientes}.
+cuadrados para la ecuación cuadrática, obteniendo tres coeficientes, denominados a,b y c. Se define los valores de las coordenadas x como los puntos que se quiere
+realizar dicho calculo, se realiza un rango entre un mínimo y un máximo ajustándolo a las dimensiones de la imagen, además de la ayuda de 
+dos puntos auxiliares en los extremos inferiores en el cálculo de la regresión como se muestra en el código \ref{cod:Calculocoeficientes}.
  \newline
 
 \begin{code}[H]
@@ -753,12 +758,12 @@ ayudarnos con dos puntos auxiliares en los extremos inferiores en el cálculo de
   \label{cod:Calculocoeficientes}
   \end{code}  
 
-Con dichos coeficientes se realiza una media de los últimos diez valores como se ilustra en el código \ref{cod:regresión} y por cada cinco iteraciones dicha media se volverá a calcular, este paso lo realizamos ya que 
-queremos disminuir las oscilaciones causadas de las detecciones de la red neuronal que son cruciales a la hora de realizar el comportamiento sigue carril. Una vez calculados los coeficientes, se calcula la regresión cuadrática mediante la función Polyval, dicha función calcula
+Con dichos coeficientes se realiza una media de los últimos diez valores como se ilustra en el código \ref{cod:regresión} y por cada cinco iteraciones dicha media se vuelve a calcular, este paso lo se realiza ya que 
+se quiere disminuir las oscilaciones causadas de las detecciones de la red neuronal que son cruciales a la hora de realizar el comportamiento sigue-carril. Una vez calculados los coeficientes, se calcula la regresión cuadrática mediante la función Polyval, dicha función calcula
 la función cuadrática con los coeficientes calculados anteriormente. \newline 
-Cuando se obtiene los valores de la función cuadrática, se realiza una clasificación para quedarnos con los puntos obtenidos
-de dicha función los que se encuentren en el eje y entre los valores 0 hasta el máximo de la imagen mneos una unidad que sería 319, esto se debe hacer ya que dicha función como resultado puede 
-dar números negativos realizando dicha regresión además de que en una imagen no se puede indexar con números negativos. \newline
+Cuando se obtienen los valores de la función cuadrática, se realiza una selección de los puntos obtenidos
+de dicha función los que se encuentren en el eje y entre los valores 0 hasta el máximo de la imagen menos una unidad (320 - 1 = 319). Este proceso, 
+se debe realizar ya que dicha función como resultado puede dar números negativos realizando dicha regresión además de que en una imagen no se puede indexar con números negativos. \newline
 
 \begin{code}[H]
   \begin{lstlisting}[language=Python]
@@ -794,7 +799,7 @@ dar números negativos realizando dicha regresión además de que en una imagen 
 Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
 escogidos de la izquierda. \newline
 Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
-ver las regresiones cuadráticas como se muestra en la figura \ref{fig:regresión cuadrática}.\newline
+ver las regresiones cuadráticas. 
 
 \begin{figure} [H]
   \begin{center}
