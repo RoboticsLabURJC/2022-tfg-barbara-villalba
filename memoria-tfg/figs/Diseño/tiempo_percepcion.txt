@@ -1,0 +1,10 @@
+TIEMPOS PERCEPCION
+
+^CYOLOP: 9.523
+Proccesing YOLOP: 0.195
+DBSCAN0.000301
+Filter clustering: 6.867
+Regression: 3.593
+Interpolate: 8.532
+Centroide : 0.0427
+

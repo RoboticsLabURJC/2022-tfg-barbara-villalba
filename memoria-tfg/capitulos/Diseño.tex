@@ -3,29 +3,31 @@
 
 
 \vspace{1cm}
-El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación para un dron en entornos de simulación. Este dron debe ser capaz de desenvolverse
+El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación para un dron en entornos de simulación, siendo este capaz de desenvolverse
 por carreteras urbanas con un comportamiento reactivo y seguro. 
-Para lograr este objetivo, se implementa la infraestructura de comunicaciones entre el entorno de simulación y las diversas 
-plataformas de desarrollo. Esta infraestructura permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
+
+En este capítulo se desarrolla como se ha alcanzando este objetivo. En primer lugar se implementa la infraestructura de comunicaciones entre el entorno de simulación y las diversas. Esta 
+infraestructura de comunicaciones, permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
 una comunicación fluida y eficiente.
 
-Posteriormente, se desarolla el sistema perceptivo mediante inteligencia artificial junto con el desarrollo de comportamientos autónomos tradicionales utilizados en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados, se incluye 
-el control clásico basados en controladores y métodos de control avanzados basados en aprendizaje por refuerzo, con el fin de que el dron aprenda y se 
-adapte a diferentes escenarios urbanos. 
+A continuación, se desarolla el sistema perceptivo mediante el uso de inteligencia artificial junto con la implementación de comportamientos autónomos tradicionales empleados
+ en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados se incluye 
+el control clásico basado en controladores y métodos de control avanzados basados en aprendizaje por refuerzo, con el objetivo de que el dron aprenda y se 
+adapte a distintos escenarios urbanos. 
 
-Una vez desarrollados estos comportamientos, se procede a realizar una evaluación exhaustiva de los resultados obtenidos, 
-recopilando diferentes métricas para determinar la efectividad de cada enfoque y adapatabilidad del dron. 
-Finalmente, se analizan los resultados y se realiza una comparativa, destacando las ventajas y limitaciones, proporcionando así una visión global del desesempeño del sistema autónomo 
-de navegación del dron utilizando aplicaciones de entornos urbanos. 
+Una vez desarrollados estos comportamientos, se procede a realizar una evaluación exhaustiva de los resultados obtenidos. Se recopilan
+diversas métricas para determinar la efectividad de cada enfoque y adaptabilidad del dron. 
 
+Finalmente, se analizan los resultados y se realiza una comparativa, destacando las ventajas y limitaciones de cada enfoque, 
+proporcionando así una visión global del desesempeño del sistema autónomo 
+de navegación del dron en carreteras.\newline
 
 \section{Arquitectura}
 \label{sec:Arquitectura}
 
 La arquitectura propuesta para este trabajo como se muestra en la figura \ref{fig:infraestructura} consta de dos componentes principales 
-comunicados entre sí: El entorno de simulación  y las plataformas de desarrollo. En estas plataformas se desarrollan tanto el sistema perceptivo 
-como el de control, permitiendo una integración robusta y eficiente de las funcionalidades del dron en un entorno controlado y seguro. Estos componentes 
-están distribuidos en dos ordenadores distintos, denonimados PC1 y PC2. 
+comunicados entre sí: el entorno de simulación  y las plataformas de desarrollo. Estos componentes 
+están separados en dos ordenadores distintos, siendo PC1 el entorno de simulación y PC2 las plataformas de desarrollo junto con el algoritmo de percepción y sigue-carril. 
 
 Por un lado, el primer componente está compuesto por el entorno de simulación Airsim, ejecutado en el PC1. Incluye la configuración de sensores y actuadores necesarios 
 para la navegación del dron. La comunicación entre este componente y el segundo componente (PC2), se realiza a través de dos interfaces principales: 
@@ -43,19 +45,19 @@ para la navegación del dron. La comunicación entre este componente y el segund
   \item \textbf{Client Airsim}: Este componente permite el control del dron, gestionando las velocidades lineales y angulares necesarias para su navegación. 
 \end{enumerate}
 
-Dentro de PC2, se encuentra un componente denominado Nodo ROS que encapsula el sistema perceptivo y el seguimiento de carril, actuando como el nucleo de 
-procesamiento. Este nodo recibe y procesa las entradas de los sensores (imágenes RGB, altura y localización), y como salida genera velocidades lineales y angulares, teniendo
-como submódulos: 
+Dentro de PC2, se encuentra el componente que encapsula el sistema perceptivo y el seguimiento de carril, actuando como el nucleo de 
+procesamiento. Este componente recibe y procesa las entradas de los sensores (imágenes RGB, altura y localización), y genera velocidades lineales y angulares.
 
+Toda la funcionalidad se implementa dentro de dos submódulos:
 \begin{enumerate}
-  \item \textbf{Percepción}: Utilizando las imágenes RGB proporcionadas por ROS Wrapper Airsim a través del sensor de la cámara del dron, este sistema procesa la información
+  \item \textbf{Percepción}: Utilizando las imágenes RGB proporcionadas por ROS Wrapper Airsim, este sistema procesa la información
   visual para detectar el carril en el que debe navegar el dron. La detección del carril es fundamental para la ejecución del comportamiento sigue-carril, que guía al dron 
   a lo largo del carril deseado. 
-  \item \textbf{Sigue-Carril}: Este comportamiento se encarga de seguir una trayectoria predefinida basada en la detección del carril. Dentro de este componente, se 
+  \item \textbf{Sigue-Carril}: Este comportamiento se encarga de seguir el carril en función de la información obnida de la percepción. Dentro de este componente, se 
   utiliza dos enfoques diferentes: 
   \begin{enumerate}
-    \item \textbf{PID}: Un enfoque clásico de control que ajusta las velocidades angulares y teniendo una velocidad lineal constante del dron en función de las desviaciones
-    del carril detectado.
+    \item \textbf{PID}: Un enfoque clásico de control que ajusta las velocidad angulares en función de las desviaciones del carril detectado. En este controlador, la velocidad lineal 
+    del dron es constante.
     \item \textbf{Aprendizaje por Refuerzo}: Un enfoque más avanzado que utiliza técnicas de aprendizaje automático para optimizar el comportamiento del dron. Este método 
     permite al dron aprender de su entorno en diferentes condiciones. 
   \end{enumerate}
@@ -72,26 +74,26 @@ como submódulos:
     \label{fig:infraestructura}
   \end{figure}\
 
-\section{Distribución de equipos}
+\section{Configuración del sistema distribuido}
 \label{distribución}
-En el desarrollo de este TFG, hemos decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador con un sistema 
-operativo Windows 10 y una GPU Nvidia RTX 2070 Super. Por otra parte, las plataformas de desarrollo, que incluyen ROS, AirSim ROS Wrapper Node y Client Airsim se ejecutan en un ordenador secundario 
-con un sistema operativo Ubuntu 20.04 y una GPU Nvidia RTX 2070.
+En el desarrollo de este TFG, se ha decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
+operativo Windows 10 y una GPU Nvidia RTX 2070 Super. Por otra parte, las plataformas de desarrollo y control, que incluyen ROS, AirSim ROS Wrapper Node y Client Airsim se ejecutan en un ordenador
+portatil con un sistema operativo Ubuntu 20.04 y una GPU Nvidia RTX 2070.
 
 Esta propuesta se tomó con la iniciativa de no encapsular en un único componente el entorno de simulación y las plataformas de desarrollo. Inicialmente, todo el sistema 
 seguía una configuración centrazalida en un solo equipo con Ubuntu 20.04, generando cuellos de botella y limitando al rendimiento del sistema. Para solventar estos problemas, 
-se diseñó una infraestructura distribuida entre dos ordenadores distintos, diviendo así la carga de trabajo entre los dos sistemas. Por un lado, el primer ordenador se
-ejecuta el entorno de simulación Airsim mientras que en el segundo ordenador se manejan las plataformas de desarrollo. \newline
+se configuró una infraestructura distribuida entre dos ordenadores distintos, diviendo así la carga de trabajo entre los dos sistemas. \newline
 
-Al principio del desarrollo de esta distribución de equipos, se utilizó una comunicación con PX4 y Mavros, siguiendo la documentación oficial\footnote{\url{https://docs.px4.io/main/en/simulation/}} 
+Al principio del desarrollo, en esta distribución de equipos, se utilizó una comunicación con PX4 y Mavros, siguiendo la documentación oficial\footnote{\url{https://docs.px4.io/main/en/simulation/}} 
 junto con el entorno de simulación Airsim. Sin embargo, se decidió cambiar por una nueva configuración que emplea ROS Wrapper Airsim Node y Client Airsim, ya que 
-la comunicación original añadía una capa adicional produciendo bajos rendimientos que afectaba a la sincronización con el simulador. 
+la comunicación original añadía una capa de procesamiento adicional, produciendo bajos rendimientos que afectaba a la sincronización con el simulador. 
 
 En resumen, el sistema de comunicaciones se compone de dos ordenadores interconectados en la misma red. El diagrama 
 de comunicaciones ilustrado en la figura \ref{fig:diagramadeAirsim}, muestra esta implementación distribuida en diferentes ordenadores. Cada ordenador asume roles distintos: 
 El primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona las plataformas de desarrollo en donde se implementan los algoritmos 
 de percepción y seguimiento de carril. Ambos ordenadores se comunican a través de un router teniendo cada uno una dirección IP distinta. 
 
+\newpage
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.18]{figs/Diseño/Comunicaciones/comunicaciones.png}
@@ -103,19 +105,18 @@ de percepción y seguimiento de carril. Ambos ordenadores se comunican a través
 \subsection{Preparación del entorno de simulación}
 \label{sec:Preparación_entorno}
 
-Como mencionamos en la sección \ref{sec:Airsim}, utilizamos como simulador Airsim junto con el motor UnRealEngine. Para construir el entorno de simulación, primero
-necesitamos instalar UnrealEngine. Para ello, seguimos las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}}, 
+Como se menciona en la sección \ref{sec:Airsim}, se utiliza como simulador Airsim junto con el motor UnrealEngine. Para construir el entorno de simulación, primero
+se necesita instalar UnrealEngine. Para ello, se sigue las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}}, 
 utilizando la versión 4.27.2.
 
-Una vez que UnrealEngine esté instalado, procedemos a configurar el entorno de simulación mediante el archivo settings.json. Por defecto, al ejecutar Airsim 
-por primera vez, el simulador crea este archivo automáticamente dentro de una carpeta denoninada Airsim en la carpeta Documentos en Windows. Esto 
-resulta conveniente, ya que podemos modificar este archivo según nuestras necesidades. 
+Una vez que UnrealEngine esté instalado, se procede a configurar el entorno de simulación mediante el archivo settings.json. Por defecto, al ejecutar Airsim 
+por primera vez, el simulador crea este archivo automáticamente dentro de una carpeta denoninada Airsim en la carpeta Documentos en Windows. 
 
 
 \subsubsection{Configuración del dron y del entorno}
 \label{subsec:Configuración del dron y del entorno}
 
-En primer lugar se utiliza el entorno de simulación Coastline de entre los diferentes entornos que nos ofrece Airsim para Windows. Al descargar esta carpeta, 
+En primer lugar se utiliza el mapa de simulación Coastline de entre los diferentes mapas que te ofrece Airsim para Windows. Al descargar esta carpeta, 
 se obtiene un fichero ejecutable para abrir el entorno con Airsim, junto con carpetas de modelos de simulación como las carreteras, montañas y vegetación. Dentro de estas carpetas, se eliminan dichos componentes 
 de simulación que pueden dificultar al sistema perceptivo, como plantas y señales de tráfico que se ubican en las carreteras, facilitando así la percepción del entorno 
 y haciéndolo más manejable. En la figura \ref{fig:CoastlineModificado} se muestra marcado en color rojo, los componentes eliminados del entorno para facilitar al sistema 
@@ -128,14 +129,13 @@ perceptivo.
   \caption{Visualización del entorno original ilustrando los objetos que dificultan al sistema perceptivo}
   \label{fig:CoastlineModificado}
 \end{figure}\
-
-Cuando el fichero settings.json este creado, ya podemos equipar al dron con características como qué sensores va a utilizar, 
-el tipo de vehículo, el tipo de simulación, la comunicación y más. Como se muestra en el código \ref{cod:settings}, se definen como sensores el Lidar para saber a que altura
+Cuando el fichero settings.json este creado, ya se puede equipar al dron con características como qué sensores va a utilizar, 
+el tipo de vehículo, el tipo de simulación, la comunicación y más. Como se muestra en la figura \ref{cod:settings}, se definen como sensores el Lidar para saber a que altura
 esta volando el dron respecto al suelo, el GPS para conocer la localización que tiene el dron en el entorno y la cámara con imagenes
-RGB. Cada sensor debe llevar su propia configuración, siguiendo sus propios parámetros que dicta la guía oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/sensors/}}
+RGB. Cada sensor debe llevar su propia configuración, siguiendo los parámetros que dicta la guía oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/sensors/}}
 . La cámara tiene una peculiaridad de que se configura siendo otro sensor a parte de la lista de sensores de Airsim, consta de varios parámetros que se tienen que configurar como 
 el tamaño de la imagen, el uso de ROS, los FPS de la imagen transmitida, la posición, etc. 
-Los actuadores no es necesario tener ninguna configuración respecto a ellos. 
+Respecto de los actuadores, no se debe realizar ninguna configuración especial para ellos.
 
 \begin{figure}[H]
   \centering
@@ -726,7 +726,7 @@ de la proximidad al punto central, sino también de la cantidad de puntos presen
     \label{fig:comparativa}
   \end{figure}
 
-\subsection{Regresión cuadrática}
+\subsubsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
 Al tener los clústeres seleccionados, es necesario construir dos líneas que representen la naturaleza del carril basándose en estos puntos. Para ello, se emplea una técnica de aprendizaje 
 automático conocida como regresión, que permite aproximar un número N de puntos a una recta, curva u otra forma matemática. Debido a que las líneas de los carriles rara vez son 
@@ -803,35 +803,35 @@ ver las regresiones cuadráticas.
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.5]{figs/Diseño/Regresiones/Regresiones.jpg}
+    \includegraphics[scale=0.2]{figs/Diseño/Regresiones/regresiones.png}
   \end{center}
   \caption{Resultado de la regresión cuadrática}
   \label{fig:regresión cuadrática}
 \end{figure}\
 
-\subsection{Interpolación y cálculo del centro de masas del carril}
+\subsubsection{Interpolación y cálculo del centro de masas del carril}
 \label{sec:Interpolación y cálculo del centro de masas del carril}
 
-Para poder saber qué puntos se encuentran dentro de ambas regresiones cuadráticas, se realiza una interpolación. La interpolación consiste en recorrer
-los puntos de la imagen original y quedarnos con los puntos que se encuentren dentro de los límites de ambas regresiones. Se realiza dos interpolaciones, una interpolación para 
+Cuando se obtenga la construcción de las líneas por parte de la regresión cuadrática, se necesita definir el área de carril dentro de esas líneas construidas. Como se menciona en la sección 
+\ref{sec:resultados}, los resultados del modelo Yolop-320-320.onnx respecto al área del carril no son totalmente exactos produciendose una mala detección por parte de la red. Por lo tanto, se necesita
+una técnica para construir el área del carril a partir de las líneas obtenidas a partir de la regresión. Por ello, se utiliza una interpolación para recorrer calcular los puntos que se encuentran
+dentro de los límites de las regresiones. \newline
+
+
+
+Se realiza dos interpolaciones, una interpolación para 
 los puntos de la regresión de la  derecha
-y otra interpolación para los puntos de la regresión izquierda. Estas funciones interpolan los valores de los puntos en y en función de los valores de los puntos en x, más adelante se evalúa los valores de las puntos que se encuentran entre 
-ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolación}. Cuando se proceda a dicha evaluación, se desarrolla un filtro para seleccionar el rango de puntos que representar un fragmento del carril de color azul en la imagen
-final. Visualizando el resultado en la figura \ref{fig:interpolación} \newline
+y otra interpolación para los puntos de la regresión izquierda. 
+
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
 
     def interpolate_lines(self,cvimage,points_line_left,points_line_right):
 
-
     gray_image = cv2.cvtColor(cvimage, cv2.COLOR_BGR2GRAY) 
-
     np_gray = np.array(gray_image)
-
     x, y = np.nonzero(np_gray)
-
-
     img_points = np.column_stack((x, y))
 
     f1 = interp1d(points_line_left[:, 0], points_line_left[:, 1],kind='slinear',fill_value="extrapolate")
@@ -840,44 +840,115 @@ final. Visualizando el resultado en la figura \ref{fig:interpolación} \newline
     y_values_f2 = f2(img_points[:, 0])
     indices = np.where((y_values_f1 < img_points[:, 1]) & (img_points[:, 1] <= y_values_f2))
     
-    
     points_between_lines = img_points[indices]
     filtered_points_between_lines = points_between_lines[points_between_lines[:,0] > 180]
     return filtered_points_between_lines
     
-
   \end{lstlisting}
   \caption[Método de interpolación]{Método del cálculo de las funciones de interpolación}
   \label{cod:interpolación}
   \end{code}  
 
+Estas funciones interpolan los valores de los puntos en \textit{y} en función de los valores de los puntos en x, 
+más adelante se evalúa los valores de las puntos que se encuentran entre 
+ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolación}. Cuando se proceda a dicha evaluación, se desarrolla un filtro 
+para seleccionar un fragmento de carril. El carril se representa en color azul en la imagen resultante.\newline
+
+En la figura ref{comparativa-interpolacion}, se contrasta los resultados obtenidos por parte del modelo Yolop-320-320.onnx y la construcción del carril calculada a partir de las regresiones. 
+Como se puede observar, la construcción del carril desarrollada es bastante robusta en comparación con la salida que te ofrece la red, siendo así una forma de poder construir un 
+carril. Finalmente, para poder realizar el comportamiento sigue-carril, el dron necesita mantener una alineación respecto al carril calculado. Mantener una alineación respecto al carril permite
+al dron navegar sobre el carril de una manera eficiente y saber en todo momento las desviaciones que tiene respecto a dicho centro.
 
 
-  \begin{figure} [H]
-    \begin{center}
-      \includegraphics[scale= 0.5]{figs/Diseño/Regresiones/Interpolacion.jpg}
-    \end{center}
-    \caption{Resultado de la interpolación}
-    \label{fig:interpolación}
-  \end{figure}\
+\begin{figure}[H]
+  \centering
 
-  Finalmente, cuando obtengamos el cálculo del carril que queremos seguir solamente faltará calcular el centro de masas de dicho fragmento conocido como el centroide siguiendo la ecuación
-  del cálculo de centro de masas de una superficie: \newline
-  
+  % Título para la primera fila
+  \textbf{Detección de Yolop-320-320.onnx}
+  \vspace{0.5cm}
 
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/yolop1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/yolop2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/yolop3.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/yolop4.jpg}
+      \caption*{}
+  \end{minipage}
+
+  \vspace{1cm}
+
+  % Título para la segunda fila
+  \textbf{Construcción del carril desarrollada}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación3.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.2\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación4.jpg}
+      \caption*{}
+  \end{minipage}
+
+
+
+  % Caption general para la figura
+  \caption{Comparativa entre el resultado de detección Yolop-320-320.onnx y la construcción del carril desarrollada}
+  \label{comparativa-interpolacion}
+\end{figure}
+
+Para el cálculo del centride del carril, se toma la siguiente ecuación, que consiste en el cálculo de centro de masas de una superficie: \newline
+el cálculo del carril que queremos seguir solamente faltará calcular el centro de masas de dicho fragmento conocido como el centroide siguiendo la ecuación
+del cálculo de centro de masas de una superficie: 
   \begin{equation} 
     \vec{r}_{CM} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{\sum_{i}m_{i}} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{M} 
     \newline
   \end{equation} 
-  \newline
-  Supondremos que todos los puntos tienen la misma masa (m\_i = 1). Esto simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar.
-  El segundo paso es el cálculo de la masa total, se calcula multiplicando la masa individual (m\_i) por la cantidad de puntos en el carril. A continuación se calcula
-  la suma de las posiciones de los puntos ponderadas por su masa y dividimos por la masa total calculada anteriormente. El resultado es una centro de masas conocido como centroide
-  con coordenada x e y como se muestra en la figura final \ref{fig:centro de masas}. \newline
+
+  Siendo $\vec{r}_{CM}$ las coordenadas del centroide compuesta por (x,y), $\vec{r}_{i}$ los puntos del carril construido y $m_{i}$ la masa que constituye cada punto, se supone que todos 
+  los puntos del carril tienen masa igual a 1. Dicha supuestición, simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar. 
+
+  El cálculo de masa total ($\sum_{i}m_{i} \vec{r}_{i}$), consiste en el producto entre la masa individual de cada punto por el tamaño de los puntos que componen el carril. A continuación, 
+  se realiza el sumatorio de las coordenadas de los puntos ponderados por su masa y la división por el cálculo de masa total. El resultado de la ecuación es el conocido centroide 
+  compuesto por (x,y). \newline
+  
+  El resultado final del cálculo del centroide se muestra en la figura \ref{fig:centro de masas} resaltando con una flecha de color rojo donde se encuentra
+  el centro de masas del carril. 
 
   \begin{figure} [H]
     \begin{center}
-      \includegraphics[scale=0.5]{figs/Diseño/Regresiones/centroide.jpg}
+      \includegraphics[scale=0.5]{figs/Diseño/Regresiones/centroide.png}
     \end{center}
     \caption{Resultado del centro de masas}
     \label{fig:centro de masas}
