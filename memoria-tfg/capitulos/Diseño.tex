@@ -278,11 +278,11 @@ CvBridge\footnote{\url{http://wiki.ros.org/cv_bridge}}, se transforma la imagen 
 Para los métodos GaussianBlur, Canny e HoughLines se necesita trabajar con imágenes en escala de grises, por lo tanto, primero se realiza una transformación de la imagen 
 de color a escala de grises. A continuación se utiliza el método GaussianBlur\footnote{\url{https://docs.opencv.org/4.x/d4/d13/tutorial_py_filtering.html}}, que aplica un desenfoque 
 gaussiano a la imagen. Este proceso suaviza la imagen, reduciendo el ruido y mejorando la detección de bordes y líneas. A contunuación, se aplica el método Canny\footnote{\url{https://docs.opencv.org/4.x/da/d22/tutorial_py_canny.html}} 
-para la detección de bordes en la imagen. Finalmente, se aplica el método HoughLines\footnote{\url{https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html}}
-para detectar líneas en la imagen mediante la transformación de Hough, permitiendo identificar líneas rectas dentro de una imagen. 
+para la detección de bordes en la imagen. Finalmente, se aplica el método HoughLines\footnote{\url{https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html}} 
+para detectar líneas en la imagen mediante la transformación de Hough, permitiendo identificar líneas rectas dentro de una imagen. \newline
 
 El resultado final de la aplicación de estos algoritmos de visión clásica se puede observar en la figura \ref{Vision_clasica}. En la parte superior de la figura se presentan diferentes segmentos
-de carril: Una zona curvada, una zona recta y una zona semirecta. Estas imágenes representan la entrada original capturada por la cámara del dron. Respecto a la parte inferior de la figura, 
+de carril: Una zona curvada, una zona recta y una zona semirecta. Estas imágenes representan la entrada original capturada por la cámara del dron. En la parte inferior de la figura, 
 se muestran los resultados de la detección de líneas sobre las imagenes originales mediante el uso de los algoritmos mencionados. En la zona recta se puede ver como las líneas
 detectadas son claramente visibles y paralelas, lo que indica una correcta detección en este tipo de trayectos rectos. Mientras que en las zona curvada y la zona semirecta, presentan
 dificultades en la detección de las lineas, debido a que HoughLines esta optimizada para la detección de líneas rectas y no para la detección de líneas curvadas. 
@@ -331,10 +331,10 @@ dificultades en la detección de las lineas, debido a que HoughLines esta optimi
 \end{figure}
 
 Debido al mal funcionamiento de estos algoritmos de visión clásica en la detección de líneas en los carriles, 
-hemos optado por utilizar técnicas de inteligencia artificial, en especial Deep Learning, utilizando la red neuronal YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
+hemos optado por utilizar técnicas de Inteligencia Artificial, en especial Deep Learning, utilizando la red neuronal YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
 YOLOP es una red neuronal que realiza una detección de objetos de tráfico, detección del área segmentada transitable y una detección de las líneas que aparecen en las áreas transitables. Es importante 
-destacar que se realiza solamente la inferencia de los distintos modelos que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
-la detección de las líneas proporcionadas de la red para mejorar la percepción del entorno del dron, proporcionando una detección más robusta y precisa en una variedad de condiciones
+destacar que se realiza solamente la inferencia de los distintos modelos ya entrenados que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
+la detección de las líneas proporcionadas por la red para mejorar la percepción del entorno del dron, proporcionando una detección más robusta y precisa a una gran variedad de configuraciones
 de las carreteras urbanas dentro del entorno de Airsim. 
 
 \subsubsection{Inferencia de YOLOP}
@@ -343,10 +343,10 @@ de las carreteras urbanas dentro del entorno de Airsim.
 Para realizar la deteción de las líneas en la carretera nos vamos ayudar de la red neuronal YOLOP\footnote{\url{https://github.com/hustvl/YOLOP}}. En primer lugar, 
 se realiza la inferencia del modelo End-to-end.pth y más adelante la inferencia de los modelos yolop-320-320.onnx, yolop-640-640.onnx e yolop-1280-1280.onnx mediante el Onnx Runtime. 
 El archivo End-to-end.pth es un modelo preentrenado construido en formato Pytorch que contiene los pesos y sesgos de la red neuronal después del entrenamiento. En el contexto de 
-redes neruronales, \texttt{end-to-end} significa que la red se entrena para realizar todas las etapas de un proceso completo, para YOLOP, esto significa que se ha entrenado de manera integral 
+redes neruronales, \texttt{end-to-end} significa que la red se entrena para realizar todas las etapas de un proceso completo. En el caso de YOLOP, esto significa que se ha entrenado de manera integral 
 para realizar simultáneamente todas sus tareas (detección de objetos, segmentación de áreas transitables y detección de líneas). Para poder cargar este modelo, se realiza 
-su carga mediante el repositorio de github\footnote{\url{https://github.com/hustvl/YOLOP}}
-especificando el modelo de la red neuronal y la opción 'pretrained' colocada con valor True, especificando que los pesos del modelo de la red se cargan del archivo End-to-end.pth.\newline
+su carga mediante el repositorio de Github\footnote{\url{https://github.com/hustvl/YOLOP}}
+especificando el modelo de la red neuronal y la opción 'pretrained' definida con valor \textit{True}, especificando que los pesos del modelo de la red se cargan del archivo End-to-end.pth.\newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -358,8 +358,8 @@ especificando el modelo de la red neuronal y la opción 'pretrained' colocada co
   \label{cod:cargar_modelo}
   \end{code}  
 
-Una vez tengamos el modelo cargado del repositorio como se ilustra en el código \ref{cod:cargar_modelo}, se puede escoger 
-si se quiere realizar la inferencia mediante el uso de la CPU o el uso de la GPU. Para una mejor optimización de la red neuronal, se utiliza
+Una vez se tenga el modelo cargado del repositorio como se ilustra en el código \ref{cod:cargar_modelo}, se puede escoger 
+si se quiere realizar la inferencia mediante el uso de la CPU o el uso de la GPU. Para una mejor comportamiento de la red neuronal, se utiliza
 la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestra en el código \ref{cod:codeloadYOLOP}.\newline
 
   
@@ -379,7 +379,7 @@ la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestr
       una entrada con unas dimensiones de 640x640 píxeles en las imágenes y por último el archivo \texttt{Yolop-1280-1280.onnx} se necesita unas dimensiones de imágenes de 1280x1280 píxeles. 
       En cuanto al uso de estos modelos, se debe realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
       dichas versiones tienen que ser compatible entre sí. Para ello nos vamos a guiar mediante la tabla requisitos de la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}. \newline
-      Cuando se trabaja con Onnx Runtime, se puede especificar qué proveedores de ejecución utilizar para ejecutar la inferencia del modelo de Onnx que se escoja. Cada proveedor 
+      Cuando se trabaja con Onnx Runtime, se puede especificar qué proveedores de ejecución utilizar para ejecutar la inferencia del modelo de Onnx elegido. Cada proveedor 
       contiene un conjunto de núcleos optimizados para un objetivo específico (por ejemplo, CPU, GPU, IoT), cada proveedor se especifica en una lista en orden de prioridad. Para realizar 
       inferencia de estos modelos, se escoge CUDA para ejecutar mediante la GPU. En el código \ref{yolop320} se muestra la carga del modelo Yolop-320-320.onnx junto con la configuración
       del provider CUDAExecutionProvider. 
@@ -396,7 +396,7 @@ la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestr
         \label{yolop320}
         \end{code}  
 
-        Para realizar la redimensión de las imágenes dependiendo de cada modelo, se utiliza un método implementado por ellos 
+        Para realizar la redimensión de las imágenes dependiendo de cada modelo, se utiliza un método implementado por la comunidad Debuggercafe 
         que se puede encontrar en la siguiente página\footnote{\url{https://debuggercafe.com/yolop-onnx-inference-on-cpu}}, el cuál redimensiona la imagen de entrada según cada modelo. En el código 
         \label{cod:Inferencia_onnx} se realiza la inferencia del modelo Yolop-320-320.onnx. 
 
@@ -439,7 +439,7 @@ la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestr
         Por ello, se convierte el tensor en un array numpy y se realiza una transformacion para cambiar las dimensiones de (H,W,C) 
         a (C,H,W) esto se realiza ya que en OpenCV se representan imágenes en formato numpy array y se transpone las dimensiones\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
     
-        Después de este proceso, se obtiene un array de numpy que se normaliza con valores de 0-1. Con la normalización 
+        Después de este proceso, se obtiene un array de numpy (detallado en la sección \ref{sec:Numpy}) que se normaliza con valores de 0-1. Con la normalización 
         se ayuda a igualar la escala de los píxeles de la imagen. Finalmente se muestra el resultado de la inferencia de la red 
         en una imagen como se ilustra en el código \ref{cod:Resultadoinferencia}. Al normalizar los valores de 0-1, los píxeles con un valor 1 se muestran en la imagen final, asignándoles 
         color verde el resultado de la segmentación de la calzada y de color rojo la detección de las líneas de la calzada. \newline
@@ -469,17 +469,17 @@ la GPU para realizar la inferencia asignandole el dispositivo GPU como se muestr
 
 \subsubsection{Resultados de YOLOP }
 \label{sec:resultados}
-En esta sección se constrastan los resultados de la inferencia de YOLOP con los diferentes modelos que ofrece esta red. Para realizar esta comparación, se uso el ordenador 
+En esta sección se constrastan los resultados de la inferencia de YOLOP con los diferentes modelos preentrenados que ofrece esta red. Para realizar esta comparación, se uso el ordenador 
 PC2 junto con la GPU Nvidia 2070 RTX para realizar la inferencia de cada modelo. Se recopilan datos del tiempo medio de inferencia en milisegundos de cada 
 modelo de YOLOP durante aproximadamente
-un mínuto, mientras se teleopera el dron por las carreteras. El objetivo de este análisis es determinar qué modelo ofrece mejores resultados en términos de eficiencia y rendimiento. 
+un minuto, mientras se teleopera el dron por las carreteras. El objetivo de este análisis es determinar qué modelo ofrece mejores resultados en términos de eficiencia y rendimiento. 
 En la figura \ref{fig:resultados_pesos_preentrenados} se muestra este análisis mostrando la media en realizar la inferencia de YOLOP utilizando los modelos 
 End-to-end.pth, Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx en milisegundos.
 
-El modelo que tiene una inferencia menor al resto se trata de Yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 10 milisegundos, esto
-significa que el modelo Yolop-320-320.onnx tiene aproximadamente un rate de 100 FPS. Si comparamos este resultado con los restantes modelos, es el ganador en cuanto 
+El modelo que tiene un tiempo de inferencia menor al resto se trata de Yolop-320-320.onnx, tiene un tiempo de inferencia alrededor de 10 milisegundos, esto
+significa que el modelo Yolop-320-320.onnx tiene aproximadamente un \textit{framerate} de 100 FPS. Si se compara este resultado con los restantes modelos, es el ganador en cuanto 
 en tiempo de inferencia, rate y mejores resultados. 
-Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia en cuanto Pytorch, lo que puede mejorar la velocidad y la precisión
+Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia respecto a Pytorch, lo que puede mejorar la velocidad y la precisión
 del modelo, una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, 
 en este caso se busca un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección de las líneas de la calzada. 
 
@@ -493,7 +493,7 @@ en este caso se busca un equilibrio entre velocidad de inferencia y mejores resu
 
 Por ello, se escoge el modelo Yolop320-320.onnx ya que obtiene mejores resultados para poder realizar la detección de las líneas del carril. 
 En cuanto a los resultados de la inferencia, en la figura \ref{f:resultadosYOLOP} 
-se puede observar los diferentes resultados que tiene la red neuronal YOLOP dependiendo de qué modelo utilizar. Para ello, se utiliza dos zonas totalmente distintas para realizar 
+se puede observar los diferentes resultados que tiene la red neuronal YOLOP dependiendo del modelo empleado. Para ello, se utilizan dos zonas totalmente distintas para realizar 
 la inferencia de los modelos. Aunque se escoja el modelo Yolop-320-320.onnx, la detección de las líneas no es perfecta como se muestra en la figura 
 \ref{f:Inferencia320-320}. Depende de como se halla entrenado la red. 
 \begin{figure} [H]
@@ -504,9 +504,9 @@ la inferencia de los modelos. Aunque se escoja el modelo Yolop-320-320.onnx, la 
   \label{f:Inferencia320-320}
 \end{figure}\
 
-Para lograr una construcción del carril que se desea seguir, se selecciona las líneas que se necesitan mediante un algoritmo de aprendizaje no supervisado, denonimado clustering, en especial, 
-DBSCAN. Con este algoritmo, se realiza una clasificación de las diferentes líneas detectadas por parte del modelo Yolop-320-320.onnx para más adelante aplicar un filtro y seleccionar las líneas 
-para construir el carril. Las líneas de la red neuronal no llegan a ser exactas, lo cual aunque se realice el filtrado de estas líneas se necesita construir el carril a partir de unas líneas 
+Para lograr una reconstrucción del carril que se desea seguir, se seleccionan las líneas que se necesitan mediante DBSCAN, un algoritmo de clustering basado en aprendizaje no supervisado. 
+Con este algoritmo, se realiza una clasificación de las diferentes líneas detectadas por parte del modelo Yolop-320-320.onnx para más adelante aplicar un filtro y seleccionar las líneas 
+para reconstruir el carril. Las líneas de la red neuronal no llegan a ser exactas, lo cual aunque se realice el filtrado de estas líneas se necesita construir el carril a partir de unas líneas 
 definidas mediante regresiones cuadráticas. 
 \begin{figure} [H]
   \begin{center}
@@ -516,22 +516,21 @@ definidas mediante regresiones cuadráticas.
   \label{Resultados de los diferentes modelos de la red neuronal YOLOP}
 \end{figure}\
 
-\newpage
 \subsubsection{DBSCAN}
 \label{sec:DBSCAN}
 
-Para clasificar las lineas detectadas por parte de la red neuronal, se utiliza un algoritmo de aprendizaje no supervisado llamado clustering, en particular
+Para clasificar las lineas detectadas por parte de la red neuronal, se utiliza un algoritmo de clustering basado en aprendizaje no supervisado, en particular
 DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{ski_dbs}.\newline
 
 Este algoritmo clasifica un conjunto de muestras en grupos (clústeres) basándose en la densidad de puntos en el espacio de caraterísticas, que es una forma de representar
-datos utilizando diferentes medidas o atributos. A diferencia de otros métodos de clustering, como K-Means, DBSCAN no quiere especificar el número de clústeres de antemano, 
+datos utilizando diferentes medidas o atributos. A diferencia de otros métodos de clustering, como K-Means, DBSCAN no requiere especificar el número de clústeres de antemano, 
 siendo capaz de identificar patrones de forma arbistraria, siendo especialmente útil para detectar estructuras complejas en los datos. 
 
 DBSCAN requiere la configuración de varios parámetros importantes:
 \begin{enumerate}
   \item \textbf{Eps}: Consiste en la distancia máxima que puede existir entre dos muestras para que una se considere vecina de la otra. Dicha distancia no se trata de un límite 
   máximo entre las distancias que puede haber dentro de un cluster. Si se elige un valor de eps muy alto, puede provocar que los clústeres distintos se combinen en el mismo grupo. 
-  En cambio, un valor de eps muy pequeño puede resultar una mayor clasificación de clústeres pequeños.
+  En cambio, un valor de eps muy pequeño puede resultar una mayor generación de clústeres pequeños.
   \item \textbf{Min\_samples}: Es el número mínimo de muestras dentro de un vecindario para que un punto se considere como un punto central incluyendo al propio punto.
   Si min\_samples se establece en un valor alto, DBSCAN encontrará clústeres más densos y 
   si el valor de min\_samples es bajo, los clústeres serán más dispersos.
@@ -540,9 +539,10 @@ DBSCAN requiere la configuración de varios parámetros importantes:
 
 Antes de ejecutar el algoritmo, es necesario convertir la imagen resultante de la red neuronal en un array bidimensional compuesto por coordenadas de puntos x e y, por ello se utiliza
 la función column\_stack\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} de numpy, transformando un array
-unidimensional en uno bidimensional. Cuando se realice la conversión se da pie a escoger los valores del algoritmo DBSCAN. Se elige un valor de eps de 10, para que un punto permanezca 
-al mismo clúster, debe estar a una distancia de hasta 10 píxeles de otro punto en el clúster. El parámetro min\_samples se establece en 5, al menos 5 muestras 
-deben estar presentes en la vecindad de un punto para que se considere parte del mismo clúster. 
+unidimensional en uno bidimensional. Cuando se realice la conversión se da pie a escoger los valores del algoritmo DBSCAN. Se ha seleccionado un valor de eps de 10, esto significa que, 
+para que un punto sea considerado parte de un mismo clúster, debe estar a una distancia máxima de 10 píxeles para que sean vecinos y pertenezcan al mismo grupo de clúster. 
+El parámetro min\_samples se establece en 5, al menos 5 muestras 
+deben estar presentes en la vecindad de un punto para que se considere parte de un mismo clúster. 
 
 \begin{code}[h]
   \begin{footnotesize}
@@ -575,16 +575,16 @@ deben estar presentes en la vecindad de un punto para que se considere parte del
   \end{code}  
 
 
-Al aplicar DBSCAN, el algoritmo devuelve una lista de equiquetas que van desde 0 a n, 
-donde 0 representa el primer clúster detectado y n el último. Las muestras etiquetadas como ruido reciben la etiqueta -1 y se eliminan de la lista de clústeres. Para visualizar 
+Al aplicar DBSCAN, el algoritmo devuelve una lista de etiquetas que van desde 0 a n, 
+donde 0 representa el primer clúster detectado y n el último. Las muestras etiquetadas como ruido o no clasificadas reciben la etiqueta -1 y se eliminan de la lista de clústeres. Para visualizar 
 el resultado, se itera sobre la lista de etiquetas y se muestran los puntos correspondientes de cada etiqueta en la imagen de salida. El proceso completo, incluyendo los valores 
-de los parámetros de DBSCAN así como el uso de la clasificación de las líneas, se puede ver en el código ilustrado \ref{cod:DBSCAN}. \newline
+de los parámetros de DBSCAN así como el uso de la clasificación de las líneas, se puede ver en el código \ref{cod:DBSCAN}. \newline
 
-La figura \ref{clasificación} los diferentes resultados que tiene este algoritmo en localizaciones distintas. En la primera fila, se muestra las imágenes originales. En la segunda 
+La figura \ref{clasificación} se muestran los diferentes resultados que tiene este algoritmo en localizaciones distintas. En la primera fila, se muestra las imágenes originales. En la segunda 
 fila se muestra el resultado del modelo Yolop320-320.onnx y por último en la tercera fila se muestra el resultado de la clasificación de las líneas detectadas por la red 
 utilizando el algoritmo DBSCAN. Cada clúster detectado es representado por un color distinto para poder visualizar el total de grupos que ha sido capaz clasificar DBSCAN.
 Dependiendo de la ubicación del dron, DBSCAN clasifica las líneas en aproximadamente entre 3 y 4 grupos de clústeres. En función de la clasificación de DBSCAN, se realiza 
-un filtrado de clústeres para seleccionar especificamente aquellos grupos de clústeres que representan las líneas del carril deseado.
+un filtrado de clústeres para seleccionar especificamente aquellos grupos de puntos que representan las líneas del carril deseado.
 
 \begin{figure}[H]
   \centering
@@ -666,10 +666,11 @@ un filtrado de clústeres para seleccionar especificamente aquellos grupos de cl
 
 \subsubsection{Filtrado de clústeres}
 \label{clasificación:cluster}
-Después de jecutar el algoritmo DBSCAN, es crucial determinar qué grupos de clústeres pertenecen al carril que se desea seguir. Para lograrlo, se realiza un filtrado de los centroides de cada
+Después de ejecutar el algoritmo DBSCAN, es crucial determinar qué grupos de clústeres pertenecen a las líneas que definen el caril que se desea seguir. 
+Para lograrlo, se realiza un filtrado de los centroides de cada
 grupo de clústeres detectado y se filtran según su posición respecto al centro de la imagen. La imagen tiene unas dimensiones de 320x320 píxeles, con su centro en (160,160) píxeles 
-(es decir, x = 160 e y = 160). Se consideran exclusivamente los valores de x de los centroides para realizar el filtrado con respecto al centro de la imagen. Basándose en este filtrado, 
-los centroides se divicen en dos grupos distintos: Izquierda y derecha de la imagen, como se detalla en el código \ref{cod:Clasificación de clústeres}. \newline
+. Se consideran exclusivamente los valores horizontales de los centroides para realizar el filtrado con respecto al centro de la imagen. Basándose en este filtrado, 
+los centroides se dividen en dos grupos distintos: izquierda y derecha de la imagen, como se detalla en el código \ref{cod:Clasificación de clústeres}. \newline
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -685,8 +686,8 @@ los centroides se divicen en dos grupos distintos: Izquierda y derecha de la ima
   \end{code}  
 
 Durante el proceso de filtrado de los grupos de clústeres, se seleccionan subgrupos específicos de cada grupo (izquierda y derecha). Los subgrupos se eligen utilizando una función 
-maximizada con respecto a un punto central predefinido P, cuyo valor es (160,220), ajustado según las dimensiones de la imagen de 320x320 píxeles (donde 220 representa la coordenada
-y e 160 la coordenada x). El resto de clústeres son descartados. Esta función maximizada se detalla en el código \ref{cod:funcion_maximizada}. 
+maximizada con respecto a un punto central predefinido P, cuyo valor es (160,220), ajustado según las dimensiones de la imagen de 320x320 píxeles . El resto de clústeres son 
+descartados. Esta función maximizada se detalla en el código \ref{cod:funcion_maximizada}. 
 
 Al manipular puntos en numpy, es importante recordar que las coordenadas estan invertidas (y,x en lugar de x,y). Además de seleccionar subgrupos en relación con el punto central P, 
 se considera también la densidad de puntos en los grupos de clústeres detectados tanto en la izquierda como en la derecha. Este enfoque garantiza que la selección no solo dependa 
@@ -705,7 +706,7 @@ de la proximidad al punto central, sino también de la cantidad de puntos presen
   \label{cod:funcion_maximizada}
   \end{code}  
  
-  En la figura \ref{fig:comparativa} se muestra el proceso desde la clasificación de líneas por DBSCAN hasta el la selección de los clústeres. 
+  En la figura \ref{fig:comparativa} se muestra el proceso desde la clasificación de líneas por DBSCAN hasta la selección de los clústeres. 
   DBSCAN es capaz de detectar hasta 4 clústeres, a partir de los cuales se realiza un filtrado basado en las coordenadas x de cada centroide de cada clúster. Posteriormente, 
   se aplica una función maximizada para obtener los 2 clústeres requeridos. Estos clústeres están representados en color rojo para el grupo izquierdo y en verde para el grupo 
   derecho. 
@@ -722,14 +723,15 @@ de la proximidad al punto central, sino también de la cantidad de puntos presen
     \begin{minipage}{0.3\textwidth}
       \includegraphics[width=\linewidth]{figs/Diseño/DBSCAN/filter_clustering.jpg}
     \end{minipage}
-    \caption{Proceso de filtrado de las líneas clásificadas por DBSCAN}
+    \caption{Proceso de filtrado de las líneas clasificadas por DBSCAN}
     \label{fig:comparativa}
   \end{figure}
 
 \subsubsection{Regresión cuadrática}
 \label{sec:Regresión cuadrática}
 Al tener los clústeres seleccionados, es necesario construir dos líneas que representen la naturaleza del carril basándose en estos puntos. Para ello, se emplea una técnica de aprendizaje 
-automático conocida como regresión, que permite aproximar un número N de puntos a una recta, curva u otra forma matemática. Debido a que las líneas de los carriles rara vez son 
+automático conocida como regresión, que permite aproximar a un número N de puntos a una recta, curva u otra forma matemática que se pueda definir con una función. 
+Debido a que las líneas de los carriles rara vez son 
 completamente rectas, suelen ser curvilíneas, se opta por utilizar una regresión de tipo cuadrática. 
 
 La regresión cuadrática permite modelar los puntos de cada clúster como curvas, lo cual es más adecuado para capturar las variaciones y curvaturas típicas de los carriles. Esta técnica no solo
@@ -738,9 +740,10 @@ ayuda a interpretar mejor la forma del carril, sino que también facilita la nav
 Para la construcción de las regresiones cuadráticas se utiliza las funciones de la librería numpy denominada Polyfit\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
 y Polyval\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
 Polyfit es una función que calcula los coeficientes del polinomio que mejor se ajusta a los datos utilizando el método de los mínimos 
-cuadrados para la ecuación cuadrática, obteniendo tres coeficientes, denominados a,b y c. Se define los valores de las coordenadas x como los puntos que se quiere
+cuadrados para la ecuación cuadrática, obteniendo tres coeficientes, denominados a, b y c. Se define los valores de las coordenadas x como los puntos que se quiere
 realizar dicho calculo, se realiza un rango entre un mínimo y un máximo ajustándolo a las dimensiones de la imagen, además de la ayuda de 
-dos puntos auxiliares en los extremos inferiores en el cálculo de la regresión como se muestra en el código \ref{cod:Calculocoeficientes}.
+dos puntos auxiliares en los extremos inferiores en el cálculo de la regresión, esto se realiza para que la regresión cuadrática tienda a las esquinas superiores de la imagen 
+como se muestra en el código \ref{cod:Calculocoeficientes}.
  \newline
 
 \begin{code}[H]
@@ -763,7 +766,8 @@ se quiere disminuir las oscilaciones causadas de las detecciones de la red neuro
 la función cuadrática con los coeficientes calculados anteriormente. \newline 
 Cuando se obtienen los valores de la función cuadrática, se realiza una selección de los puntos obtenidos
 de dicha función los que se encuentren en el eje y entre los valores 0 hasta el máximo de la imagen menos una unidad (320 - 1 = 319). Este proceso, 
-se debe realizar ya que dicha función como resultado puede dar números negativos realizando dicha regresión además de que en una imagen no se puede indexar con números negativos. \newline
+se debe realizar ya que dicha función como resultado puede dar números negativos realizando dicha regresión además de que en una imagen no se puede indexar con números negativos, ya que
+se corresponderían a píxeles que se encuentran fuera de la propia imagen. \newline
 
 \begin{code}[H]
   \begin{lstlisting}[language=Python]
@@ -812,16 +816,16 @@ ver las regresiones cuadráticas.
 \subsubsection{Interpolación y cálculo del centro de masas del carril}
 \label{sec:Interpolación y cálculo del centro de masas del carril}
 
-Cuando se obtenga la construcción de las líneas por parte de la regresión cuadrática, se necesita definir el área de carril dentro de esas líneas construidas. Como se menciona en la sección 
+Una vez obtenidas las líneas reconstruidas, se necesita definir el área de carril dentro de esas líneas construidas. Como se menciona en la sección 
 \ref{sec:resultados}, los resultados del modelo Yolop-320-320.onnx respecto al área del carril no son totalmente exactos produciendose una mala detección por parte de la red. Por lo tanto, se necesita
 una técnica para construir el área del carril a partir de las líneas obtenidas a partir de la regresión. Por ello, se utiliza una interpolación para recorrer calcular los puntos que se encuentran
 dentro de los límites de las regresiones. \newline
 
 
 
-Se realiza dos interpolaciones, una interpolación para 
+Se realizan dos interpolaciones, una para 
 los puntos de la regresión de la  derecha
-y otra interpolación para los puntos de la regresión izquierda. 
+y otra para los puntos de la regresión izquierda. 
 
 
 \begin{code}[h]
@@ -854,10 +858,10 @@ más adelante se evalúa los valores de las puntos que se encuentran entre
 ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolación}. Cuando se proceda a dicha evaluación, se desarrolla un filtro 
 para seleccionar un fragmento de carril. El carril se representa en color azul en la imagen resultante.\newline
 
-En la figura ref{comparativa-interpolacion}, se contrasta los resultados obtenidos por parte del modelo Yolop-320-320.onnx y la construcción del carril calculada a partir de las regresiones. 
+En la figura \ref{comparativa-interpolacion}, se contrasta los resultados obtenidos por parte del modelo Yolop-320-320.onnx y la construcción del carril calculada a partir de las regresiones. 
 Como se puede observar, la construcción del carril desarrollada es bastante robusta en comparación con la salida que te ofrece la red, siendo así una forma de poder construir un 
 carril. Finalmente, para poder realizar el comportamiento sigue-carril, el dron necesita mantener una alineación respecto al carril calculado. Mantener una alineación respecto al carril permite
-al dron navegar sobre el carril de una manera eficiente y saber en todo momento las desviaciones que tiene respecto a dicho centro.
+al dron navegar sobre el carril de una manera eficiente y saber en todo momento las desviaciones que tiene respecto a dicho centro. \newline
 
 
 \begin{figure}[H]
@@ -944,7 +948,7 @@ del cálculo de centro de masas de una superficie:
   compuesto por (x,y). \newline
   
   El resultado final del cálculo del centroide se muestra en la figura \ref{fig:centro de masas} resaltando con una flecha de color rojo donde se encuentra
-  el centro de masas del carril. 
+  el centro de masas del carril representado por un círculo de color negro.
 
   \begin{figure} [H]
     \begin{center}
@@ -956,52 +960,65 @@ del cálculo de centro de masas de una superficie:
 
   \subsection{Análisis del algoritmo de percepción}
   \label{sec:Análisis del algoritmo de percepción}
-  Por último, realizamos un analisis de tiempos de cada parte para saber cuánto tiempo tarda en realizarse la percepción completa. Dicho análisis se llama profiling, con esta técnica 
-  nos ayuda ver el rendimiento que podemos llegar a tener del algoritmo de percepción en cuanto a eficiencia. En la figura \ref{fig:centro de masas}, 
-  se muestra una media de cuanto tarda cada componente de la percepción en segundos.
+  Se realiza un análisis detallado de cada submódulo del sistema perceptivo. Esta evaluación se presenta en la tabla \ref{tab:Profiling}, incluye 
+  tres columnas que indican el nombre del submódulo de percepción, el dispositivo donde se ejecuta y el tiempo medio calculado en milisegundos.
 
+\begin{table}[h]
+    \centering
+    \begin{tabular}{| m{5cm} | m{3cm} | m{3cm} |}
+        \hline
+        \textbf{Componentes Percepción} & \textbf{Dispositivo} & \textbf{Tiempo (ms)} \\ \hline
+        YOLOP & GPU & 9.523 \\ \hline
+        Procesamiento de YOLOP & CPU & 0.195 \\ \hline
+        DBSCAN & CPU & 0.000301 \\ \hline
+        Filtrado de clústeres & CPU & 6.867 \\ \hline
+        Regresiones cuadráticas & CPU & 3.593 \\ \hline
+        Interpolación & CPU & 8.532 \\ \hline
+        Cálculo del centro de masas & CPU & 0.0427 \\ \hline
+        \textbf{Tiempo Total} & & \textbf{28.753} \\ \hline
+    \end{tabular}
+    \caption{Profiling}
+    \label{tab:Profiling}
+\end{table}
 
-  \begin{figure} [H]
-    \begin{center}
-      \includegraphics[scale=0.4]{figs/Diseño/Percepcion/time_profiling.png}
-    \end{center}
-    \caption{Profiling de las partes de la percepción}
-    \label{fig:centro de masas}
-  \end{figure}\
+Estos datos se recopilan utilizando un ordenador portátil con una GPU Nvidia RTX 2070, como se menciona en la sección de arquitectura. La tabla muestra que los 
+componentes perceptivos que requieren más tiempo de procesamiento son la inferencia del modelo Yolop320-320.onnx y el cálculo de las interpolaciones. 
+Aunque la inferencia se realiza en la GPU, esta está constantemente procesando imágenes para generar la salida. Por otro lado, la interpolación 
+requiere procesar todos los puntos que pertenecen a las dos regresiones, lo cual consume recursos de la CPU.
 
-  Como podemos apreciar, la parte de la percepción que tarda más es el cálculo de la regresiones cuadráticas, la interpolación y el cálculo del centroide. Esto se debe a que
-  cuando se realiza el cálculo de las regresiones hay que recorrer los puntos de los grupos de clústeres y cálcular sus funciones para obtener las regresiones. Respecto al 
-  tiempo que tarda el algoritmo de DBSCAN junto con la clasficación de los clústeres es el ganador en cuanto menor tiempo de cómputo lo cual es interesante trabajar 
-  con dicho algoritmo de clustering. En conclusión, sumando todos los tiempos de cada parte obtenemos un tiempo global de 0.033 segundos pasado a FPS conseguimos un rate aproximadamente
-  de 30 FPS. 
+En comparación, el componente DBSCAN es el más eficiente en términos de tiempo de cómputo, lo que hace interesante trabajar con este algoritmo de clustering. 
+Sumando los tiempos de cada componente, se obtiene un tiempo medio total de 28.753 milisegundos, lo que se traduce en un procesamiento aproximado de 30 FPS (frames por segundo). 
 
-  \section{Seguimiento del carril mediante control clásico}
+Este análisis es crucial para conseguir un sistema perceptivo realtime a la hora de implementar los comportamientos de control. 
+
+A continuación, se implementa el sistema de sigue-carril utilizando un controlador PID, para más adelante emplear técnicas de aprendizaje por refuerzo.
+  \section{Comportamientos de control}
   \label{sec:Control}
 
-  Una vez realizado el comportamiento de la percepción, construiremos un comportamiento autónomo con el dron basandonos en un simple controlador PID. 
- Con este primer comportamiento queremos demostrar la funcionalidad de la percepción utilizando un controlador de movimiento sencillo. \newline
+  En este apartado, se relata el desarrollo de los comportamientos de control junto con el sistema perceptivo desarrollado para más adelante realizar 
+  una comparativa entre ambos y contrastar los resultados obtenidos.
 
- Un controlador PID (proporcional, derivativo e integral) es un 
-  es un sistema que es capaz de mantener una variable (como la temperatura, velocidad o posición) cercana a un valor deseado o de referencia. Cada componente de un controlador tiene un papel 
-  importante,
-  la componente P (proporcional) ajusta la salida del controlador en función de la diferencia entre el valor medido y el valor deseado. 
-  Cuanto mayor sea esta diferencia (error), mayor será la corrección aplicada. Sin embargo, el control proporcional solo no puede eliminar completamente el error por ello se utiliza
-  las componentes derivativa e integral. La componente D (derivativa) considera la tasa de cambio del error,
-  si el error cambia rápidamente, el término derivativo aplicará una corrección para evitar oscilaciones o inestabilidad.
-  Con el término integral se acumula el error a lo largo del tiempo y ajusta la salida del controlador en función de esta acumulación. 
-  Ayuda a eliminar el error persistente o constante. Si el error es pequeño pero persistente, el término integral lo corregirá gradualmente.
-  \newline
+\subsection{Sigue-carril basado en PID}
+\label{sec:Control}
 
-  Lo cual con este controlador PID sencillo se controlan las velocidades respecto al error que se produce entre posición deseada y la que obtenemos. La variable deseada para estar alineados con el carril se escoge
-  el eje de las x el valor central de la imagen, ya que queremos en todo momento permanecer centrales respecto al carril. Para calcular el error se calcula la diferencia del valor deseado que seria 
-  el valor central de la imagen y el valor del centroide del carril mencionado en la sección \ref{sec:Interpolación y cálculo del centro de masas del carril}. 
-  A parte de este controlador, se utiliza un pequeño controlador PD para controlar la altura del vehículo y tengamos una altura medianamente constante. Para saber a qué altitud nos encontramos se utiliza el sensor del Lidar.
+A partir del sistema perceptivo, se desarrolla un comportamiento autónomo de sigue-carril utilizando un controlador PID. Este comportamiento tiene como objetivo
+demostrar la efectividad del sistema perceptivo y la capacidad del dron para mantenerse centrado y corregir desviaciones en relación
+con el centroide del carril en tiempo real. El controlador PID ajusta continuamente las velocidades angulares del dron para mantener un ángulo lo más alineado posible respecto al 
+centro del carril, reduciendo así el error de desviación.
 
-  Para encontrar los valores de cada término que compone ambos controladores se ha realizado a base de experimentación, empezando de manera creciente, es decir, primero utilizariamos
-  la componente proporcional para ver su comportamiento, una vez que tengamos el valor del término proporcional pasaremos al término derivativo para suavizar los movimientos que puede
-  producir este término y por último utilizariamos la parte integral para eliminar el error. El controlador PID se usará para controlar la velocidad de giro del dron en cuanto a la velocidad lineal 
-  tendremos un valor constante. En el código \ref{cod:ValoresPID} se expone los valores de cada componente en ambos controladores.\newline
+El proceso de ajuste de las constantes del controlador PID es crucial y debe realizarse de manera iterativa, adaptándose a las condiciones específicas del entorno. Es importante
+destacar que los valores óptimos de las constantes para un escenario particular pueden no ser aplicables directamente a otros escenarios, lo que requiere ajustes personalizados. 
+En cuanto a la velocidad lineal, se mantiene un valor constante.\newline
 
+Además del controlador PID para el seguiiento del carril, se implementa un controlador PD para controlar la altura del dron respeto al suelo durante la navegación debido a la naturaleza
+del simulador por el ras de las carreteras, manteniendo una altitud constante. En el código \ref{cod:ValoresPID} se expone los valores de cada constante de los controlador PID Y PD ajustadas. \newline
+
+En la figura \ref{sigue-carril}, se muestran diferentes frames de la navegación autonoma 
+del dron utilizando ambos controladores. Como se ilustra, el dron mantiene un error respecto al centro del carril ajustando la velocidad angular para manternerse lo más centro posible. En las imágenes
+se muestra los valores de la velocidad lineal, angular y el error con respecto al centro de masas. En la primera imagen y en la segunda se muestra una desviación inicial significativa 
+con un error de 10.0, el controlador
+PID realiza grandes ajustes en la velocidad angular para corregir la trayectoria. Por último, en la tercera imagen el error se reduce a 2.0, mostrando que el dron ha conseguido una alineación 
+más centrada respecto al carril. 
   \begin{code}[h]
     \begin{lstlisting}[language=Python]
 
@@ -1017,80 +1034,105 @@ del cálculo de centro de masas de una superficie:
     \label{cod:ValoresPID}
     \end{code} 
 
-  \section{Seguimiento del carril mediante aprendizaje por refuerzo}
+    \begin{figure}[H]
+      \centering
+    
+      \begin{minipage}[t]{0.3\textwidth}
+          \centering
+          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID1.png}
+          \caption*{}
+      \end{minipage}
+      \hfill
+      \begin{minipage}[t]{0.3\textwidth}
+          \centering
+          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID2.png}
+          \caption*{}
+      \end{minipage}
+      \hfill
+      \begin{minipage}[t]{0.3\textwidth}
+          \centering
+          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID3.png}
+          \caption*{}
+      \end{minipage}
+      
+      % Caption general para la figura
+      \caption{Sigue-carril basado en PID}
+      \label{sigue-carril}
+    \end{figure}
+
+Debido a las límitaciones del controlador PID para adaptarse a todos los escenarios posibles, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
+permiten al dron aprender y adaptarse de manera autónoma a diversas condiciones del entorno, manteniéndose centrado en el carril de manera más eficiente y robusta en comparación 
+con los métodos de control tradicionales.
+
+  \section{Sigue-carril basado en aprendizaje por refuerzo}
   \label{sec:aprendizaje por refuerzo}
 
-  Como mencionamos en la sección \ref{sec:IA},el aprendizaje por refuerzo consiste en enseñar un agente 
-  desempeñar un comportamiento mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
-  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Se compone de diferentes elementos claves que se definen
-  al problema a resolver del seguimiento del carril:
+  Como se menciona en la sección \ref{sec:IA}, el aprendizaje por refuerzo consiste en enseñar a un agente 
+  desempeñar un comportamiento deseado mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
+  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Al desarrollar el aprendizaje por refuerzo, es esencial 
+  definir sus componentes fundamentales. En el contexto sigue-carril, se identifica los componentes clave como: 
   \begin{itemize} 
-    \item \textbf{Agente}: El agente es una entidad o modelo que pretendemos entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que nos encontremos. Nuestro 
-    agente se trata del dron.
-    \item \textbf{Entorno}: Ambiente en donde interactua el agente para que pueda aprendar el comportamiento deseado. El dron estará interectuando sobre el entorno de Coastline que nos proporciona Airsim 
-    durante las fases de pruebas. 
+    \item \textbf{Agente}: El agente se trata del dron. Es la entindad o modelo que se pretende entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que se 
+    encuentre y de las observaciones que vea en el entorno. 
+    
+    \item \textbf{Entorno}: El dron estará interectuando sobre el entorno de simulación Airsim durante su navegación. El mapa de Coastline es el escenario donde el dron aprende 
+    el comportamiento deseado. 
     \begin{figure} [H]
       \begin{center}
-        \includegraphics[scale=0.4]{figs/Diseño/RL/entorno.png}
+        \includegraphics[scale=0.3]{figs/Diseño/RL/entorno.png}
       \end{center}
       \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
       \label{fig:Entorno}
     \end{figure}\
 
-    Dentro de este circuito, hemos escogido tres localizaciones distintas para el vehículo a la hora de realizar el entrenamiento con el algoritmo de Q-Learning y el punto final del recorrido. Como se puede apreciar en la figura \ref{fig:Entorno} las posiciones
-    tienen una distancia entre ellas considerablemente. 
-    \item \textbf{Estados}: Condiciones en las que se puede encontrar el agente en ese instante de tiempo. Para la definición de los estados, se divide la imagen que damos como la salida de la detección del carril en 14 franjas, dichas franjas tienen una 
-    separación de 10 pixeles. Las franjas representan cada estado en el que se puede encontrar el agente. Empezamos a definir el primer estado desde la izquierda hasta la derecha con una
-    hasta conseguir los 14 estados correspondientes, 7 estados izquierda, 1 estado central y 6 estados derecha. Se puede observar el resultado de los estados en la figura \ref{fig:Estados}
-
+    Dentro de este escenario, hemos considerado tres localizaciones distintas para el dron a la hora de realizar el entrenamiento, así como un punto final del recorrido, como se muestra en la figura
+    \ref{fig:Entorno}. La idea de utilizar diferentes localizaciones es evitar que el modelo haga sobreajuste (overfitting)\footnote{\url{https://iartificial.blog/aprendizaje/estrategias-para-evitar-el-overfitting-en-modelos-de-ml/}} 
+    a una sola ruta específica. En su lugar, se quiere que el dron 
+    sea capaz de aprender y adaptarse a diversas situaciones, desarrollando así un comportamiento más generalizado y robusto.
+    
+    
+    Con estas localizaciones se pretende que el dron sea capaz de aprender diferentes situaciones y desarrolle un comportamiento generalizado. 
+    \item \textbf{Estados}: Se necesita definir las condiciones que se puede encontrar el dentro navegando por el carril. Por ello, se divide verticalmente la imagen del sistema perceptivo
+    en múltiples franjas representando cada franja un estado. En total son 14 franjas separadas equidistante por 10 píxeles, empezando desde la izquierda de la imagen hasta la derecha. La determinación
+    del estado actual del dron se basa en las coordenadas en píxeles que se encuentra ubicado el centro de masas del carril calculado. Se puede observar el 
+    resultado de los estados en la figura \ref{fig:Estados}
+    
     \begin{figure} [H]
       \begin{center}
         \includegraphics[scale=0.5]{figs/Diseño/RL/estados.jpg}
       \end{center}
-      \caption{Estados definidos para el sigue carril basado en Q-Learning}
+      \caption{Estados definidos para el sigue carril basado en aprendizaje por refuerzo}
       \label{fig:Estados}
     \end{figure}\
 
-    \item \textbf{Acciones}: Movimientos que puede realizar el agente dentro del estado en el entorno de entrenamiento. En total, se definen 21 acciones, que podrá escoger el agente en el algoritmo de Q-Learning. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
+    \item \textbf{Acciones}: En total, hemos definido 21 acciones que el agente puede llevar a cabo. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
     tendrán un intervalo de 0.1 m/s hasta 2.0 m/s. Así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
     de velocidades serán formados a partir de la función que nos proporciona numpy llamada linspace\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. \newline
+
+    En la figura \ref{fig:Acciones}, se puede mostrar las acciones definidas en 3 partes. En color naranja se representa las acciones con giro izquierdo, en color rojo se presenta 
+    la acción central definida así como velocidad lineal sin velocidad angular y en color azul, las acciones que representan con giro derecho. Cada pareja de acción tiene un id, desde el 0
+    siendo la primera acción hasta el 20 siendo la última.
   
-    \begin{code}[H]
-      \begin{lstlisting}[language=Python]
+    \begin{figure} [H]
+      \begin{center}
+        \includegraphics[scale=0.4]{figs/Diseño/RL/Tabla_acciones.png}
+      \end{center}
+      \caption{Acciones disponibles para el sigue-carril basado en aprendizaje por refuerzo}
+      \label{fig:Acciones}
+    \end{figure}\
   
-        
-        def build_actions():
-            ACTIONS = []
-            speeds_actions = np.linspace(0.1,2.0,11, dtype=float)
-            angular_speeds = np.linspace(-25,25, 21)
-        
-            left_angular_speeds = angular_speeds[:10]
-            right_angular_speeds = np.flip(angular_speeds[-10:])
-            central_angular_speed = angular_speeds[10]
-            speeds = speeds_actions[:10]
-            central_speed = speeds_actions[10]
-        
-            for i in range(len(speeds)):
-                ACTIONS.append([round(speeds[i],3),round(left_angular_speeds[i],3)])
-        
-            ACTIONS.append([round(central_speed,3),0.0])
-        
-            for  i in reversed (range(len(speeds))):
-                ACTIONS.append([round(speeds[i],3),round(right_angular_speeds[i],3)])
-  
-            return ACTIONS
-       
-      \end{lstlisting}
-      \caption[Construcción de las acciones para Q-Learning]{Construcción de las acciones para Q-Learning}
-      \label{cod:Acciones}
-      \end{code}
-      
     \item \textbf{Función de Recompensa o Penalizaciones}: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
     en una función, dicha función es independiente en cada diseño del objetivo que quiere completar el agente. La función de recompensa se compone de dos partes premiando al dron de que
-    permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que se navegue de forma paralela al mismo. Cada parte tiene un peso
+    permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que mantenga un ángulo alineado respecto al carril. Cada parte tiene un peso
     de importancia, siendo el peso que se permanezca del carril del 85\% y la orientación respecto al carril de un 15\%. Tanto la recompensa por mantenerse centrado en el carril 
     como la orientación respecto al carril es normalizada entre valores de 0-1, penalizando con un valor constante al dron cuando se salga del carril o 
     se pierda la percepción. La implementación de la función de recompensa y las penalizaciones se puede ver en el código \ref{cod:recompensa}:
+
+    \begin{equation}
+      R(s, a) = ((1 - norm(error\_centro)) \cdot w1) + ((1 - norm(error\_angulo)) \cdot w2)
+      \end{equation}
+      
+     
 
     \begin{code}[H]
       \begin{lstlisting}[language=Python]
@@ -1112,19 +1154,15 @@ del cálculo de centro de masas de una superficie:
         ANGLE_WEIGHT = 0.15
         
         if (self.is_exit_lane(cx)):
-            
             reward = -10
 
         else:
-
-            
             normalise_error_centre = (abs(error_lane_center) - MIN_ERROR) / (MAX_ERROR - MIN_ERROR)
             reward_centre = 1 - normalise_error_centre
 
             
             normalise_error_angle = (abs(heading_difference) - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE)
             reward_angle = 1 - normalise_error_angle
-
 
             reward = (reward_centre * CENTRE_WEIGHT) + (reward_angle * ANGLE_WEIGHT)
             
@@ -1134,11 +1172,11 @@ del cálculo de centro de masas de una superficie:
       \caption[Función de recompensa]{Función de recompensa}
       \label{cod:recompensa}
       \end{code}
-    \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir dentro de aprendizaje por refuerzo.
-    Puede ser determinista o estocástica.
+    \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir 
+    dentro de aprendizaje por refuerzo. Puede ser determinista o estocástico.
 
-    En este TFG, se sigue una política epsilon-greedy\cite{Epsilon-greedy}, que consiste 
- equilibrar la exploración y explotación en la fase de entrenamiento. Cuando el agente tenga que escoger la acción que tomar tendra en cuenta dos enfoques:
+    En este TFG, se sigue una política epsilon-greedy\cite{Epsilon-greedy}, que consiste en tener un equilibrio entre la fase de exploración y explotación dentro 
+    del entrenamiento. Cuando el agente tenga que escoger la acción, tendrá en cuenta dos enfoques:
  
  \begin{itemize}
    \item Exploración (con probabilidad $\epsilon$): El agente escogerá una acción al azar para explorar
