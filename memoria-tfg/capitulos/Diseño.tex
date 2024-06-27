@@ -859,9 +859,8 @@ ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolac
 para seleccionar un fragmento de carril. El carril se representa en color azul en la imagen resultante.\newline
 
 En la figura \ref{comparativa-interpolacion}, se contrasta los resultados obtenidos por parte del modelo Yolop-320-320.onnx y la construcción del carril calculada a partir de las regresiones. 
-Como se puede observar, la construcción del carril desarrollada es bastante robusta en comparación con la salida que te ofrece la red, siendo así una forma de poder construir un 
-carril. Finalmente, para poder realizar el comportamiento sigue-carril, el dron necesita mantener una alineación respecto al carril calculado. Mantener una alineación respecto al carril permite
-al dron navegar sobre el carril de una manera eficiente y saber en todo momento las desviaciones que tiene respecto a dicho centro. \newline
+Como se puede observar, la reconstrucción del carril desarrollada es bastante robusta en comparación con la salida que te ofrece la red, siendo así una forma de poder construir un 
+carril. Finalmente, para poder realizar el comportamiento sigue-carril, el dron necesita mantener una alineación respecto al carril calculado. \newline
 
 
 \begin{figure}[H]
@@ -933,15 +932,13 @@ al dron navegar sobre el carril de una manera eficiente y saber en todo momento 
 \end{figure}
 
 Para el cálculo del centride del carril, se toma la siguiente ecuación, que consiste en el cálculo de centro de masas de una superficie: \newline
-el cálculo del carril que queremos seguir solamente faltará calcular el centro de masas de dicho fragmento conocido como el centroide siguiendo la ecuación
-del cálculo de centro de masas de una superficie: 
   \begin{equation} 
     \vec{r}_{CM} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{\sum_{i}m_{i}} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{M} 
     \newline
   \end{equation} 
 
   Siendo $\vec{r}_{CM}$ las coordenadas del centroide compuesta por (x,y), $\vec{r}_{i}$ los puntos del carril construido y $m_{i}$ la masa que constituye cada punto, se supone que todos 
-  los puntos del carril tienen masa igual a 1. Dicha supuestición, simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar. 
+  los puntos del carril tienen masa igual a 1. Dicha suposición, simplifica el cálculo, pero en aplicaciones del mundo real, las masas pueden variar. 
 
   El cálculo de masa total ($\sum_{i}m_{i} \vec{r}_{i}$), consiste en el producto entre la masa individual de cada punto por el tamaño de los puntos que componen el carril. A continuación, 
   se realiza el sumatorio de las coordenadas de los puntos ponderados por su masa y la división por el cálculo de masa total. El resultado de la ecuación es el conocido centroide 
@@ -960,7 +957,7 @@ del cálculo de centro de masas de una superficie:
 
   \subsection{Análisis del algoritmo de percepción}
   \label{sec:Análisis del algoritmo de percepción}
-  Se realiza un análisis detallado de cada submódulo del sistema perceptivo. Esta evaluación se presenta en la tabla \ref{tab:Profiling}, incluye 
+  A continuación, se realiza un análisis detallado de cada submódulo del sistema perceptivo. Esta evaluación se presenta en la tabla \ref{tab:Profiling}, incluye 
   tres columnas que indican el nombre del submódulo de percepción, el dispositivo donde se ejecuta y el tiempo medio calculado en milisegundos.
 
 \begin{table}[h]
@@ -991,11 +988,10 @@ Sumando los tiempos de cada componente, se obtiene un tiempo medio total de 28.7
 
 Este análisis es crucial para conseguir un sistema perceptivo realtime a la hora de implementar los comportamientos de control. 
 
-A continuación, se implementa el sistema de sigue-carril utilizando un controlador PID, para más adelante emplear técnicas de aprendizaje por refuerzo.
   \section{Comportamientos de control}
   \label{sec:Control}
 
-  En este apartado, se relata el desarrollo de los comportamientos de control junto con el sistema perceptivo desarrollado para más adelante realizar 
+  En este apartado, se relata el desarrollo de los comportamientos de control junto con el sistema perceptivo desarrollado para posteriormente realizar 
   una comparativa entre ambos y contrastar los resultados obtenidos.
 
 \subsection{Sigue-carril basado en PID}
@@ -1003,22 +999,22 @@ A continuación, se implementa el sistema de sigue-carril utilizando un controla
 
 A partir del sistema perceptivo, se desarrolla un comportamiento autónomo de sigue-carril utilizando un controlador PID. Este comportamiento tiene como objetivo
 demostrar la efectividad del sistema perceptivo y la capacidad del dron para mantenerse centrado y corregir desviaciones en relación
-con el centroide del carril en tiempo real. El controlador PID ajusta continuamente las velocidades angulares del dron para mantener un ángulo lo más alineado posible respecto al 
+con el centroide del carril en tiempo real. El controlador PID ajusta continuamente las velocidades angulares del dron para mantener un ángulo lo más alineado posible respecto con el
 centro del carril, reduciendo así el error de desviación.
 
 El proceso de ajuste de las constantes del controlador PID es crucial y debe realizarse de manera iterativa, adaptándose a las condiciones específicas del entorno. Es importante
 destacar que los valores óptimos de las constantes para un escenario particular pueden no ser aplicables directamente a otros escenarios, lo que requiere ajustes personalizados. 
 En cuanto a la velocidad lineal, se mantiene un valor constante.\newline
 
-Además del controlador PID para el seguiiento del carril, se implementa un controlador PD para controlar la altura del dron respeto al suelo durante la navegación debido a la naturaleza
+Además del controlador PID para el seguimiento del carril, se implementa un controlador PD para controlar la altura del dron respeto al suelo durante la navegación debido a la naturaleza
 del simulador por el ras de las carreteras, manteniendo una altitud constante. En el código \ref{cod:ValoresPID} se expone los valores de cada constante de los controlador PID Y PD ajustadas. \newline
 
 En la figura \ref{sigue-carril}, se muestran diferentes frames de la navegación autonoma 
-del dron utilizando ambos controladores. Como se ilustra, el dron mantiene un error respecto al centro del carril ajustando la velocidad angular para manternerse lo más centro posible. En las imágenes
-se muestra los valores de la velocidad lineal, angular y el error con respecto al centro de masas. En la primera imagen y en la segunda se muestra una desviación inicial significativa 
-con un error de 10.0, el controlador
-PID realiza grandes ajustes en la velocidad angular para corregir la trayectoria. Por último, en la tercera imagen el error se reduce a 2.0, mostrando que el dron ha conseguido una alineación 
-más centrada respecto al carril. 
+del dron utilizando ambos controladores. En las imágenes
+se muestran los valores de la velocidad lineal, angular y el error con respecto al centro de masas. En la primera imagen y en la segunda, el error se encuentra
+entre 4 y 7, mostrando que el dron consigue una alineación centrada respecto al carril. Por último, en la tercera imagen 
+se muestra una desviación inicial significativa con un errores de 16, el controlador
+PID realiza ajustes en la velocidad angular para corregir la trayectoria. 
   \begin{code}[h]
     \begin{lstlisting}[language=Python]
 
@@ -1060,7 +1056,7 @@ más centrada respecto al carril.
       \label{sigue-carril}
     \end{figure}
 
-Debido a las límitaciones del controlador PID para adaptarse a todos los escenarios posibles, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
+Este controlador PID, aunque funcional, presenta problemas ya que es incapaz de adaptarse a todos los escenarios. Debido a esto, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
 permiten al dron aprender y adaptarse de manera autónoma a diversas condiciones del entorno, manteniéndose centrado en el carril de manera más eficiente y robusta en comparación 
 con los métodos de control tradicionales.
 
@@ -1072,46 +1068,46 @@ con los métodos de control tradicionales.
   de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Al desarrollar el aprendizaje por refuerzo, es esencial 
   definir sus componentes fundamentales. En el contexto sigue-carril, se identifica los componentes clave como: 
   \begin{itemize} 
-    \item \textbf{Agente}: El agente se trata del dron. Es la entindad o modelo que se pretende entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que se 
+    \item \textbf{Agente}: En este caso, el dron. Es la entidad o modelo que se pretende entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que se 
     encuentre y de las observaciones que vea en el entorno. 
     
     \item \textbf{Entorno}: El dron estará interectuando sobre el entorno de simulación Airsim durante su navegación. El mapa de Coastline es el escenario donde el dron aprende 
-    el comportamiento deseado. 
+    el comportamiento deseado. \newline
+
     \begin{figure} [H]
       \begin{center}
-        \includegraphics[scale=0.3]{figs/Diseño/RL/entorno.png}
+        \includegraphics[scale=0.4]{figs/Diseño/RL/entorno.png}
       \end{center}
       \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
       \label{fig:Entorno}
     \end{figure}\
 
     Dentro de este escenario, hemos considerado tres localizaciones distintas para el dron a la hora de realizar el entrenamiento, así como un punto final del recorrido, como se muestra en la figura
-    \ref{fig:Entorno}. La idea de utilizar diferentes localizaciones es evitar que el modelo haga sobreajuste (overfitting)\footnote{\url{https://iartificial.blog/aprendizaje/estrategias-para-evitar-el-overfitting-en-modelos-de-ml/}} 
+    \ref{fig:Entorno}. La idea de utilizar diferentes localizaciones es evitar que el modelo haga sobreajuste (overfitting, es decir, que se aprenda de memoria los movimientos que debe hacer)
+    \footnote{\url{https://iartificial.blog/aprendizaje/estrategias-para-evitar-el-overfitting-en-modelos-de-ml/}} 
     a una sola ruta específica. En su lugar, se quiere que el dron 
     sea capaz de aprender y adaptarse a diversas situaciones, desarrollando así un comportamiento más generalizado y robusto.
     
-    
-    Con estas localizaciones se pretende que el dron sea capaz de aprender diferentes situaciones y desarrolle un comportamiento generalizado. 
-    \item \textbf{Estados}: Se necesita definir las condiciones que se puede encontrar el dentro navegando por el carril. Por ello, se divide verticalmente la imagen del sistema perceptivo
-    en múltiples franjas representando cada franja un estado. En total son 14 franjas separadas equidistante por 10 píxeles, empezando desde la izquierda de la imagen hasta la derecha. La determinación
+    \item \textbf{Estados}: Se necesita definir las situaciones que se puede encontrar el dron dentro navegando por el carril. Por ello, se divide verticalmente la imagen del sistema perceptivo
+    en múltiples franjas representando cada una franja un estado. En total son 14 franjas equidistantes de 10 píxeles, empezando desde la izquierda de la imagen hasta la derecha. La determinación
     del estado actual del dron se basa en las coordenadas en píxeles que se encuentra ubicado el centro de masas del carril calculado. Se puede observar el 
-    resultado de los estados en la figura \ref{fig:Estados}
+    resultado de los estados en la figura \ref{fig:Estados}. 
     
     \begin{figure} [H]
       \begin{center}
-        \includegraphics[scale=0.5]{figs/Diseño/RL/estados.jpg}
+        \includegraphics[scale=0.5]{figs/Diseño/RL/Estados.png}
       \end{center}
-      \caption{Estados definidos para el sigue carril basado en aprendizaje por refuerzo}
+      \caption{Estados definidos para el sigue-carril basado en aprendizaje por refuerzo}
       \label{fig:Estados}
-    \end{figure}\
+    \end{figure}
 
-    \item \textbf{Acciones}: En total, hemos definido 21 acciones que el agente puede llevar a cabo. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
+    \item \textbf{Acciones}: En total, se han definido 21 acciones que el agente puede llevar a cabo. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
     tendrán un intervalo de 0.1 m/s hasta 2.0 m/s. Así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
     de velocidades serán formados a partir de la función que nos proporciona numpy llamada linspace\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. \newline
 
-    En la figura \ref{fig:Acciones}, se puede mostrar las acciones definidas en 3 partes. En color naranja se representa las acciones con giro izquierdo, en color rojo se presenta 
+    En la figura \ref{fig:Acciones}, se puede observar las acciones definidas en 3 partes. En color naranja se representa las acciones con giro izquierdo, en color rojo se presenta 
     la acción central definida así como velocidad lineal sin velocidad angular y en color azul, las acciones que representan con giro derecho. Cada pareja de acción tiene un id, desde el 0
-    siendo la primera acción hasta el 20 siendo la última.
+    siendo la primera acción hasta el 20 siendo la última. \newline
   
     \begin{figure} [H]
       \begin{center}
@@ -1119,21 +1115,20 @@ con los métodos de control tradicionales.
       \end{center}
       \caption{Acciones disponibles para el sigue-carril basado en aprendizaje por refuerzo}
       \label{fig:Acciones}
-    \end{figure}\
+    \end{figure}
   
     \item \textbf{Función de Recompensa o Penalizaciones}: Consiste en como queremos premiar o penalizar al agente con el objetivo que queremos cumplir. Las recompensas o penalizaciones se recogen
     en una función, dicha función es independiente en cada diseño del objetivo que quiere completar el agente. La función de recompensa se compone de dos partes premiando al dron de que
     permanezca centrado en el carril y además preamiarle por mantener una orientación adecuada respecto al carril, asegurando que mantenga un ángulo alineado respecto al carril. Cada parte tiene un peso
     de importancia, siendo el peso que se permanezca del carril del 85\% y la orientación respecto al carril de un 15\%. Tanto la recompensa por mantenerse centrado en el carril 
     como la orientación respecto al carril es normalizada entre valores de 0-1, penalizando con un valor constante al dron cuando se salga del carril o 
-    se pierda la percepción. La implementación de la función de recompensa y las penalizaciones se puede ver en el código \ref{cod:recompensa}:
-
+    se pierda la percepción como se muestra en la ecuación. 
     \begin{equation}
-      R(s, a) = ((1 - norm(error\_centro)) \cdot w1) + ((1 - norm(error\_angulo)) \cdot w2)
-      \end{equation}
+      R(s,a) = (\frac{|error_{centro}| - min(error_{centro})}{max(error_{centro}) - min(error_{centro})} \cdot W_{1}) + 
+      (\frac{|error_{angulo}| - min(error_{angulo})}{max(error_{angulo}) - min(error_{angulo})} \cdot W_{2})
+    \end{equation}
       
-     
-
+    La implementación de la función de recompensa y las penalizaciones se puede ver en el código \ref{cod:recompensa}.   
     \begin{code}[H]
       \begin{lstlisting}[language=Python]
   
@@ -1175,7 +1170,7 @@ con los métodos de control tradicionales.
     \item \textbf{Política}: Determina que acción realizar en cada estado que se encuentre el agente. Dicha política varía según el tipo de algoritmo que queremos seguir 
     dentro de aprendizaje por refuerzo. Puede ser determinista o estocástico.
 
-    En este TFG, se sigue una política epsilon-greedy\cite{Epsilon-greedy}, que consiste en tener un equilibrio entre la fase de exploración y explotación dentro 
+    En este TFG, se sigue una política epsilon-greedy\cite{Epsilon-greedy}, que consiste en un equilibrio entre la fase de exploración y explotación dentro 
     del entrenamiento. Cuando el agente tenga que escoger la acción, tendrá en cuenta dos enfoques:
  
  \begin{itemize}
@@ -1187,9 +1182,19 @@ con los métodos de control tradicionales.
  el agente se centrará en la explotación. Por lo que en la elección de acción se generará un numero n aleatoriamente, si n es menor que la probabilidad $\epsilon$ la acción se escogerá aleatoriamente
  en cambio si n es mayor que la probabilidad de $\epsilon$ la acción será que mayor valor tenga en la tabla Q(S,A) para dicho estado. \newline
  
- Dentro de esta política la probabilidad de $\epsilon$ será decayente, es decir, no tener un valor constante en cada episodio que nos encontremos, lo que realizaremos es una disminuición 
- de esta probabilidad para conseguir que el agente con el paso del tiempo poco a poco explote lo que ha aprendido y que el modelo llegue a una convergencia óptima. Para llevar a cabo el descenso
- de $\epsilon$ se puede realizar de varias formas, por ejemplo podemos realizarlo linealmente, logaritmicamente, exponencial o escalonado. \newline
+ Dentro de esta política la probabilidad de $\epsilon$ es decayente,es decir, no tiene un valor constante en cada episodio en el entrenamiento. Para ello, se realiza una disminución 
+ de esta probabilidad para que el dron explote poco a poco lo aprendido llegando a que el modelo converja. Hay varias formas de realizar el descenso
+ de $\epsilon$ se puede realizar de varias formas, por ejemplo se puede realizar linealmente, logaritmicamente, exponencial o escalonado. En este caso, el descenso de $\epsilon$ se realiza 
+ de una forma líneal, teniendo pequeños decrementos en cada episodio. El resultado del descenso de de $\epsilon$ se puede observar la figura \ref{fig:epsilon}, durante el entrenamiento, el valor
+ de $\epsilon$ es menor consiguiendo así que el agente poco a poco vaya explotando lo aprendido consiguiendo una explotación total cuando $\epsilon$ vale 0. 
+
+ \begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.6]{figs/Diseño/RL/epsilon.png}
+  \end{center}
+  \caption{Gráfica del valor de epsilon respecto al episodio}
+  \label{fig:epsilon}
+\end{figure}
   \end{itemize}
 
   El algoritmo Q-Learning se basa en seguir una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación
@@ -1202,7 +1207,8 @@ con los métodos de control tradicionales.
   en donde, 
 
   \begin{itemize}
-    \item \textbf{$Q(s, a)$}: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción.
+    \item \textbf{$Q(s, a)$}: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción que se rellena durante la fase de entrenamiento para utilizarla
+    en la fase de inferencia.
     \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, 
     si dicho valor es alto daremos más peso al valor aprendido. Dicho valor se define con un valor de 0.5 
     \item \textbf{$R(s, a)$}: Recompensa por tomar la acción $a$ en el estado $s$. La función de recompensa es crucial en el proceso de aprendizaje del agente, evalua como es favorable o deseable
@@ -1214,86 +1220,110 @@ con los métodos de control tradicionales.
     \item \textbf{$\max Q(s', a')$}: Valor Q máximo en el próximo estado $s'$ para todas las acciones posibles $a'$.
 \end{itemize}
 
-A la medida que vayamos avanzando en la fase de entrenamiento, iremos rellenando la tabla Q(s,a) para más adelante indexar en ella en la fase de inferencia.
-
 \subsubsection{Fase de entrenamiento}
-\label{sec:fases_ql}
- Antes de adentrarnos en esta fase, definiremos dos conceptos importantes:
+\label{sec:entrenamiento}
+ Dentro de esta fase, existen dos conceptos importantes a destacar:
  \begin{itemize}
   \item \textbf{Episodios}: Se define episodio como una secuencia completa de interacciones que se produce entre el agente y el entorno. Cada episodio comienza con un estado inicial y consta de una serie 
   de pasos o acciones tomadas por el agente.
-  \item \textbf{Iteraciones (steps)}: Son los pasos que puede dar un agente en el entorno dentro de un episodio. Estos pasos pueden incluir observaciones del entorno, decisiones tomadas por el agente
+  \item \textbf{Iteraciones}: Son los pasos que puede dar un agente en el entorno dentro de un episodio. Estos pasos pueden incluir observaciones del entorno, decisiones tomadas por el agente
   y las consecuentes recompensas o penalizaciones recibidas.
 \end{itemize}
 
+ La fase de entrenamiento consiste que el agente explore todo lo máximo posible en el entorno respecto a los estados que tiene y las acciones que puede tomar, es decir, al comienzo del 
+ entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores y mediante el algoritmo de Q-Learning, se irá rellenando hasta converger el modelo. \newline
  
- La fase de entrenamiento consiste en el que el agente explore todo lo máximo posible en el entorno respecto a los estados que tiene y las acciones que puede tomar, es decir, al comienzo del entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores, esta representación
- al comienzo es así ya que el agente desconoce por completo el entorno hasta que poco a poco vaya iterando sobre él en cada estado tomando x accion. \newline
- 
- Basicamente, en cada iteración del algoritmo se escogerá una acción según si estamos en exploración o explotación, se calculará la recompensa obtenida e iteraremos de nuevo sobre el algoritmo.
+ Basicamente, en cada iteración del algoritmo, se escogerá una acción según si estamos en exploración o explotación, se calculará la recompensa obtenida e iteraremos de nuevo sobre el algoritmo.
 
  El entrenamiento finaliza cuando el agente haya aprendido el objetivo que queremos seguir, esto se sabe cuando las iteraciones del algoritmo y la recompensa acumulada del agente en esta 
- fase se estabilice y tenga valores constantes, es decir, no cambia significativamente con más iteraciones, esto se denomina que el modelo ha convergido y pasaremos a la fase de inferencia. \newline
+ fase se estabilice y tenga valores constantes, es decir, no cambia significativamente con más iteraciones. Esto significa que el modelo ha convergido y a continuación se pasa
+ a la fase de inferencia. \newline
 
-Durante esta fase, dejamos el algoritmo de Q-Learning entrenando durante aproximadamente 12 horas teniendo un rate del algoritmo de Q-Learning más el algoritmo de percepción aproximadamente de 
-unos 10 FPS. De esta manera, nos podemos asegurar que el algoritmo completará el entrenamiento de manera correcta y poco a poco 
-acabará convergiendo. 
-En la figura \ref{fig:entrenamiento} se ilustra la fase de entrenamiento durante la navegación del dron. En la primera figura se corresponde al número de iteraciones de cada 
-episodio durante el entrenamiento, la segunda corresponde al valor que va teniendo épsilon en cada episodio y la tercera grafica se muestra el valor de la recompensa 
-acumulativa en cada episodio. \newline
+Durante la fase de entrenamiento, el algoritmo se ejecuta continuamente. Como se menciona en la sección \ref{sec:Análisis del algoritmo de percepción}, el sistema de percepción tiene 30 frames por
+segundos, proporcionando al agente información visual del entorno en real time. Sin embargo, para permitir al agente tomar decisiones más efectivas y gestionar adecuadamente las acciones 
+y estados del entorno, se reduce el tiempo global de procesamiento del algoritmo. Esto asegura que el agente tenga suficiente tiempo para analizar cada acción y estado. La ejecución de este 
+algoritmo es aproximadamente de 12 horas, asegurando que el algoritmo va ser capaz de completar el entrenamiento de manera correcta consiguiendo converger. En la figura \ref{fig:iteraciones} 
+se muestra la evolución de las iteraciones que tiene el dron con el entorno en función del episodio. Al comienzo del entrenamiento, el dron obtiene bajas iteraciones, esto se debe a que 
+al comienzo del entrenamiento desconoce completamente el entorno. Pero, no obstante, a medida que el entrenamiento va avanzando, las iteraciones obtienen valores altos hasta llegar al episodio
+900 donde la fase de exploración finaliza y comienza la fase de explotación siendo epsilon 0 como se muestra en la figura \ref{fig:epsilon}. A partir de este punto, las iteraciones tienen 
+una tendencia ascendente con pequeñas variaciones, estas variaciones se deben a que en la fase de entrenamiento el dron no comienza siempre en el mismo punto de inicio como 
+se muestra en la figura \ref{fig:Entorno}, obteniendo en cada punto de partida hasta el final del recorrido una serie de iteraciones. Aunque se muestren estas pequeñas variaciones, el modelo
+ha sido capaz de converger debido a que el dron es capaz de completar el recorrido continuamente sin salirse del carril.
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.35]{figs/Diseño/RL/graficas-entrenamiento.png}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/steps.png}
   \end{center}
-  \caption{Gráficas de la fase de entrenamiento}
-  \label{fig:entrenamiento}
-\end{figure}\
+  \caption{Gráfica de las iteraciones respecto al episodio}
+  \label{fig:iteraciones}
+\end{figure}
 
-Al comienzo del entrenamiento, se puede observar que el dron obtiene pocas iteraciones y bajas recompensas acumulativas, 
-esto se debe a que el dron al comienzo del entrenamiento desconoce por completo el entorno. A medida que vamos avanzando en el entrenamiento, 
-las iteraciones y los valores de la recompensa acumulativa son mayores hasta que en el episodio 900 donde acaba la fase de exploración 
-siendo el valor de épsilon cero (las acciones no son aleatorias). A partir de ese punto, la recompensa y las iteraciones tienen una tendencia ascendente, y finalmente, 
-a lo largo del entrenamiento, ambas se estabilizan en un valor fijo sin cambiar considerablemente. Esto se debe a que el dron completa constantemente el circuito en cualquier
-punto de reinicio dentro del circuito mostrado en la figura \ref{fig:Entorno} sin cambiar considerablemente la tabla Q. En este momento, se puede decir que el algoritmo ha sido capaz de converger. Una vez se analice 
-los resultados del entrenamiento con las diferentes métricas daremos pie a la fase de inferencia para verificar el resultado obtenido con el modelo entrenado. 
+Respecto a la evolución de la función de recompensa, se puede observar en la figura \ref{fig:recompensa} como la recompensa acumulativa va obteniendo valores ascendentes a medida que el dron 
+aprende del entorno para no salirse del carril. En el momento en que se llega al episodio 900, la recompensa acumulativa tiende a ser siempre ascendente teniendo pequeñas variaciones entre los 
+episodios. Este comportamiento ocurre como las iteraciones, se producen pequeñas variaciones debido a los puntos de partida que tiene el dron durante cada comienzo de su entrenamiento. A partir 
+del momento 
+que no se produzca grandes variaciones respecto a las iteraciones y la recompensa acumulativa en función de los episodios, se puede decir que el modelo ha sido capaz de converger. Esto significa
+que el dron completa satisfactoriamente el recorrido en cualquier punto de partida definido. Una vez analizado los resultados del entrenamiento con las diferentes métricas, se da a pie a la 
+fase de inferencia para verificar el resultado obtenido con el modelo convergido.
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/recompensa.png}
+  \end{center}
+  \caption{Gráfica de la recompensa acumulativa en función de los episodios}
+  \label{fig:recompensa}
+\end{figure}
 
 \subsubsection{Fase de inferencia}
 \label{sec:fases_inferencia}
-La fase de inferencia consiste en indexar la tabla Q(S,A) que hemos ido rellenando en la fase de entrenamiento. El dron cuando se encuentré en un estado especifico consultará la tabla Q(S,A) para
+La fase de inferencia consiste en indexar la tabla Q(S,A) que se ha ido rellenando en la fase de entrenamiento. El dron cuando se encuentré en un estado especifico consultará la tabla Q(S,A) para
 encontrar la mejor acción en ese estado (cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado). Cuando el dron tome dicha acción se moverá al siguiente estado
 siendo así un proceso iterativo hasta alcanzar la meta. En esta fase, los valores de la tabla permanecen constantes y se utiliza para la toma de decisiones basadas en el conocimiento
 aprendido en la fase de entrenamiento. \newline
 
-En la figura \ref{fig:Distribucción_inferencia} se puede observar las diferentes acciones que ha utilizado el dron para completar el circuito de entrenamiento utilizando cuatro de veintiuno de acciones
-disponibles. Se destaca que la acción más usada se trata de una de las acciones que presentan poco giro y alta velocidad lineal dentro de las acciones con más velocidad lineal, esto se debe
-a la importancia de la función de recompensa al considerar que queremos que el dron se mantenga constantemente en el centro del carril manteniendo un angulo de orientación adecuado
-sin salirse del carril.
+En la figura \ref{fig:Distribucción_inferencia} se puede observar las diferentes acciones que ha utilizado el dron para completar el recorrido utilizando cuatro de veintiuno de acciones
+disponibles. Aunque se muestre solamente cuatro acciones utilizadas, durante la fase de entrenamiento, el dron ha aprendido mucho más acciones y estados como se muestran. 
+
+Se destaca que la acción más usada se trata de una de las acciones que presentan poco giro y alta velocidad lineal dentro de las acciones con más velocidad lineal, esto se debe
+a la importancia de la función de recompensa al considerar que queremos que el dron se mantenga constantemente en el centro del carril manteniendo un ángulo de orientación adecuado
+sin salirse del carril. En la figura \ref{fig:inferencia-imagenes}, se muestra una serie de imagenes durante la inferencia del modelo en el recorrido donde el dron ha sido entrenado, manteniendo una trayectoria 
+estable respecto al centro del carril.
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.7]{figs/Diseño/RL/Acciones_inferidas.png}
+    \includegraphics[scale=0.4]{figs/Diseño/RL/Acciones_inferidas.png}
   \end{center}
-  \caption{Distribucción de acciones en el circuito de entrenamiento}
+  \caption{Distribucción de acciones en inferencia}
   \label{fig:Distribucción_inferencia}
-\end{figure}\
+\end{figure}
 
-Como resultado al utilizar el algoritmo de Q-learning, el modelo entrenado ofreció ser un resultado eficaz a la hora de navegar por el circuito, pudiendo observar 
-el modelo entrenado final en diferentes localizaciones alteatorias en el entorno de la figura \ref{fig:Entorno}. Para poder obtener el máximo rendimiento del modelo entrenado se busco los límites de velocidad
-angular y lineal a la que podía ir el dron, esto significa multiplicar por un factor todas las acciones tanto las velocidades lineales y angulares. Este proceso es interesante 
-realizarlo para maximizar el comportamiento sin la necesidad de volver a entrenar un nuevo modelo. Estos factores se pueden ver en el código \ref{cod:Factores} lo cual 
-las acciones se pueden aumentar un 100\% lo que podemos decir que el modelo entrenado es efectivo al aumentar el valor de las acciones. \newline
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.3\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/RL1.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.3\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/RL3.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.3\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/RL4.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.3\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RL/RL5.png}
+  \end{minipage}
+  \caption{Resultado del comportamiento de aprendizaje por refuerzo ilustrando los estados y acciones en la fase de inferencia}
+  \label{fig:inferencia-imagenes}
+\end{figure}
 
-\begin{code}[h]
-  \begin{lstlisting}[language=Python]
-
-    factor_speed = 2.0
-    factor_angular_speed = 1.8
-   
-  \end{lstlisting}
-  \caption[Factores]{Valores de los factores aplicados a las acciones de Q-learning}
-  \label{cod:Factores}
-  \end{code} 
+Como resultado al utilizar el algoritmo de Q-Learning, el modelo entrenado ofrece tener un resultado eficaz a la hora de navegar por el entorno, pudiendo observar 
+el modelo entrenado final en diferentes localizaciones aleatorias en el entorno como se muestra en la figura \ref{fig:Entorno}. Como se detalla en la sección \ref{sec:entrenamiento}, el algoritmo
+de Q-Learning obtiene un rate de 10 FPS debido a querer tener un comportamiento que sea capaz el dron de interactuar-reaccionar. Debido a las limitaciones de FPS dentro del algoritmo, para optimizar
+el desempeño del modelo entrenado, se han explorado los límites de velocidad angular y lineal que el dron puede alcanzar mientras navega. Se multiplica tanto la velocidad angular como la lineal
+por un factor. La velocidad lineal es multiplicado por 2.0 y la velocidad angular por 1.8 consiguiendo aumentar un 100\% las acciones. Este proceso es interesante realizarlo para 
+maximizar el modelo entrenado sin necesidad de volver a entrenar un nuevo modelo, demostrando que el modelo es efectivo al aumentar el valor de las acciones. \newline
 
 Siendo los nuevos valores de las acciones utilizados durante las fases de comparación entre el seguimiento de carril con el PID y el seguimiento de carril mediante Q-Learning. Los nuevos
 valores de las acciones originales como se mostraba en el código \ref{cod:Acciones} son multiplicados por ambos factores
@@ -1307,14 +1337,16 @@ que se mostraba en la figura \ref{fig:Distribucción_inferencia}
   \end{center}
   \caption{Distribucción de acciones en el circuito de entrenamiento multiplicadas por el factor}
   \label{fig:inferencia_factor}
-\end{figure}\
+\end{figure}
 
-
-\subsection{Análisis y comparativa entre el seguiento de carril clásico}
+\subsection{Comparativa PID vs Q-Learning}
 \label{sec:Análisis y comparativa entre el seguiento de carril clásico}
 Para comprobar la robustez y la eficacia que demuestra ser el modelo entrenado junto con el seguimiento de carril mediante el PID, se realizo varias comparativas en ambos
-comportamientos. Se ajusto las velocidades del controlador PID para que ambos tuviesen las mismas condiciones, para ello se utilizo un circuito en el que ambos son capaces 
-de recorrerlo sin salirse del carril. En la figura \ref{fig:comparativa} se muestra el resultado de ambos comportamientos, en la primera figura es todo el recorrido hasta el punto
+comportamientos utilizando el mismo sistema perceptivo. 
+
+Se definen límites a las velocidades (lineales y angulares) del controlador PID para que ambos tuviesen las mismas condiciones, para ello se utiliza el mismo recorrido en el que ambos son capaces 
+de recorrerlo sin salirse del carril. 
+En la figura \ref{fig:comparativa} se muestra el resultado de ambos comportamientos, en la primera figura es todo el recorrido hasta el punto
 final y en la segunda figura se realiza zoom en una parte del recorrido, los datos fueron recogidos mediante la posición del dron guardandolos un fichero tanto las coordenadas 
 en el eje x como las coordenadas en el eje y. 
   
