@@ -935,6 +935,7 @@ Para el cálculo del centride del carril, se toma la siguiente ecuación, que co
   \begin{equation} 
     \vec{r}_{CM} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{\sum_{i}m_{i}} = \frac{\sum_{i}m_{i} \vec{r}_{i}}{M} 
     \newline
+    \label{eq:funcioncentromasas}
   \end{equation} 
 
   Siendo $\vec{r}_{CM}$ las coordenadas del centroide compuesta por (x,y), $\vec{r}_{i}$ los puntos del carril construido y $m_{i}$ la masa que constituye cada punto, se supone que todos 
@@ -1124,9 +1125,11 @@ con los métodos de control tradicionales.
     como la orientación respecto al carril es normalizada entre valores de 0-1, penalizando con un valor constante al dron cuando se salga del carril o 
     se pierda la percepción como se muestra en la ecuación. 
     \begin{equation}
-      R(s,a) = (\frac{|error_{centro}| - min(error_{centro})}{max(error_{centro}) - min(error_{centro})} \cdot W_{1}) + 
-      (\frac{|error_{angulo}| - min(error_{angulo})}{max(error_{angulo}) - min(error_{angulo})} \cdot W_{2})
+      R(s,a) = [1 - norm(error_{centro}) \cdot w_{1}] + [1 - norm(error_{angulo}) \cdot w_{2}]
+      \label{eq:funcionrecompensa}
     \end{equation}
+
+    siendo $norm(error_{centro})$ y $norm(error_{angulo})$ las normalizaciones del error entre el centro de masas y la orientación, multiplicadas por sus pesos correspondientes.
       
     La implementación de la función de recompensa y las penalizaciones se puede ver en el código \ref{cod:recompensa}.   
     \begin{code}[H]
@@ -1197,11 +1200,12 @@ con los métodos de control tradicionales.
 \end{figure}
   \end{itemize}
 
-  El algoritmo Q-Learning se basa en seguir una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación
+  El algoritmo Q-learning se basa en seguir una función acción-recompensa formada por un tabla estado-acción la cual iremos rellenando siguiendo la siguiente ecuación
   de Bellman\cite{Bellman}:
   
   \begin{equation}
     Q(s, a) = Q(s, a) + \alpha \cdot [R(s, a) + \gamma \cdot \max Q(s', a') - Q(s, a)]
+    \label{eq:bellman}
   \end{equation}
 
   en donde, 
@@ -1231,7 +1235,7 @@ con los métodos de control tradicionales.
 \end{itemize}
 
  La fase de entrenamiento consiste que el agente explore todo lo máximo posible en el entorno respecto a los estados que tiene y las acciones que puede tomar, es decir, al comienzo del 
- entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores y mediante el algoritmo de Q-Learning, se irá rellenando hasta converger el modelo. \newline
+ entrenamiento se inicializará la tabla Q(S,A) a cero todos sus valores y mediante el algoritmo de Q-learning, se irá rellenando hasta converger el modelo. \newline
  
  Basicamente, en cada iteración del algoritmo, se escogerá una acción según si estamos en exploración o explotación, se calculará la recompensa obtenida e iteraremos de nuevo sobre el algoritmo.
 
@@ -1318,14 +1322,14 @@ estable respecto al centro del carril.
   \label{fig:inferencia-imagenes}
 \end{figure}
 
-Como resultado al utilizar el algoritmo de Q-Learning, el modelo entrenado ofrece tener un resultado eficaz a la hora de navegar por el entorno, pudiendo observar 
+Como resultado al utilizar el algoritmo de Q-learning, el modelo entrenado ofrece tener un resultado eficaz a la hora de navegar por el entorno, pudiendo observar 
 el modelo entrenado final en diferentes localizaciones aleatorias en el entorno como se muestra en la figura \ref{fig:Entorno}. Como se detalla en la sección \ref{sec:entrenamiento}, el algoritmo
-de Q-Learning obtiene un rate de 10 FPS debido a querer tener un comportamiento que sea capaz el dron de interactuar-reaccionar. Debido a las limitaciones de FPS dentro del algoritmo, para optimizar
+de Q-learning obtiene un rate de 10 FPS debido a querer tener un comportamiento que sea capaz el dron de interactuar-reaccionar. Debido a las limitaciones de FPS dentro del algoritmo, para optimizar
 el desempeño del modelo entrenado, se han explorado los límites de velocidad angular y lineal que el dron puede alcanzar mientras navega. Se multiplica tanto la velocidad angular como la lineal
 por un factor. La velocidad lineal es multiplicado por 2.0 y la velocidad angular por 1.8 consiguiendo aumentar un 100\% las acciones. Este proceso es interesante realizarlo para 
 maximizar el modelo entrenado sin necesidad de volver a entrenar un nuevo modelo, demostrando que el modelo es efectivo al aumentar el valor de las acciones. \newline
 
-Siendo los nuevos valores de las acciones utilizados durante las fases de comparación entre el seguimiento de carril con el PID y el seguimiento de carril mediante Q-Learning. Los nuevos
+Siendo los nuevos valores de las acciones utilizados durante las fases de comparación entre el seguimiento de carril con el PID y el seguimiento de carril mediante Q-learning. Los nuevos
 valores de las acciones originales como se mostraba en el código \ref{cod:Acciones} son multiplicados por ambos factores
 y su gráfico de acciones como se muestra en la figura \ref{fig:inferencia_factor}. Se puede observar que en la distribución de acciones el dron
 sigue escogiendo acciones con velocidad lineal alta y velocidad angular baja para mantenerse dentro del recorrido sin salirse, además de aumentar el porcentaje de las acciones escogidas respecto a la distribución de acciones
@@ -1339,80 +1343,75 @@ que se mostraba en la figura \ref{fig:Distribucción_inferencia}
   \label{fig:inferencia_factor}
 \end{figure}
 
-\subsection{Comparativa PID vs Q-Learning}
+\subsection{Comparativa PID vs Q-learning}
 \label{sec:Análisis y comparativa entre el seguiento de carril clásico}
 Para comprobar la robustez y la eficacia que demuestra ser el modelo entrenado junto con el seguimiento de carril mediante el PID, se realizo varias comparativas en ambos
 comportamientos utilizando el mismo sistema perceptivo. 
 
-Se definen límites a las velocidades (lineales y angulares) del controlador PID para que ambos tuviesen las mismas condiciones, para ello se utiliza el mismo recorrido en el que ambos son capaces 
-de recorrerlo sin salirse del carril. 
-En la figura \ref{fig:comparativa} se muestra el resultado de ambos comportamientos, en la primera figura es todo el recorrido hasta el punto
-final y en la segunda figura se realiza zoom en una parte del recorrido, los datos fueron recogidos mediante la posición del dron guardandolos un fichero tanto las coordenadas 
-en el eje x como las coordenadas en el eje y. 
-  
-\begin{figure}[H]
-  \centering
-  \begin{minipage}{1.0\textwidth}
-    \includegraphics[width=\linewidth]{figs/Diseño/RL/ruta.png}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{1.0\textwidth}
-    \includegraphics[width=\linewidth]{figs/Diseño/RL/ruta_zoom.png}
-  \end{minipage}
-  \caption{Comparativa realizando un trayecto entre ambos comportamientos}
-  \label{fig:comparativa}
+Se definen límites a las velocidades (lineales y angulares) del controlador PID para que ambos tengan las mismas condiciones, siendo que el controlador PID tenga los mismos 
+rangos mínimos y máximos de velocidades como Q-learning. Para realizar la comparativa, se ha escogido un escenario en el que ambos comportamientos visitan por primera vez. 
+Con esto se muestra demostrar que aunque en este tipo de escenario los dos comportamientos no consigan salirse del carril, el control de aprendizaje por refuerzo 
+es capaz de mantener una trayectoria más centrada con respecto al centro del carril. En la figura \ref{fig:escenario-comparativa} se muestra el escenario marcando el inicio 
+y el final del recorrido, además de la vista que tiene el dron al comienzo del recorrido. El escenario se trata de un trayecto semirrecto sin apenas curvas en donde se pone a prueba
+la eficacia de los dos comportamientos. 
+
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.38]{figs/Diseño/RLvsPID/escenario.png}
+  \end{center}
+  \caption{Escenario de control tradicional y aprendizaje por refuerzo}
+  \label{fig:escenario-comparativa}
 \end{figure}
 
-Una de las principales diferencias entre ambos comportamientos es que el comportamiento con control clásico presenta oscilaciones durante el recorrido relizando eses 
-por ambas partes del recorrido hasta llegar al punto final del recorrido. En cambio, el comportamiento con aprendizaje por refuerzo destaca por su trayectoria constante 
-durante todo el recorrido sin apenas realizar oscilaciones, destacando que el trayecto para realizar la comparativa se trata de un trayecto recto sin apenas curvas que se 
-puede visualizar en la figura \ref{fig:trayectoPID}.
+Para realizar como ha sido la trayectoria de ambos comportamientos dentro del escenario, se ha ido recogiendo en cada momento la posición del dron (x,y) durante su navegación en cada
+comportamiento para más adelante contrastarlos. En la figura \ref{fig:Comparativa-de-trayectorias}, se muestra una comparativa de trayectorias entre PID y Q-learning 
+realizando un zoom en la una de las partes de ambas 
+trayectorias.
 
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.4]{figs/Diseño/RL/trayecto1.png}
-  \end{center}
-  \caption{Trayecto en donde se realiza la comparativa entre el PID y aprendizaje por refuerzo}
-  \label{fig:trayectoPID}
-\end{figure}\
-
-Finalmente, en la figura \ref{fig:media_velocidades} se ilustra la media de velocidades angulares que han obtenido ambos comportamientos en el recorrido. Dichas velocidades
-se han ido almacenando a la medida que el dron recorría el trayecto. Se puede apreciar como el comportamiento de aprendizaje por refuerzo obtiene menor media de velocidad angular respecto al controlador PID manteniendo un trayectoria segura y eficaz en un recorrido 
-que nunca ha visto durante la fase de entrenamiento sin realizar apenas oscilaciones durante todo el trayecto. Respecto, al controlador PID, mantiene una media angular alta debido a que 
-necesita realizar ajustes para mantenerse en el trayecto constantemente resultando tener una mayor giro para permanecer central al carril. \newline
-En este tipo de trayectos, el comportamiento de aprendizaje por refuerzo demuestra ser más eficiente que el controlador PID sin requerir muchos ajustes respecto a la velocidad
-angular para manterse en la trayectoria y es capaz de adaptarse a cualquier recorrido del entorno.
-
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.4]{figs/Diseño/RL/medias_velocidades_angulares.png}
-  \end{center}
-  \caption{Media de velocidades angulares de ambos comportamientos desarrollados}
-  \label{fig:media_velocidades}
-\end{figure}\
-
-Demostrando asi que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes
-al recorrido de entrenamento u recorridos que no ha visto durante en la fase de entrenamiento. En la figura \ref{fig:comparativa}, se muestra diferentes frames 
-durante el recorrido siendo capaz de manternerse centrado al carril. 
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.55\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto-zoom.png}
+  \end{minipage}
+  \begin{minipage}{0.55\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto.png}
+  \end{minipage}
+  \caption{Comparativa de trayectorias entre el control clásico y el control de aprendizaje por refuerzo}
+  \label{fig:Comparativa-de-trayectorias}
+\end{figure}
 
 \begin{figure}[H]
   \centering
   \begin{minipage}{0.3\textwidth}
-    \includegraphics[width=\linewidth]{figs/Diseño/RL/rl1.png}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/RL1.png}
   \end{minipage}
   \hfill
   \begin{minipage}{0.3\textwidth}
-    \includegraphics[width=\linewidth]{figs/Diseño/RL/rl2.png}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/RL2.png}
   \end{minipage}
   \hfill
   \begin{minipage}{0.3\textwidth}
-    \includegraphics[width=\linewidth]{figs/Diseño/RL/rl3.png}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/RL3.png}
   \end{minipage}
-  \caption{Resultado del comportamiento de aprendizaje por refuerzo ilustrando los estados y acciones teniendo en cuenta el factor}
-  \label{fig:comparativa}
+  \hfill
+  \begin{minipage}{0.3\textwidth}
+    \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/RL4.png}
+  \end{minipage}
+  \caption{Resultado del comportamiento de aprendizaje por refuerzo}
+  \label{fig:inferencia-imagenes}
 \end{figure}
+\newpage
+Como se observa en esta comparativa, una de las principales diferencias entre ambos comportamientos es que el control clásico basado en el PID presenta oscilaciones durante el recorrido 
+realizando eses consiguiendo una velocidad angular media alrededor de 0.9 grados/segundo hasta llegar al punto final.  
 
+En cambio, el comportamiento con aprendizaje por refuerzo destaca por su trayectoria constante durante todo el recorrido sin apenas realizar oscilaciones obtuviendo una velocidad angular 
+media de 0.1 grados/segundo siendo menor que el resultado del controlador PID. Esto se debe a que el controlador PID constantemente tiene que estar realizando ajustes de velocidades 
+angulares para mantenerse centrado y dentro del carril, sin embargo con comportamiento de aprendizaje por refuerzo es capaz de aprender y adaptarse con una velocidad angular baja 
+realizando giros menos bruscos. 
 
+Demostrando asi que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes a diferentes escenarios. En la figura , se muestra una secuencia de frames
+del comportamiento de aprendizaje por refuerzo durante el recorrido siendo capaz de mantenerse centrado al carril mostrando las acciones y en que estado se encuentra.
 
 
 
