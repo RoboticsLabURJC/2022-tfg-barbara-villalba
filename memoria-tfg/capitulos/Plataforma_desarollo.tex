@@ -19,7 +19,7 @@ comercial. \newline
 
 También a de destacar, la facilidad que puede ser la instalación de dicho lenguaje en sistemas operativos como Linux o Windows. \newline
 
-En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robotico ROS (véase la sección \ref{sec:ros}) y para el desarrollo
+En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robótico ROS (véase la sección \ref{sec:ros}) y para el desarrollo
 de los diferentes algoritmos. 
 \newline
 
@@ -47,7 +47,7 @@ OpenCV (Open Source Computer Vision Library) es una biblioteca de open source de
 el año 2000 y esta disponible para todos los públicos tanto para uso comercial como para uso personal\footnote{\url{https://opencv.org/}}.
 
 Ofrece diferentes tareas como procesamiento de imágenes, detención de objetos, extracción de características, reconocimiento facial, estimación de movimiento entre otras. Además de ser
-compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una libreria muy versátil para el desarrollo de aplicaciones en diferentes
+compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una librería muy versátil para el desarrollo de aplicaciones en diferentes
 dispositivos y entornos. \newline
 
 En nuestro caso se utiliza esta biblioteca para poder obtener la imagen mediante la cámara que va abordo del vehículo.
@@ -72,7 +72,7 @@ En nuestro caso se utiliza esta biblioteca para poder obtener la imagen mediante
 \label{sec:Numpy}
 
 Numpy\footnote{\url{https://numpy.org/}} (Numerical Python) es una librería dedicada para el cálculo científico en Python como arrays multidimensionales y matrices, junto con una amplia
-colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia yidad de uso. 
+colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia y a su de uso. 
 
 A continuación, se muestra un simple ejemplo de como podemos crear un array en NumPy e realizar operaciones básicas como la suma y calcular la matriz transpuesta
 
@@ -104,7 +104,7 @@ Onnx\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un
 permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, Onnx permite convertirlo 
 a un formato compatible sin necesidad de reescribir el código fuente desde cero. Dentro de Onnx existe un motor de inferencia de alto rendimiento denominado Onnx Runtime utilizado 
 para ejecutar los modelos con formato Onnx, es compatible para diferentes sistemas operativos como Linux, Windows y Mac, además de permitir su uso en diversos entornos de programación
-como puede ser C, Python, C++, Java y más. Ofrece multiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
+como puede ser C, Python, C++, Java y más. Ofrece múltiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
 esta diseñado para aprovechar las capacidades de cómputo de una plataforma en particular, como CPU, GPU, FGPA o NPUs (Unidades de procesamiento neuronal).
 Algunos de los proveedores de ejecución compatibles con Onnx Runtime incluyen Nvidia CUDA, Nvidia TensorRT, Intel OpenVINO y más\footnote{\url{https://onnxruntime.ai/docs/execution-providers/}}. \newline
 
@@ -117,7 +117,7 @@ modelo en cuanto a rendimiento y velocidad de inferencia.
 \subsubsection{Scikit-learn}
 \label{Scikit-learn}
 
-Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una libreríaa de aprendizaje automático open source que proporciona herramientas simples y eficientes para el análisis 
+Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una librería de aprendizaje automático open source que proporciona herramientas simples y eficientes para el análisis 
 y modelado de datos. Esta librería soporta diferentes sistemas operativos como Windows, Linux y MacOs, esta construida específicamente para Python ya que se basa en bibliotecas
 científicas como Numpy, SciPy y Matplotlib. Se puede realizar múltiples algoritmos de aprendizaje automático como clasificaciones, regresiones, agrupamientos, reducciones de dimensionalidad y 
 muchos más. 
@@ -183,7 +183,7 @@ estructura de cuadrícula, como una imagen. Dicho modelo presenta unos pesos pre
   \item \textbf{Yolop-320-320.onnx, yolop-640-640.onnx y yolop-1020-1020.onnx}: Estos tres archivos se han construido a partir de Onnx.
 \end{enumerate}
 
-Dependiendo de que pesos preentrenados queramos utilizar tendremos resultados diferentes en el ámbito de cómputo y rápidez a la hora de 
+Dependiendo de que pesos preentrenados queramos utilizar tendremos resultados diferentes en el ámbito de cómputo y rapidez a la hora de 
 realizar la inferencia del modelo con los pesos. \newline
 
 \begin{code}[h]
@@ -308,12 +308,12 @@ se ejecutará la simulación en términos de propiedades del vehículo, configur
 
 Un archivo settings.json consta de varias secciones: 
 \begin{enumerate}
-  \item \textbf{SimMode}: Este parámetro define el modo de simulación, se refiere si el modo de simulación es para coches, multirotores o vision de computador.
+  \item \textbf{SimMode}: Este parámetro define el modo de simulación, se refiere si el modo de simulación es para coches, multirotores o visión de computador.
   \item \textbf{ClockType}: Determina qué tipo de reloj se utiliza para medir el tiempo en la simulación. 
   \item \textbf{Vehicles}:Configuración de  las propiedades de cada vehículo individualmente. Puedes especificar el tipo de vehículo, la posición inicial, la dinámica del vehículo, entre otros.
   \begin{itemize}
     \item \textbf{VehicleType}: En este caso ese parámetro es el tipo de vehículo que utilizaremos en la simulación.
-    \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en fisico si utilizamos un vehículo en un entorno real.
+    \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en físico si utilizamos un vehículo en un entorno real.
     \item \textbf{LockStep}: Es una característica importante cuando se comunica con el simulador AirSim a través de TCP.
     \item \textbf{UseTcp}: Para poder comunicarnos a través de TCP necesitamos habilitar esta opción a true.
     \item \textbf{TcpPort}: Especificamos el puerto TCP que vayamos a usar. 
@@ -321,12 +321,12 @@ Un archivo settings.json consta de varias secciones:
     \item \textbf{ControlPortLocal}: Se especificará el puerto Local. 
     \item \textbf{ControlPortRemote}: Se especificará el puerto Remoto.
     \item \textbf{LocalHostIp}: La dirección IP del ordenador en donde llevaremos la simulación.
-    \item \textbf{Parameters}: Estos parametros son de PX4 y permite la configuración del vehiculo,
+    \item \textbf{Parameters}: Estos parámetros son de PX4 y permite la configuración del vehículo,
     como por ejemplo los modos de vuelo, sus configuraciones, configuraciones de velocidades y más. 
     \item \textbf{Sensors}: Permite personalizar la configuración de los sensores simulados, como Lidar, IMU (Unidad de Medición Inercial),GPS y sensor de distancia. 
     \item \textbf{Cameras}: Puedes configurar las cámaras utilizadas en la simulación, especificando sus propiedades como resolución, tipo de lente, posición y orientación relativas al vehículo.\newline 
     
-    Nosotros usaremos una cámara que proporcionará una imagen RGB de dimensiones 620x620 pixeles y activaremos
+    Nosotros usaremos una cámara que proporcionará una imagen RGB de dimensiones 620x620 píxeles y activaremos
     el flag de PublishToRos a 1 para poder acceder a ella mediante el Airsim ROS Wrapper.
   \end{itemize}
 \end{enumerate}
@@ -371,7 +371,7 @@ tenemos más variedad que en comparación con Linux. \newline
   \label{f:escenarios_airsim}
 \end{figure}
 
-Tiene escenarios desde carreteras y cuidades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
+Tiene escenarios desde carreteras y ciudades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
 muestra en la figura \ref{f:escenarios_airsim}. En nuestro caso
 hemos utilizado el escenario Coastline,consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno tendremos la
 información del entorno para realizar el comportamiento sigue carril con el dron. \newline
@@ -398,7 +398,7 @@ GPS para poder obtener la localización del vehículo.
     \begin{itemize}
       \item \textbf{PhysXCar}: Representa un vehículo en tierra con física realista basado en el motor de física PhysX.
       \item \textbf{ArduRover}: Se utiliza para vehículos terrestres que sigan el estándar ArduRover. ArduRover\footnote{\url{https://ardupilot.org/rover/}} 
-      se trata de un piloto automático de código abierto utilizado especificamente para vehículos terrestres.
+      se trata de un piloto automático de código abierto utilizado específicamente para vehículos terrestres.
       \newline
     \end{itemize}
     
@@ -455,7 +455,7 @@ Unas de las principales características que ofrece esta plataforma es el soport
 ala fija, multirrotores, helicópteros, rovers y vehículos submarinos, también proporciona diferentes modos de vuelo, 
 navegación por puntos de referencias predefinidos, estabilización del vehículo. \newline
 
-En este trabajo realizaremos un analisis respecto a la navegación del dron mediante \textbf{PX4} con el modo de simulación Software in The Loop(SITL) para tener el control el vehículo junto con 
+En este trabajo realizaremos un análisis respecto a la navegación del dron mediante \textbf{PX4} con el modo de simulación Software in The Loop(SITL) para tener el control el vehículo junto con 
 \textbf{Mavros} y \textbf{Airsim}.\newline
 \subsection{Software in The Loop(SITL)}
 \label{sec:px4 sitl} 
@@ -478,23 +478,23 @@ PX4 ofrece varios modos de vuelo por ejemplo como Takeoff,Land,Hold, Position, O
 
 
   \begin{enumerate}
-    \item \textbf{TAKEOFF}: Este modo de vuelo permite despegar el vehículo con una altitud y una velocidad de ascendiente escogida por el usuario con los parametros de PX4 MIS\_TAKEOFF\_ALT y
-    MPC\_TKO\_SPEED, dichos parametros tienen valores por defectos definidos por la plataforma (2.5 m y 1.5 m/s respectivamente). Antes de realizar el despegue el vehículo sera armado 
+    \item \textbf{TAKEOFF}: Este modo de vuelo permite despegar el vehículo con una altitud y una velocidad de ascendiente escogida por el usuario con los parámetros de PX4 MIS\_TAKEOFF\_ALT y
+    MPC\_TKO\_SPEED, dichos parámetros tienen valores por defectos definidos por la plataforma (2.5 m y 1.5 m/s respectivamente). Antes de realizar el despegue el vehículo sera armado 
     para poder realizarlo.
 
     Una vez se realice el despegue del vehículo se pasa al modo HOLD 
-    \item \textbf{LAND}: Permite aterrizar el vehiculo en donde nos encontremos en ese instante, una vez el vehículo sea aterrizado se desarmará por defecto. En este modo podemos cambiar por ejemplo
-    la tasa de descenso durante se realiza el aterrizaje del vehículo con el parametro MPC\_LAND\_SPEED, tiempo en segundos para que se realice el desamardo del vehículo si se establece dicho tiempo
+    \item \textbf{LAND}: Permite aterrizar el vehículo en donde nos encontremos en ese instante, una vez el vehículo sea aterrizado se desarmará por defecto. En este modo podemos cambiar por ejemplo
+    la tasa de descenso durante se realiza el aterrizaje del vehículo con el parámetro MPC\_LAND\_SPEED, tiempo en segundos para que se realice el desarmado del vehículo si se establece dicho tiempo
     con un valor de -1 el vehículo no se desarmará cuando aterrice.
     
     Cuando de realice este modo de vuelo por defecto se cambiará al modo de Position
 
-    \item \textbf{HOLD}: A partir de este modo de vuelo podemos parar el vehículo manteniendolo en el aire con su actual posición GPS y altitud. Este modo puede ser bastante útil para cuando queremos
-    pausar una mision o reiniciar el comportamiento que queramos realizar. 
+    \item \textbf{HOLD}: A partir de este modo de vuelo podemos parar el vehículo manteniéndolo en el aire con su actual posición GPS y altitud. Este modo puede ser bastante útil para cuando queremos
+    pausar una misión o reiniciar el comportamiento que queramos realizar. 
 
     \item \textbf{POSITION}: Es un modo de vuelo manual el cual puedes controlar el vehículo mediante un joystick, dicho vuelo controla la posición del vehículo cuando comandemos velocidades 
     mediante el joystick. Este modo de vuelo lo utilizaremos para teleoperar el dron para ver el funcionamiento de la percepción por parte de la red neuronal que utilizaremos.
-    Dicho vuelo ofrece un gran catalogo de parametros que puede afectar al vuelo.
+    Dicho vuelo ofrece un gran catalogo de parámetros que puede afectar al vuelo.
 
     \begin{figure} [H]
       \begin{center}
@@ -511,13 +511,13 @@ PX4 ofrece varios modos de vuelo por ejemplo como Takeoff,Land,Hold, Position, O
 
     En este modo,PX4 debe recibir una secuencia de mensajes continua. Si en algún momento dejamos de publicar mensajes, el control externo de PX4 dejará de estar en el modo Offboard después
     de pasar un tiempo de espera establecido por el parámetro COM\_OF\_LOOS\_T (por defecto esta establecido a 1 s) e intentará aterrizar o realizar alguna acción de seguridad (dichas acciones 
-    de seguridad vienen definidas en la seccion de Failsafes en PX4 Autopilot\footnote{\url{https://docs.px4.io/v1.14/en/config/safety.html}}). La acción dependerá
+    de seguridad vienen definidas en la sección de Failsafes en PX4 Autopilot\footnote{\url{https://docs.px4.io/v1.14/en/config/safety.html}}). La acción dependerá
     si el control RC está disponible, si este control esta disponible pasará a otro tipo de modo de vuelo definido en el parámetro COM\_OBL\_RC\_ACT. 
 
     Para comandar las velocidades al vehículo mediante Mavros, se tendrá que utilizar el topic denominado /mavros/setpoint\_velocity/cmd\_vel\_unstamped dicho topic utiliza el un marco de coordenadas
     por defecto definido en el archivo de configuración de px4.config.yaml  LOCAL\_NED. Si queremos que el marco de coordenadas se mueva con el 
-    cuerpo del vehiculo se tendrá que utilizar el marco de coordenadas
-    En nuestro caso necesitamos un marco de coordenadas diferente para que el vehiculo se mueva
+    cuerpo del vehículo se tendrá que utilizar el marco de coordenadas
+    En nuestro caso necesitamos un marco de coordenadas diferente para que el vehículo se mueva
     con el cuerpo del vehículo, por ello utilizaremos el marco de coordenadas BODY\_NED. 
 
     Los marcos de coordenadas que ofrece Mavros se puede ver a través del servicio SetMavFrame.srv\footnote{\url{https://github.com/mavlink/mavros/blob/master/mavros_msgs/srv/SetMavFrame.srv}}

@@ -19,7 +19,7 @@ comercial. \newline
 
 También a de destacar, la facilidad que puede ser la instalación de dicho lenguaje en sistemas operativos como Linux o Windows. \newline
 
-En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robótico ROS (veáse la sección \ref{sec:ros}) y para el desarrollo
+En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robotico ROS (véase la sección \ref{sec:ros}) y para el desarrollo
 de los diferentes algoritmos. 
 \newline
 
@@ -44,13 +44,13 @@ percibir el entorno en el que vamos a estar trabajando.
 \subsubsection{OpenCV}
 \label{sec:OpenCV}
 OpenCV (Open Source Computer Vision Library) es una biblioteca de open source dedicada para el tratamiento de imágenes y aprendizaje automático. Fue desarrollada por Intel y lanzada en 
-el año 2000 y esta disponible para todos los públicos tanto para uso comercial como para uso personal\footnote{\url{https://opencv.org/}}.  \newline
+el año 2000 y esta disponible para todos los públicos tanto para uso comercial como para uso personal\footnote{\url{https://opencv.org/}}.
 
 Ofrece diferentes tareas como procesamiento de imágenes, detención de objetos, extracción de características, reconocimiento facial, estimación de movimiento entre otras. Además de ser
-compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una muy vérsatil para el desarrollo de aplicaciones en diferentes
+compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una libreria muy versátil para el desarrollo de aplicaciones en diferentes
 dispositivos y entornos. \newline
 
-En nuestro caso utilizaremos esta biblioteca para poder obtener la imagen mediante la cámara que va abordo del vehículo.
+En nuestro caso se utiliza esta biblioteca para poder obtener la imagen mediante la cámara que va abordo del vehículo.
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -64,7 +64,7 @@ En nuestro caso utilizaremos esta biblioteca para poder obtener la imagen median
     cv2.destroyAllWindows()
     
   \end{lstlisting}
-  \caption[Ejemplo de código en Python de operaciones básicas utilizando la librería OpenCv]{Ejemplo de código en Python de operaciones básicas utilizando la librería OpenCv}
+  \caption[Ejemplo de código en Python de operaciones básicas utilizando la librería OpenCv]{Ejemplo de código en Python de operaciones básicas utilizando la libreria OpenCv}
   \label{cod:Numpy}
   \end{code}  
 
@@ -72,7 +72,7 @@ En nuestro caso utilizaremos esta biblioteca para poder obtener la imagen median
 \label{sec:Numpy}
 
 Numpy\footnote{\url{https://numpy.org/}} (Numerical Python) es una librería dedicada para el cálculo científico en Python como arrays multidimensionales y matrices, junto con una amplia
-colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia y facilidad de uso. 
+colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia yidad de uso. 
 
 A continuación, se muestra un simple ejemplo de como podemos crear un array en NumPy e realizar operaciones básicas como la suma y calcular la matriz transpuesta
 
@@ -91,7 +91,7 @@ A continuación, se muestra un simple ejemplo de como podemos crear un array en 
   \label{cod:Numpy}
   \end{code}  
 
-Utilizaremos esta librería para el desarrollo del sistema de percepción que más adelante se explicará con más detalle. 
+Se utiliza esta librería para el desarrollo del sistema de percepción que más adelante se explicará con más detalle. 
 
 \subsubsection{Pytorch y ONNX Runtime}
 \label{sec:pytorchandonnx}
@@ -104,26 +104,26 @@ Onnx\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un
 permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, Onnx permite convertirlo 
 a un formato compatible sin necesidad de reescribir el código fuente desde cero. Dentro de Onnx existe un motor de inferencia de alto rendimiento denominado Onnx Runtime utilizado 
 para ejecutar los modelos con formato Onnx, es compatible para diferentes sistemas operativos como Linux, Windows y Mac, además de permitir su uso en diversos entornos de programación
-como puede ser C, Python, C++, Java y más. Ofrece múltiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
+como puede ser C, Python, C++, Java y más. Ofrece multiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
 esta diseñado para aprovechar las capacidades de cómputo de una plataforma en particular, como CPU, GPU, FGPA o NPUs (Unidades de procesamiento neuronal).
 Algunos de los proveedores de ejecución compatibles con Onnx Runtime incluyen Nvidia CUDA, Nvidia TensorRT, Intel OpenVINO y más\footnote{\url{https://onnxruntime.ai/docs/execution-providers/}}. \newline
 
-En resumen, Onnx Runtime esta diseñado para la inferencia eficiente y ofrece una solución portatil y optimizada para ejecutar modelos ONNX en una variedad de entornos,en cambio Pytorch es muy utilizado 
+En resumen, Onnx Runtime esta diseñado para la inferencia eficiente y ofrece una solución portátil y optimizada para ejecutar modelos ONNX en una variedad de entornos,en cambio Pytorch es muy utilizado 
 en la comunidad para el desarrollo y entrenamiento de modelos. \newline
 
-En este TFG realizaremos la inferencia de los diferentes modelos que ofrece la red neuronal YOLOP(\ref{sec:YOLOP}) para encontrar el mejor
+En este TFG se realiza la inferencia de los diferentes modelos que ofrece la red neuronal YOLOP(\ref{sec:YOLOP}) para encontrar el mejor
 modelo en cuanto a rendimiento y velocidad de inferencia. 
 
 \subsubsection{Scikit-learn}
 \label{Scikit-learn}
 
-Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una librería de aprendizaje automático open source que proporciona herramientas simples y eficientes para el análisis 
-y modelado de datos. Esta librería soporta diferentes sistemas operativos como Windows, Linux y MacOs, esta construida especificamente para Python ya que se basa en bibliotecas
+Scikit-learn\footnote{\url{https://scikit-learn.org/stable/}} es una libreríaa de aprendizaje automático open source que proporciona herramientas simples y eficientes para el análisis 
+y modelado de datos. Esta librería soporta diferentes sistemas operativos como Windows, Linux y MacOs, esta construida específicamente para Python ya que se basa en bibliotecas
 científicas como Numpy, SciPy y Matplotlib. Se puede realizar múltiples algoritmos de aprendizaje automático como clasificaciones, regresiones, agrupamientos, reducciones de dimensionalidad y 
 muchos más. 
 
-Además de tener una gran comunidad debido a su facilidad de uso, documentación completa y su enfoque en la eficiencia y la simplicidad. En este trabajo utilizaremos la librería para el uso
-de algoritmos de clasificación especificamente clustering. 
+Además de tener una gran comunidad debido a su facilidad de uso, documentación completa y su enfoque en la eficiencia y la simplicidad. En este trabajo se utiliza la librería para el uso
+de algoritmos de clasificación específicamente clustering. 
 
 
 \section{YOLOP}
@@ -132,9 +132,9 @@ YOLOP \cite{YOLOP} (You Only Look Once for Panoptic Driving Perception) es una r
 de conducción panóptica que ofrece múltiples tareas que puede
 manejar simultáneamente tres tareas cruciales en la conducción autónoma: 
 \begin{enumerate}
-  \item \textbf{Detención de objetos de tráfico}: Identifica los objetos presentes en la carretera, como otros vehículos, peatones, señales de tráfico, etc.
+  \item \textbf{Detección de objetos de tráfico}: Identifica los objetos presentes en la carretera, como otros vehículos, peatones, señales de tráfico, etc.
   \item \textbf{Segmentación del área transitable}: Determina las áreas de la carretera por las que un vehículo puede conducir de manera segura.
-  \item \textbf{Detención de carriles}: Identifica los carriles de la carretera.
+  \item \textbf{Detección de carriles}: Identifica los carriles de la carretera.
 \end{enumerate}
 
 \begin{figure} [H]
@@ -149,16 +149,16 @@ YOLOP está compuesto por un codificador para la extracción de características
 extremadamente bueno en el desafiante conjunto de datos BDD100K\cite{BDD100K}, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. \newline
 
 Nosotros utilizaremos los decodificadores de segmentación del área transitable 
-y detención de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
-extraidos por el codificador para realizar una predicción semántica a nivel de pixeles. Esto significa que 
-para cada pixel de la imagen, el decodificador de segmentación del área transitable predice si el pixel 
+y detección de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
+extraídos por el codificador para realizar una predicción semántica a nivel de píxeles. Esto significa que 
+para cada píxel de la imagen, el decodificador de segmentación del área transitable predice si el píxel 
 pertenece a un área transitable o no. \newline
 
-El decodificador de detención de carriles, también utiliza los mapas de características extraídos 
-por el codificador. Sin embargo, en lugar de predecir si un pixel es transitable o no, este decodificador
-predice si un pixel pertenece a un carril de la carretera. \newline
+El decodificador de detección de carriles, también utiliza los mapas de características extraídos 
+por el codificador. Sin embargo, en lugar de predecir si un píxel es transitable o no, este decodificador
+predice si un píxel pertenece a un carril de la carretera. \newline
 Es importante destacar que estos decodificadores no funcionan de manera aislada, sino que forman parte
-de un sistema de aprendizaje multitarea, es decir, se entranaran conjutamente para realizar sus tareas
+de un sistema de aprendizaje multitarea, es decir, se estrenaran conjuntamente para realizar sus tareas
 respectivas, lo que puede mejorar el rendimiento general del sistema.\newline
 
 Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256): \newline 
@@ -203,13 +203,13 @@ realizar la inferencia del modelo con los pesos. \newline
   \end{code}  
 Este ejemplo se puede encontrar en la página Pytorch dedicada a la red neuronal YOLOP\footnote{\url{https://pytorch.org/hub/hustvl_yolop/}}.
 
-Por lo que, utilizaremos esta red neuronal para poder detectar los carriles que puede tener las áreas transitables en Airsim.
+Por lo que, se utiliza esta red neuronal para poder detectar los carriles que puede tener las áreas transitables en Airsim.
 
 \begin{figure}[H]
   \begin{center}
-    \subfigure[Detención de tráfico]{
+    \subfigure[Detección de tráfico]{
      \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/detect.png}
-     \label{f:Detención de tráfico}}
+     \label{f:Detección de tráfico}}
     \subfigure[Segmentación de área transitable]{
       \includegraphics[scale=0.4]{figs/Plataformas_Desarollo/da.png}
       \label{Segmentación}}

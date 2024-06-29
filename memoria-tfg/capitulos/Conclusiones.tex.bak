@@ -1,0 +1,89 @@
+\chapter{Conclusiones}
+\label{cap:capitulo5}
+
+En este TFG se han cumplido los objetivos marcados durante el desarrollo de él mismo. Primero la creación de algoritmos de
+navegación autónoma para drones para resolver la problemática de seguimiento de carril en entornos de carreteras
+urbanas. En segundo lugar la utilización de algoritmos basados en inteligencia artificial y aprendizaje no supervisado
+con el fin de evaluar su efectividad. Tercero, analizar el desarrollo de aplicaciones de navegación autónoma drones
+utilizando el simulador fotorrealista Airsim junto con el middleware robóticos ROS empleando una arquitectura de
+comunicación distribuida. 
+
+En conclusión, se comenta los objetivos que se han cumplido a lo largo del desarrollo como los requisitos cumplidos
+que se expusieron en el capítulo 2, englobando líneas futuras dentro del trabajo. 
+
+\section{Objetivos cumplidos}
+\label{objetivos_cumplidos}
+
+Los objetivos presentados en la sección \ref{sec:descripcion}, han sido cumplidos exitosamente 
+\begin{enumerate}
+    \item Se logró la instación y configuración del simulador Airsim junto con ROS, estableciendo la comunicación efectiva
+    entre dos equipos mediante protocolos de red. 
+    \item Se implementó satisfactoriamente una aplicación de seguimiento de carril utilizando dos tipos de comportamientos,
+    el comportamiento clásico mediante un controlador PID y el comportamiento mediante aprendizaje por refuerz. Utilizando
+    en ambos redes neuronales, algoritmos de aprendizaje no suprvisado en el sistema perceptivo. 
+    \item Se completó de manera exitosa los análisis de los diferentes modelos que nos puede ofrecer la red neuronal YOLOP,
+    realizado. 
+    \item Se han completado análisis efectivos para cada uno de los comportamientos desarrollados contrastando sus métricas
+    de forma exitosa tanto en el sistema perceptivo como de control. 
+\end{enumerate}
+
+\section{Requisitos satisfechos}
+\label{requisitos_satisfechos}
+
+En la sección \ref{sec:requisitos} se presentaron los requisitos que ha tenido este TFG, que se han ido resolviendo 
+de la siguiente forma: 
+
+\begin{enumerate}
+    \item Duranto todo el proceso del trabajo se utiliza Airsim junto con UnrealEngine como entorno de simulador.
+    \item Los comportamientos desarrollados durante el trabajo se ha utilizado la estructura de ROS junto con la comunicación
+    del entorno de simulación Airsim. 
+    \item La nevgación autónoma basada en aprendizaje por refuerzo ha demostrado ser lo suficiente robusta y eficiente en los
+    diferentes trayectos dentro del escenario Coastline. 
+    \item Uso del algoritmo de Q-Learning para desarrollar el comportamiento sigue carril y de carreteras basados en aprendizaje por 
+    refuerzo.
+\end{enumerate}
+
+
+\section{Balance global y competencias adquiridas}
+\label{balance_global_competencias_adquiridas}
+Durante el desarrollo de este TFG, el desafío de implementar una aplicación de navegación autónoma de drones basada en
+aprendizaje por refuerzo y uso de redes neuronales resultó ser un proceso complejo y enriquecedor. Ademas de que la
+combinación de aprendizaje por refuerzo e inteligencia artificial es una estrategia viable y efectiva para la
+navegación autónoma de drones. Los resultados obtenidos son prometedores y sugieren que, con más investigación y
+desarrollo, estos sistemas pueden ofrecer soluciones robustas y eficientes para la navegación autónoma en una variedad
+de entornos sumando la arquitectura de conexión que se llego a implementar para ello. 
+
+Al comienzo de este trabajo apenas tenía suficientes conocimientos básicos sobre inteligencia artificial enfocada en
+redes neuronales y aprendizaje por refuerzo. Destacando que ha sido mi primer trabajo de investigación en donde he
+aprendido múltiples conceptos, así como adquirir técnicas de análisis de errores que han ido apareciendo durante todo
+el proceso. Destacando las siguientes competencias: 
+
+\begin{itemize}
+    \item Organización en cuanto a tiempos y tareas utilizando la metodología kanban.
+    \item Nuevos conocimientos en la utilización de simuladores robóticos.
+    \item Nuevos conocimientos dentro del área de inteligencia artificial, así como redes neuronales y algoritmos de
+    aprendizaje no supervisado. 
+    \item Nuevos conocimientos desde cero sobre comportamientos basados en aprendizaje por refuerzo.
+    \item Capacidad de analizar diferentes resultados recogidos en los diferentes comportamientos implementados.
+    \item Mejora en la capacidad de implementar una arquitectura distribuida entre ambos equipos.
+    \item Nuevos conocimientos sobre la integración de ROS junto con aplicaciones externas.
+    \item Capacidad de documentación a la hora de desarrollar los diferentes comportamientos. 
+\end{itemize}
+
+\section{Líneas futuras}
+\label{lineas_futuras}
+Aunque hemos obtenido resultados exitosos y satisfactorios a lo largo del TFG, existen diferentes líneas futuras que se
+podrían desarrollar a partir de este trabajo. \newline
+
+\begin{itemize}
+\item Utilizar la red neuronal usada en el trabajo y volver a entrenar dicha red en el entorno de trabajo teniendo en
+cuenta la visión de un dron.
+\item Exploración de otras técnicas de algoritmos de clasificación para poder obtener mejores resultados en cuanto a
+clasificación.
+\item Busqueda sobre la infraestructura que existe entre el simulador PX4 Autopilot y Airsim, para tener mejores
+comportamientos en cuanto a rendimiento y latencia.
+\item Mejorar los sistemas de seguimiento de carril de aprendizaje por refuerzo sin las propias limitaciones que puede
+presentar el algoritmo de Q-learning.
+\item Probar el TFG en diferentes escenarios distintos, con circuitos con curvas más cerradas, con situaciones de tiempo
+adversas. 
+\end{itemize}
