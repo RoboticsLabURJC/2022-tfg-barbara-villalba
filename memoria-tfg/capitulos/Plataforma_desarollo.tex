@@ -10,18 +10,17 @@ Para el desarrollo de este TFG, hemos utilizado como lenguaje de programación P
 de tipado dinámico y orientado a objetos,
 utilizado para el desarrollo de software, aplicaciones web, data science y machine learning (ML).  
 Fue creado por Guido van Rossum\footnote{\url{https://gvnrossum.github.io/}} en 1989, el nombre de "Python" se inspiró en el programa de televisión británico 
-"Monty Python's Flying Circus". \newline
+"Monty Python's Flying Circus".
 
 Este lenguaje con los tiempos se ha convertido en uno de los lenguajes más populares del mundo, esto se puede deber a su sintaxis sencilla, clara y legible, aparte 
 de estos beneficios también presenta una amplia gama de bibliotecas y marcos de trabajo. Además,se trata de un lenguaje de programación 'open source' (código abierto) y está disponible bajo
 una licencia de código abierto aprobada por la Iniciativa de Código Abierto (OSI), esto significa que Python es libre de usar, distribuir y modificar, incluso para uso
-comercial. \newline
-
-También a de destacar, la facilidad que puede ser la instalación de dicho lenguaje en sistemas operativos como Linux o Windows. \newline
+comercial.
+También a de destacar, la facilidad que puede ser la instalación de dicho lenguaje en sistemas operativos como Linux o Windows. 
 
 En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robótico ROS (véase la sección \ref{sec:ros}) y para el desarrollo
 de los diferentes algoritmos. 
-\newline
+
 
 \begin{code}[h]
 \begin{lstlisting}[language=Python]
@@ -38,7 +37,6 @@ print(factorial(5))  # Output: 120
 \label{cod:codejemplo}
 \end{code}  
 
-
 Para el desarrollo del sistema de percepción, hemos utilizado varías librerías mediante el lenguaje de programación Python para poder
 percibir el entorno en el que vamos a estar trabajando. 
 \subsubsection{OpenCV}
@@ -48,7 +46,7 @@ el año 2000 y esta disponible para todos los públicos tanto para uso comercial
 
 Ofrece diferentes tareas como procesamiento de imágenes, detención de objetos, extracción de características, reconocimiento facial, estimación de movimiento entre otras. Además de ser
 compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una librería muy versátil para el desarrollo de aplicaciones en diferentes
-dispositivos y entornos. \newline
+dispositivos y entornos. 
 
 En nuestro caso se utiliza esta biblioteca para poder obtener la imagen mediante la cámara que va abordo del vehículo.
 
@@ -98,7 +96,7 @@ Se utiliza esta librería para el desarrollo del sistema de percepción que más
 Pytorch\footnote{\url{https://pytorch.org/}} es una biblioteca de Python para el aprendizaje automático que permite a 
 los desarrolladores crear y entrenar modelos de aprendizaje profundo. Proporciona una integración con otras bibliotecas de Python, como puede ser
 Numpy, lo que facilita la manipulación y el análisis de datos, además de tener soporte de GPU y CPU siendo un muy buen soporte para Nvidia. Esta disponible para varios sistemas operativos 
-como Windows, Linux, MacOs y Cloud Platforms (Amazon Web Services, Google Cloud Platform, Microsoft Azure).\newline
+como Windows, Linux, MacOs y Cloud Platforms (Amazon Web Services, Google Cloud Platform, Microsoft Azure).
 
 Onnx\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un formato abierto para representar modelos de aprendizaje profundo. Este tipo de formato 
 permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, Onnx permite convertirlo 
@@ -106,10 +104,10 @@ a un formato compatible sin necesidad de reescribir el código fuente desde cero
 para ejecutar los modelos con formato Onnx, es compatible para diferentes sistemas operativos como Linux, Windows y Mac, además de permitir su uso en diversos entornos de programación
 como puede ser C, Python, C++, Java y más. Ofrece múltiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
 esta diseñado para aprovechar las capacidades de cómputo de una plataforma en particular, como CPU, GPU, FGPA o NPUs (Unidades de procesamiento neuronal).
-Algunos de los proveedores de ejecución compatibles con Onnx Runtime incluyen Nvidia CUDA, Nvidia TensorRT, Intel OpenVINO y más\footnote{\url{https://onnxruntime.ai/docs/execution-providers/}}. \newline
+Algunos de los proveedores de ejecución compatibles con Onnx Runtime incluyen Nvidia CUDA, Nvidia TensorRT, Intel OpenVINO y más\footnote{\url{https://onnxruntime.ai/docs/execution-providers/}}. 
 
 En resumen, Onnx Runtime esta diseñado para la inferencia eficiente y ofrece una solución portátil y optimizada para ejecutar modelos ONNX en una variedad de entornos,en cambio Pytorch es muy utilizado 
-en la comunidad para el desarrollo y entrenamiento de modelos. \newline
+en la comunidad para el desarrollo y entrenamiento de modelos. 
 
 En este TFG se realiza la inferencia de los diferentes modelos que ofrece la red neuronal YOLOP(\ref{sec:YOLOP}) para encontrar el mejor
 modelo en cuanto a rendimiento y velocidad de inferencia. 
@@ -125,7 +123,6 @@ muchos más.
 Además de tener una gran comunidad debido a su facilidad de uso, documentación completa y su enfoque en la eficiencia y la simplicidad. En este trabajo se utiliza la librería para el uso
 de algoritmos de clasificación específicamente clustering. 
 
-
 \section{YOLOP}
 \label{sec:YOLOP}
 YOLOP \cite{YOLOP} (You Only Look Once for Panoptic Driving Perception) es una red de percepción
@@ -139,29 +136,29 @@ manejar simultáneamente tres tareas cruciales en la conducción autónoma:
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.5]{figs/Diseño/YOLOP/yolop-architecture.png}
+    \includegraphics[scale=0.4]{figs/Diseño/YOLOP/yolop-architecture.png}
   \end{center}
   \caption{Arquitectura de YOLOP}
   \label{fig:Arq_YOLOP}
-\end{figure}\
+\end{figure}
 
 YOLOP está compuesto por un codificador para la extracción de características y tres decodificadores para manejar las tareas específicas. Este modelo ha demostrado un rendimiento 
-extremadamente bueno en el desafiante conjunto de datos BDD100K\cite{BDD100K}, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. \newline
+extremadamente bueno en el desafiante conjunto de datos BDD100K\cite{BDD100K}, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. 
 
 Nosotros utilizaremos los decodificadores de segmentación del área transitable 
 y detección de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
 extraídos por el codificador para realizar una predicción semántica a nivel de píxeles. Esto significa que 
 para cada píxel de la imagen, el decodificador de segmentación del área transitable predice si el píxel 
-pertenece a un área transitable o no. \newline
+pertenece a un área transitable o no. 
 
 El decodificador de detección de carriles, también utiliza los mapas de características extraídos 
 por el codificador. Sin embargo, en lugar de predecir si un píxel es transitable o no, este decodificador
-predice si un píxel pertenece a un carril de la carretera. \newline
+predice si un píxel pertenece a un carril de la carretera. 
 Es importante destacar que estos decodificadores no funcionan de manera aislada, sino que forman parte
 de un sistema de aprendizaje multitarea, es decir, se estrenaran conjuntamente para realizar sus tareas
-respectivas, lo que puede mejorar el rendimiento general del sistema.\newline
+respectivas, lo que puede mejorar el rendimiento general del sistema.
 
-Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256): \newline 
+Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256):  
 \begin{enumerate}
   \item \textbf{W/8 y H/8}: Representa la anchura y la altura de la imagen de entrada, respectivamente, divididas por 8.
   \item \textbf{256}: es el número de 
@@ -184,7 +181,7 @@ estructura de cuadrícula, como una imagen. Dicho modelo presenta unos pesos pre
 \end{enumerate}
 
 Dependiendo de que pesos preentrenados se quiera utilizar, se obtiene resultados diferentes en el ámbito de cómputo y rapidez a la hora de 
-realizar la inferencia del modelo con los pesos. \newline
+realizar la inferencia del modelo con los pesos. 
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -232,7 +229,7 @@ Podemos definir este middleware como se muestra en la figura \ref{fig:ROS}:
     \end{center}
     \caption{Definición de ROS}
     \label{fig:ROS}
-  \end{figure}\
+  \end{figure}
 
 
 \begin{enumerate}
@@ -245,14 +242,14 @@ Podemos definir este middleware como se muestra en la figura \ref{fig:ROS}:
 \end{enumerate}
 
 Este middleware sigue un modelo parcialmente centralizado de publicación y suscripción, el cual el publicador genera mensajes y eventos asociados a un topic y el subscriptor
-es quien se subscribe al topic correspondiente y recibe la información que ha generado el publicador. \newline
+es quien se subscribe al topic correspondiente y recibe la información que ha generado el publicador. 
 
 Este tipo sistema es bastante útil ya que permite a los desarrolladores cambiar, añadir o eliminar nodos (programas en ejecución) sin afectar al resto del sistema, facilitando de forma asíncrona
 el desarrollo iterativo, permitiendo construir sistemas robóticos complejos, escalables y robustos mejorando la eficiencia y permitiendo el desarrollo y mantenimiento de aplicaciones
-robóticas. \newline
+robóticas. 
 
 Utilizamos ROS en el desarrollo del TFG para realizar la conexión con el simulador Airsim y el desarrollo del sistema de percepción del seguimiento del carril a través del controlador PID y 
-aprendizaje por refuerzo. \newline
+aprendizaje por refuerzo. 
 
 
 \begin{figure} [H]
@@ -270,10 +267,10 @@ para controlar el vehículo y recibir datos de telemetría. Fácil de implementa
 lo que lo hace ideal para su uso en drones y otros vehículos aéreos no tripulados.
 
 Ademas, \textbf{Mavros} traduce los mensajes \textbf{ROS} a mensajes \textbf{MAVLink} y viceversa por lo que permite que los datos y comandos fluyan entre \textbf{ROS} y el drone, 
-permitiendo un control más sofisticado y una mayor funcionalidad. \newline
+permitiendo un control más sofisticado y una mayor funcionalidad. 
 
 Por lo que, en este TFG se estudia y analiza sí \textbf{Mavros} se podría utilizar para el control del dron junto con \textbf{PX4 AutoPilot} (\ref{sec:px4}) a través
-de Airsim. \newline
+de Airsim. 
 
 \begin{figure} [H]
   \begin{center}
@@ -281,8 +278,7 @@ de Airsim. \newline
   \end{center}
   \caption{Infraestructura de Mavros}
   \label{fig:InfraROS}
-\end{figure}\
-
+\end{figure}
 
 \section{Airsim}
 \label{sec:Airsim}
@@ -290,20 +286,20 @@ El entorno de simulación en el que vamos a estar trabajando será \textbf{Airsi
 y aprendizaje automático.
 Se construye sobre entornos 3D creados con \textbf{UnRealEngine}, estos entornos son utilizados para simular el mundo real y probar 
 cómo los vehículos autónomos se comportarían en diferentes situaciones. \textbf{Airsim} es compatible en varias plataformas como Linux, Windows, macOS y también para Docker y WSL. En nuestro caso,se utilizará en Linux junto
-con \textbf{ROS}. \newline
+con \textbf{ROS}. 
 
 Por otro lado \textbf{UnRealEngine} es un motor de videojuegos que se utiliza para la creación y simulación de entornos 3D realistas para videojuegos,
 películas animadas, experiencias interactivas y de realidad virtual. Es una propuesta innovadora utilizar este tipo de herramientas ya que puedes simular 
-comportamientos físicos que se puedan producir en un entorno real. \newline
+comportamientos físicos que se puedan producir en un entorno real. 
 
 Como hemos comentado anteriormente, \textbf{Airsim} es una buena opción de uso si queremos tener comportamientos
 similares a un entorno real. Ofrece una variedad de escenarios, tipos de vehículos, sensores y configuraciones del entorno 
 según las necesidades u objetivos marcados de cada persona. 
 Para ello se debe todo configurar en un fichero de configuración con extensión json denominado settings.json ,lo cual para configurar
-el vehículo con nuestras necesidades necesitaremos definir diferentes variables. \newline
+el vehículo con nuestras necesidades necesitaremos definir diferentes variables. 
 
 Un archivo settings.json es un archivo de configuración específica de Airsim que define cómo 
-se ejecutará la simulación en términos de propiedades del vehículo, configuración de sensores, condiciones climatológicas y más. \newline
+se ejecutará la simulación en términos de propiedades del vehículo, configuración de sensores, condiciones climatológicas y más. 
 
 Un archivo settings.json consta de varias secciones: 
 \begin{enumerate}
@@ -313,72 +309,62 @@ Un archivo settings.json consta de varias secciones:
   \begin{itemize}
     \item \textbf{VehicleType}: En este caso ese parámetro es el tipo de vehículo que utilizaremos en la simulación.
     \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en físico si utilizamos un vehículo en un entorno real.
-    \item \textbf{LockStep}: Es una característica importante cuando se comunica con el simulador AirSim a través de TCP.
-    \item \textbf{UseTcp}: Para poder comunicarnos a través de TCP necesitamos habilitar esta opción a true.
-    \item \textbf{TcpPort}: Especificamos el puerto TCP que vayamos a usar. 
     \item \textbf{ControlIp}: Esta opción es para especificar si el comportamiento se realizará simulado.
     \item \textbf{ControlPortLocal}: Se especificará el puerto Local. 
     \item \textbf{ControlPortRemote}: Se especificará el puerto Remoto.
     \item \textbf{LocalHostIp}: La dirección IP del ordenador en donde llevaremos la simulación.
-    \item \textbf{Parameters}: Estos parámetros son de PX4 y permite la configuración del vehículo,
-    como por ejemplo los modos de vuelo, sus configuraciones, configuraciones de velocidades y más. 
     \item \textbf{Sensors}: Permite personalizar la configuración de los sensores simulados, como Lidar, IMU (Unidad de Medición Inercial),GPS y sensor de distancia. 
-    \item \textbf{Cameras}: Puedes configurar las cámaras utilizadas en la simulación, especificando sus propiedades como resolución, tipo de lente, posición y orientación relativas al vehículo.\newline 
+    \item \textbf{Cameras}: Puedes configurar las cámaras utilizadas en la simulación, especificando sus propiedades como resolución, tipo de lente, posición y orientación relativas al vehículo. 
     
-    Nosotros usaremos una cámara que proporcionará una imagen RGB de dimensiones 620x620 píxeles y activaremos
+    Se usa una cámara que proporciona una imagen RGB de dimensiones 620x620 píxeles y con
     el flag de PublishToRos a 1 para poder acceder a ella mediante el Airsim ROS Wrapper.
   \end{itemize}
 \end{enumerate}
 
-Para más detalles sobre el archivo de settings.json está la paǵina oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/settings/}} \newline
+Para más detalles sobre el archivo de settings.json está la paǵina oficial de Airsim\footnote{\url{https://microsoft.github.io/AirSim/settings/}} 
 
 \subsubsection{Escenarios}
 \label{sec:airsim}
 Los escenarios que ofrece Airsim depende en que sistema operativo nos encontremos, en nuestro caso al utilizar el escenario en Windows 
-tenemos más variedad que en comparación con Linux. \newline
-
-\begin{figure}[H]
-  \centering
-  \begin{minipage}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/blocks.png}
-      \caption*{a) Blocks}
-  \end{minipage}%
-  \begin{minipage}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/landscapemountains.png}
-      \caption*{b) LandscapeMountains}
-  \end{minipage}
-
-  \begin{minipage}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/Coastline.png}
-      \caption*{c) Coastline}
-  \end{minipage}%
-  \begin{minipage}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/city_airsim.png}
-      \caption*{d) City}
-  \end{minipage}
-
-  \begin{minipage}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/AirsimNH.jpg}
-      \caption*{e) Neighborhood}
-  \end{minipage}
-  \caption{Ejemplos de escenarios en Airsim}
-  \label{f:escenarios_airsim}
-\end{figure}
+tenemos más variedad que en comparación con Linux. 
 
 Tiene escenarios desde carreteras y ciudades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
 muestra en la figura \ref{f:escenarios_airsim}. En nuestro caso
 hemos utilizado el escenario Coastline,consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno tendremos la
-información del entorno para realizar el comportamiento sigue carril con el dron. \newline
+información del entorno para realizar el comportamiento sigue carril con el dron. 
 
 Todos estos escenarios se pueden encontrar en las releases de Airsim\footnote{\url{https://github.com/Microsoft/AirSim/releases}} tanto para Windows como para Linux.
 En nuestro caso hemos utilizado el escenario Coastline, ya que queremos desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
 a cabo.
 
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/landscapemountains.png}
+      \caption*{a) LandscapeMountains}
+  \end{minipage}
+
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/Coastline.png}
+      \caption*{b) Coastline}
+  \end{minipage}%
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/city_airsim.png}
+      \caption*{c) City}
+  \end{minipage}
+
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/mapas_airsim/AirsimNH.jpg}
+      \caption*{d) Neighborhood}
+  \end{minipage}
+  \caption{Ejemplos de escenarios en Airsim}
+  \label{f:escenarios_airsim}
+\end{figure}
 
 
 \subsubsection{Sensores}
@@ -391,7 +377,7 @@ GPS para poder obtener la localización del vehículo.
 \subsubsection{Tipos de vehículos}
 \label{sec:airsim}
 \textbf{Airsim} ofrece dos tipos principales de vehículos para la simulación: coches y drones. Dentro de estos tipos se encuentran los subtipos de coches y drones que se puede utilizar.
-
+\newpage
 \begin{enumerate}
   \item \textbf{Coche}
     \begin{itemize}
@@ -417,12 +403,12 @@ cambios climatológicos dentro del entorno. Nosotros utilizaremos un dron de tip
 \subsection{Airsim ROS Wrapper}
 \label{sec:wrapper}
 Utilizaremos el paquete \textbf{Airsim ROS Wrapper}\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}} para poder acceder a ciertos sensores 
-que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece hablaremos sobre que es un ROS Wrapper. \newline
+que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece hablaremos sobre que es un ROS Wrapper. 
 
 \textbf{ROS Wrapper} es un componente que facilita la integración entre dos sistemas o entornos diferentes. Si lo llevamos al contexto de \textbf{ROS}, un wrapper es un nodo o paquete 
 que permite que los componentes de \textbf{ROS} se comuniquen con otros sistemas o bibliotecas que no fueron originalmente diseñadas para trabajar con \textbf{ROS}. Este paquete 
 puede proporcionar publicación de datos desde el sistema externo a \textbf{ROS} a través de topics, suscripción a topics de \textbf{ROS} para recibir comando o datos, adaptación 
-de interfaces de llamada (por ejemplo, entre C++ y Python). \newline
+de interfaces de llamada (por ejemplo, entre C++ y Python). 
 
 Por lo tanto, \textbf{Airsim ROS Wrapper} es un paquete de \textbf{ROS} que comunicará \textbf{ROS} y \textbf{Airsim}. Este paquete contiene dos nodos principales 
 que han sido realizados mediante la comunidad de Airsim\footnote{\url{https://github.com/microsoft/AirSim}}:
@@ -438,7 +424,7 @@ que han sido realizados mediante la comunidad de Airsim\footnote{\url{https://gi
 Airsim ofrece una API implementada para Python demoninada Client Airsim\footnote{\url{https://microsoft.github.io/AirSim/apis/}}, en donde podemos conectarnos con el simulador y tener el control de los sensores y actuadores del vehículo. 
 Esta interfaz es bastante útil ya que podemos tener el control del vehículo simulado sin necesidad de tener que utilizar los topics de ROS, es decir, existen métodos los cuales
 podemos comandar velocidades al vehículo, tener acceso a los sensores como las cámaras o cambiar configuraciones de la simulación como por ejemplo el clima, el viento, el tiempo del día
-o la densidad de tráfico en escenarios donde aparecen coches simulados. \newline
+o la densidad de tráfico en escenarios donde aparecen coches simulados. 
 
 Esta API se utiliza para el control del dron para realizar su navegación con los controladores PID y en 
 el desarrollo de aprendizaje por refuerzo. 
@@ -450,17 +436,17 @@ el desarrollo de aprendizaje por refuerzo.
 y controlar diversos tipos de drones,desde aplicaciones de consumo hasta aplicaciones industriales.
 Unas de las principales características que ofrece esta plataforma es el soporte de múltiples tipos de vehículos, como aviones de 
 ala fija, multirrotores, helicópteros, rovers y vehículos submarinos, también proporciona diferentes modos de vuelo, 
-navegación por puntos de referencias predefinidos, estabilización del vehículo. \newline
+navegación por puntos de referencias predefinidos, estabilización del vehículo. 
 
 En este trabajo se realiza un análisis respecto a la navegación del dron mediante \textbf{PX4} con el modo de simulación Software in The Loop(SITL) para tener el control del dron junto con 
-\textbf{Mavros} y \textbf{Airsim}.\newline
+\textbf{Mavros} y \textbf{Airsim}.
 \subsection{Software in The Loop(SITL)}
 \label{sec:px4 sitl} 
 Este modo de simulación permite a los desarrolladores probar y depurar códigos de control de drones sin necesidad de hardware físico, en lugar de ejecutar el código en un 
 vehículo real, este modo simula el comportamiento del vehículo en una computadora. Es especialmente útil durante el desarrollo y la validación de control, navegación y 
 planificación de misiones.
 Se puede tener diversos entornos de simulación con este modo como Gazebo, Airsim y jMAVSim. Dichos entornos de simulación permiten realizar simulaciones muy realistas y avanzadas 
-de cualquier tipo de vehículo simulando una gran variedad de parámetros.\newline
+de cualquier tipo de vehículo simulando una gran variedad de parámetros.
 
 Para poder utilizar PX4 SITL, se debe configurar el entorno de desarrollo adecuado y seguir las instrucciones proporcionadas por la comunidad\footnote{\url{https://docs.px4.io/v1.14/en/simulation/}} .
 
@@ -472,9 +458,9 @@ Para poder utilizar PX4 SITL, se debe configurar el entorno de desarrollo adecua
 y configuraciones de vehículos para drones por \textbf{PX4 ArduPilot}. Además, ofrece un control total durante el vuelo y permite la planificación de vuelos autónomos 
 mediante la definición de puntos de referencia, se muestra la posición del vehículo junto con su trayectoria, los puntos de referencia y los instrumentos del vehículo. 
 Es una opción cómoda para poder visualizar tu vehículo y querer cambiar parámetros del vehículo mediante esta aplicación y poder teleoperar el vehículo a través de un mando joystick.
-Funciona en diferentes plataformas como Windows, macOS, Linux,iOS y dispositivos Android, en nuestro caso lo utilizaremos en Linux. \newline
+Funciona en diferentes plataformas como Windows, macOS, Linux,iOS y dispositivos Android, en nuestro caso lo utilizaremos en Linux. 
 
-\begin{figure} [h]
+\begin{figure} [H]
   \begin{center}
     \includegraphics[scale=1.2]{figs/Plataformas_Desarollo/software-qgc.jpg}
   \end{center}
