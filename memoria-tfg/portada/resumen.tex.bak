@@ -1,0 +1,23 @@
+\cleardoublepage
+
+\chapter*{Resumen\markboth{Resumen}{Resumen}}
+
+Dentro del mundo de la róbotica, la navegación autónoma emerge una de las áreas más emocionantes especialmente la navegación autónoma de drones con sistemas de inteligencia artificial. 
+Esto permite que los vehículos aéreos no tripulados no solo ejecuten tareas preprogramadas, sino que también sean capaces de aprender la adaptación de entornos dinámicos y cambiantes.
+Los drones se han convertido en un gran desafio en el mundo de la robótica aérea.Pueden ser programados para realizar tareas específicas, como mapear tarrenos en aplicaciones 
+cartográficas o entregar suministros médicos en zonas de díficil acceso. Su versatilidad y capacidad de operar de manera autónoma convierte a estos robots aéreos en herramientas 
+valiosas en diversas aplicaciones.\newline
+
+Además de la navegación autónoma, la inteligencia artificial permite a los drones,por ejemplo, ser entrenados para reconocer patrones y objetos en su entorno permitiendoles realizar
+tareas como la identificación de personas en situaciones de busqueda y rescate o la detencción de anomalías en infraestructuras con algoritmos de aprendizaje automático. Sin embargo, a pesar
+de estos avances, la navegación autónoma e inteligencia artificial en drones sigue siendo un área de investigación debido a la necesidad de algoritmos de aprendizaje más robustos 
+que puedan cumplir con éxito en un futuro próximo.\newline
+
+Con este Trabajo de Fin de Grado se demuestra que la navegación autónoma de drones es capaz de tener un comportamiento autónomo en entornos realistas y complejos de carreteras tomando decisiones
+en tiempo real para alcanzar sus objetivos de manera eficiente y segura. Para poder lograr esto, se explorarán y se implementarán técnicas de algoritmos de aprendizaje autómatico y de inteligencia
+artificial con un enfoque en particular el aprendizaje por refuerzo utilizando entornos de simulación de Airsim. 
+
+
+
+
+
