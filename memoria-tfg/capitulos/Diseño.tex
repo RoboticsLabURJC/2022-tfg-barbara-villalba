@@ -69,8 +69,8 @@ Toda la funcionalidad se implementa dentro de dos submódulos:
     \end{center}
     \caption{Arquitectura general del desarrollo en este TFG}
     \label{fig:infraestructura}
-  \end{figure}\
-
+  \end{figure}
+\newpage
 \section{Configuración del sistema distribuido}
 \label{distribución}
 En el desarrollo de este TFG, se ha decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
@@ -122,6 +122,7 @@ perceptivo.
   \end{center}
   \caption{Visualización del entorno original ilustrando los objetos que dificultan al sistema perceptivo}
   \label{fig:CoastlineModificado}
+  \vspace{-1.5em}
 \end{figure}
 Cuando el fichero settings.json este creado, ya se puede equipar al dron con características como qué sensores va a utilizar, 
 el tipo de vehículo, el tipo de simulación, la comunicación y más. Como se muestra en la figura \ref{cod:settings}, se definen como sensores el Lidar para saber a que altura
@@ -216,6 +217,7 @@ Respecto de los actuadores, no se debe realizar ninguna configuración especial 
   \end{multicols}
   \caption[Configuración del dron mediante el fichero settings.json]{Configuración del dron mediante el fichero settings.json}
   \label{cod:settings}
+  \vspace{-1.5em}
 \end{figure}
 
 Si no se define la posición inicial del dron como aparece en la última parte del fichero settings.json, por defecto el propio simulador te establece el dron en el punto que decida Airsim.
@@ -323,7 +325,7 @@ de las carreteras urbanas dentro del entorno de Airsim.
 
 Para realizar la detección de las líneas en la carretera, se utiliza la red neuronal YOLOP\footnote{\url{https://github.com/hustvl/YOLOP}}. En primer lugar, 
 se realiza la inferencia del modelo \texttt{End-to-end.pth} y más adelante la inferencia de los modelos \texttt{Yolop-320-320.onnx}, \texttt{Yolop-640-640.onnx} e 
-\texttt{Yolop-1280-1280.onnx} mediante el uso de Onnx Runtime. 
+\texttt{Yolop-1280-1280.onnx} mediante el uso de ONNX Runtime. 
 El archivo End-to-end.pth es un modelo preentrenado construido en formato Pytorch que contiene los pesos y sesgos de la red neuronal después del entrenamiento. En el contexto de 
 redes neuronales, \texttt{end-to-end} significa que la red se entrena para realizar todas las etapas de un proceso completo. En el caso de YOLOP, esto significa que se ha entrenado de manera integral 
 para realizar simultáneamente todas sus tareas (detección de objetos, segmentación de áreas transitables y detección de líneas). Para poder cargar este modelo, se realiza 
@@ -356,14 +358,14 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
     \label{cod:codeloadYOLOP}
     \end{code}  
 
-      Esta red neuronal ofrece modelos con formato Onnx: \texttt{Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx}. Estos modelos son construidos a partir del archivo 
+      Esta red neuronal ofrece modelos con formato ONNX: \texttt{Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx}. Estos modelos son construidos a partir del archivo 
       \texttt{End-to-end.pth} y se convierten en modelos con formato Onnx. Cada modelo proporcionado con formato onnx tiene una resolución distinta de entrada en cuanto a las dimensiones
       de las imágenes. El archivo \texttt{Yolop-320-320.onnx} necesita una entrada con unas dimensiones de 320x320 píxeles en las imágenes, el archivo \texttt{Yolop-640-640.onnx} necesita 
       una entrada con unas dimensiones de 640x640 píxeles en las imágenes y por último el archivo \texttt{Yolop-1280-1280.onnx} se necesita unas dimensiones de imágenes de 1280x1280 píxeles. 
-      En cuanto al uso de estos modelos, se debe realizar la configuración de los drivers de CUDA con la versión disponible para Onnx Runtime, 
-      dichas versiones tienen que ser compatible entre sí. Para llevar a cabo este proceso, se emplea la tabla requisitos proporcionada en la página oficial de Onnx Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}.
+      En cuanto al uso de estos modelos, se debe realizar la configuración de los drivers de CUDA con la versión disponible para ONNX Runtime, 
+      dichas versiones tienen que ser compatible entre sí. Para llevar a cabo este proceso, se emplea la tabla requisitos proporcionada en la página oficial de ONNX Runtime\footnote{\url{https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html}}.
 
-      Cuando se trabaja con Onnx Runtime, se puede especificar qué proveedores de ejecución utilizar para ejecutar la inferencia del modelo de Onnx elegido. Cada proveedor 
+      Cuando se trabaja con ONNX Runtime, se puede especificar qué proveedores de ejecución utilizar para ejecutar la inferencia del modelo de ONNX elegido. Cada proveedor 
       contiene un conjunto de núcleos optimizados para un objetivo específico (por ejemplo, CPU, GPU, IoT), cada proveedor se especifica en una lista en orden de prioridad. Para realizar 
       inferencia de estos modelos, se escoge CUDA para ejecutar mediante la GPU. En el código \ref{yolop320} se muestra la carga del modelo \texttt{Yolop-320-320.onnx} junto con la configuración
       del provider CUDAExecutionProvider. 
@@ -396,10 +398,10 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
           \label{cod:Inferencia_onnx}
           \end{code}  
 
-        La inferencia en el resto de modelos de Onnx siguen un procedimiento similar, sin embargo, es importante considerar que se deben ajustar las dimensiones de las imágenes de entrada
+        La inferencia en el resto de modelos de ONNX siguen un procedimiento similar, sin embargo, es importante considerar que se deben ajustar las dimensiones de las imágenes de entrada
         y la ruta de almacenamiento del modelo correspondiente.
 
-        Por último, para poder utilizar imágenes en la inferencia de YOLOP tanto del modelo de Pytorch como de los modelos de Onnx, se debe convertir la imagen en un tensor. Para poder realizarlo, se utiliza la función \texttt{transforms.toTensor}\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
+        Por último, para poder utilizar imágenes en la inferencia de YOLOP tanto del modelo de Pytorch como de los modelos de ONNX, se debe convertir la imagen en un tensor. Para poder realizarlo, se utiliza la función \texttt{transforms.toTensor}\footnote{\url{https://pytorch.org/vision/main/generated/torchvision.transforms.ToTensor.html}} 
         para realizar la transformación a tensor. Una vez se obtenga el tensor, se puede realizar la inferencia del modelo \texttt{End-to-end.pth} como se ilustra en el código \ref{cod:Inferencia}.
     
         \begin{code}[h]
@@ -463,7 +465,7 @@ En la figura \ref{fig:resultados_pesos_preentrenados} se muestra este análisis 
 El modelo que tiene un tiempo de inferencia menor al resto se trata de \texttt{Yolop-320-320.onnx}, tiene un tiempo de inferencia alrededor de 10 milisegundos, esto
 significa que el modelo \texttt{Yolop-320-320.onnx} tiene aproximadamente un \textit{framerate} de 100 FPS. Si se compara este resultado con los restantes modelos, es el ganador en cuanto 
 en tiempo de inferencia, rate y mejores resultados. 
-Onnx está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia respecto a Pytorch, lo que puede mejorar la velocidad y la precisión
+ONNX está diseñado para ser más eficiente en términos de memoria y velocidad de inferencia respecto a Pytorch, lo que puede mejorar la velocidad y la precisión
 del modelo, una menor resolución en cuanto al tamaño de las imágenes reduciendo la cantidad de información al procesarlas. Aun así, depende de varios factores y según las necesidades, 
 en este caso se busca un equilibrio entre velocidad de inferencia y mejores resultados en cuanto a la detección de las líneas de la calzada. 
 
@@ -473,6 +475,7 @@ en este caso se busca un equilibrio entre velocidad de inferencia y mejores resu
   \end{center}
   \caption{Resultados de los diferentes modelos que ofrece la red YOLOP}
   \label{fig:resultados_pesos_preentrenados}
+  \vspace{-1.5em}
 \end{figure}
 Por ello, se escoge el modelo \texttt{Yolop320-320.onnx} ya que obtiene mejores resultados para poder realizar la detección de las líneas del carril. 
 En cuanto a los resultados de la inferencia, en la figura \ref{Proceso-YOLOP} 
@@ -485,6 +488,7 @@ la inferencia de los modelos. Aunque se escoja el modelo \texttt{Yolop-320-320.o
   \end{center}
   \caption{Resultados de la inferencia del modelo yolop-320-320.onnx}
   \label{f:Inferencia320-320}
+  \vspace{-1.5em}
 \end{figure}
 
 Para lograr una reconstrucción del carril que se desea seguir, se seleccionan las líneas que se necesitan mediante DBSCAN, un algoritmo de clustering basado en aprendizaje no supervisado. 
@@ -498,7 +502,7 @@ definidas mediante regresiones cuadráticas.
   \caption{Proceso del resultado de los diferentes modelos de la red neuronal YOLOP}
   \label{Proceso-YOLOP}
 \end{figure}
-
+\newpage
 \subsubsection{DBSCAN}
 \label{sec:DBSCAN}
 
@@ -595,7 +599,7 @@ un filtrado de clústeres para seleccionar específicamente aquellos grupos de p
       \caption*{}
   \end{minipage}
 
-  \vspace{1cm}
+  \vspace{0.5cm}
 
   % Título para la segunda fila
   \textbf{Detección de Yolop-320-320.onnx}
@@ -619,7 +623,7 @@ un filtrado de clústeres para seleccionar específicamente aquellos grupos de p
       \caption*{}
   \end{minipage}
 
-  \vspace{1cm}
+  \vspace{0.5cm}
 
   % Título para la tercera fila
   \textbf{Resultado de DBSCAN}
@@ -688,6 +692,7 @@ de la proximidad al punto central, sino también de la cantidad de puntos presen
   \end{lstlisting}
   \caption[Función maximizada para escoger el grupo de cluster más cercano y denso respecto al punto P]{Función maximizada para escoger el grupo de clúster más cercano y denso respecto al punto P}
   \label{cod:funcion_maximizada}
+  \vspace{-1.5em}
   \end{code}  
  
   En la figura \ref{fig:comparativa} se muestra el proceso desde la clasificación de líneas por DBSCAN hasta la selección de los clústeres. 
@@ -743,6 +748,7 @@ como se muestra en el código \ref{cod:Calculocoeficientes}.
   \end{lstlisting}
   \caption[Calculo de los coeficientes]{Cálculo de los coeficientes de la regresión cuadrática}
   \label{cod:Calculocoeficientes}
+  \vspace{-1.5em}
   \end{code}  
 Se realiza un promedio de los últimos diez valores utilizando los coeficientes mencionados, como se ilustra en el código \ref{cod:regresión}. Este promedio se recalcula 
 cada cinco iteraciones. Este paso es crucial para reducir las oscilaciones causadas por las detecciones de la red neuronal, las cuales son fundamentales para el comportamiento sigue-carril. Una vez calculados los 
@@ -752,6 +758,12 @@ la función cuadrática con los coeficientes calculados anteriormente.
 Al obtener los valores de la función cuadrática, se seleccionan los puntos de dicha función que se encuentran en el eje y, entre 0 y el máximo de la imagen menos uno (es decir, entre 0 y 319). 
 Este proceso se debe realizar debido a que el resultado de la función \texttt{Polyval} puede dar como resultado números negativos. En una imagen no se puede indexar con números negativos ya que 
 se corresponderían a píxeles que se encuentran fuera de la propia imagen.
+
+Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
+escogidos de la izquierda. 
+Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
+ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática} teniendo presente los pasos que se ha tenido que seguir para 
+realizar las regresiones, dichas líneas se representan de color amarillo.
 
 \begin{code}[H]
   \begin{lstlisting}[language=Python]
@@ -783,16 +795,9 @@ se corresponderían a píxeles que se encuentran fuera de la propia imagen.
   \caption[Cálculo de la regresión cuadrática]{Cálculo de la regresión cuadrática}
   \label{cod:regresión}
   \end{code}  
-
-Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
-escogidos de la izquierda. 
-Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
-ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática} teniendo presente los pasos que se ha tenido que seguir para 
-realizar las regresiones, dichas líneas se representan de color amarillo.
-
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.3]{figs/Diseño/Regresiones/regresiones.png}
+    \includegraphics[scale=0.28]{figs/Diseño/Regresiones/regresiones.png}
   \end{center}
   \caption{Resultado de la regresión cuadrática}
   \label{fig:regresión cuadrática}
@@ -837,7 +842,7 @@ y otra para los puntos de la regresión izquierda.
   \end{code}  
 
 Estas funciones interpolan los valores de los puntos en \textit{y} en función de los valores de los puntos en \textit{x}, 
-más adelante se evalúa los valores de las puntos que se encuentran entre 
+más adelante se evalúa los valores de los puntos que se encuentran entre 
 ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolación}. Cuando se proceda a dicha evaluación, se desarrolla un filtro 
 para seleccionar un fragmento de carril. El carril se representa en color azul en la imagen resultante.
 
@@ -853,6 +858,7 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
       \label{eq:funcioncentromasas}
     \end{equation} 
     \caption{Calculo del centro de masas}
+    \vspace{-1.5em}
   \end{myequation}
 
   Siendo $\vec{r}_{CM}$ las coordenadas del centroide compuesta por (x,y), $\vec{r}_{i}$ los puntos del carril construido y $m_{i}$ la masa que constituye cada punto, se supone que todos 
@@ -889,7 +895,7 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
       \caption*{}
   \end{minipage}
 
-  \vspace{1cm}
+  \vspace{0.5cm}
 
   % Título para la segunda fila
   \textbf{Construcción del carril desarrollada}
@@ -898,32 +904,27 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación1.jpg}
-      \caption*{}
+
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación2.jpg}
-      \caption*{}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación3.jpg}
-      \caption*{}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/interpolación4.jpg}
-      \caption*{}
   \end{minipage}
-
-
-
   % Caption general para la figura
   \caption{Comparativa entre el resultado de detección Yolop-320-320.onnx y la construcción del carril desarrollada}
   \label{comparativa-interpolacion}
+  \vspace{-1.5em}
 \end{figure}
   El cálculo de masa total ($\sum_{i}m_{i} \vec{r}_{i}$), consiste en el producto entre la masa individual de cada punto por el tamaño de los puntos que componen el carril. A continuación, 
   se realiza el sumatorio de las coordenadas de los puntos ponderados por su masa y la división por el cálculo de masa total. El resultado de la ecuación es el conocido centroide 
@@ -938,6 +939,7 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
     \end{center}
     \caption{Resultado del centro de masas}
     \label{fig:centro de masas}
+    \vspace{-1.5em}
   \end{figure}
 
   \subsection{Análisis del algoritmo de percepción}
@@ -1020,28 +1022,23 @@ PID realiza ajustes en la velocidad angular para corregir la trayectoria.
 
     \begin{figure}[H]
       \centering
-    
       \begin{minipage}[t]{0.3\textwidth}
           \centering
           \includegraphics[width=\textwidth]{figs/Diseño/PID/PID1.png}
-          \caption*{}
       \end{minipage}
       \hfill
       \begin{minipage}[t]{0.3\textwidth}
           \centering
           \includegraphics[width=\textwidth]{figs/Diseño/PID/PID2.png}
-          \caption*{}
       \end{minipage}
       \hfill
       \begin{minipage}[t]{0.3\textwidth}
           \centering
           \includegraphics[width=\textwidth]{figs/Diseño/PID/PID3.png}
-          \caption*{}
       \end{minipage}
-      
-      % Caption general para la figura
       \caption{Sigue-carril basado en PID}
       \label{sigue-carril}
+      \vspace{-1.5em}
     \end{figure}
 
 Este controlador PID, aunque funcional, presenta problemas ya que es incapaz de adaptarse a todos los escenarios. Debido a esto, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
@@ -1067,6 +1064,7 @@ con los métodos de control tradicionales.
       \end{center}
       \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
       \label{fig:Entorno}
+      \vspace{-1.5em}
     \end{figure}
 
     Dentro de este escenario, se ha considerado tres localizaciones distintas para el dron a la hora de realizar el entrenamiento, así como un punto final del recorrido, como se muestra en la figura
@@ -1085,6 +1083,7 @@ con los métodos de control tradicionales.
       \end{center}
       \caption{Estados definidos para el sigue-carril basado en aprendizaje por refuerzo}
       \label{fig:Estados}
+      \vspace{-1.5em}
     \end{figure}
 
     \item \textbf{Acciones}: En total, se han definido 21 acciones que el agente puede llevar a cabo. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
@@ -1101,6 +1100,7 @@ con los métodos de control tradicionales.
       \end{center}
       \caption{Acciones disponibles para el sigue-carril basado en aprendizaje por refuerzo}
       \label{fig:Acciones}
+      \vspace{-1.5em}
     \end{figure}
   
     \item \textbf{Función de Recompensa o Penalizaciones}: Determina cómo se premia o penaliza el agente para que alcance el objetivo deseado. Las recompensas o penalizaciones
@@ -1112,7 +1112,7 @@ con los métodos de control tradicionales.
     \ref{eq:funcionrecompensa} se muestra las dos componentes descritas, siendo $norm(error_{centro})$ y $norm(error_{angulo})$ las normalizaciones del error del centro de 
     masas del carril y la orientación, respectivamente, multiplicadas por sus pesos correspondientes.
 
-      \begin{myequation}
+      \begin{myequation}[H]
         \begin{equation}
           R(s,a) = [1 - norm(error_{centro}) \cdot w_{1}] + 
           [1 - norm(error_{angulo}) \cdot w_{2}]
@@ -1159,6 +1159,7 @@ con los métodos de control tradicionales.
       \end{lstlisting}
       \caption[Función de recompensa]{Función de recompensa}
       \label{cod:recompensa}
+      \vspace{-1.5em}
       \end{code}
 
       La implementación de la función de recompensa y las penalizaciones se puede ver en el código \ref{cod:recompensa}.   
@@ -1191,6 +1192,7 @@ con los métodos de control tradicionales.
   \end{center}
   \caption{Gráfica del valor de epsilon respecto al episodio}
   \label{fig:epsilon}
+  \vspace{-1.5em}
 \end{figure}
   \end{itemize}
 
@@ -1258,6 +1260,7 @@ ha sido capaz de converger debido a que el dron es capaz de completar el recorri
   \end{center}
   \caption{Gráfica de las iteraciones respecto al episodio}
   \label{fig:iteraciones}
+  \vspace{-1.5em}
 \end{figure}
 
 Respecto a la evolución de la función de recompensa, se puede observar en la figura \ref{fig:recompensa} como la recompensa acumulativa va obteniendo valores ascendentes a medida que el dron 
@@ -1274,6 +1277,7 @@ fase de inferencia para verificar el resultado obtenido con el modelo convergido
   \end{center}
   \caption{Gráfica de la recompensa acumulativa en función de los episodios}
   \label{fig:recompensa}
+  \vspace{-1.5em}
 \end{figure}
 
 \subsubsection{Fase de inferencia}
@@ -1318,6 +1322,7 @@ estable respecto al centro del carril.
   \end{minipage}
   \caption{Resultado del comportamiento de aprendizaje por refuerzo ilustrando los estados y acciones en la fase de inferencia}
   \label{fig:inferencia-imagenes}
+  \vspace{-1.5em}
 \end{figure}
 
 Como resultado al utilizar el algoritmo de Q-learning, el modelo entrenado ofrece tener un resultado eficaz a la hora de navegar por el entorno, pudiendo observar 
@@ -1354,7 +1359,7 @@ la eficacia de los dos comportamientos.
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.30]{figs/Diseño/RLvsPID/escenario.png}
+    \includegraphics[scale=0.33]{figs/Diseño/RLvsPID/escenario.png}
   \end{center}
   \caption{Escenario de control tradicional y aprendizaje por refuerzo}
   \label{fig:escenario-comparativa}
@@ -1367,17 +1372,18 @@ trayectorias.
 
 \begin{figure}[H]
   \centering
-  \begin{minipage}{0.55\textwidth}
+  \begin{minipage}{0.65\textwidth}
     \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto-zoom.png}
   \end{minipage}
 
   \vspace{1cm}
 
-  \begin{minipage}{0.55\textwidth}
+  \begin{minipage}{0.65\textwidth}
     \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto.png}
   \end{minipage}
   \caption{Comparativa de trayectorias entre el control clásico y el control de aprendizaje por refuerzo}
   \label{fig:Comparativa-de-trayectorias}
+  \vspace{-1.5em}
 \end{figure}
 
 Como se observa en esta comparativa, una de las principales diferencias entre ambos comportamientos es que el control clásico basado en el PID presenta oscilaciones durante el recorrido 
@@ -1407,6 +1413,7 @@ realizando giros menos bruscos.
   \end{minipage}
   \caption{Resultado del comportamiento de aprendizaje por refuerzo}
   \label{fig:Resultado-imagenes}
+  \vspace{-1.5em}
 \end{figure}
 
 Demostrando así que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes a diferentes escenarios. En la figura \ref{fig:Resultado-imagenes}, 
@@ -1420,20 +1427,22 @@ con la vista del dron. Se trata de un escenario en donde presenta curvas hacia l
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.30]{figs/Diseño/RLvsPID/comparativa-II.png}
+    \includegraphics[scale=0.34]{figs/Diseño/RLvsPID/comparativa-II.png}
   \end{center}
   \caption{Escenario II de control tradicional y aprendizaje por refuerzo}
   \label{fig:escenario-comparativa-II}
+  \vspace{-1.5em}
 \end{figure}
 
 En este análisis, se evalúa trayectoria que han seguido ambos comportamientos como se muestra en la figura \ref{fig:Trayecto-II}. 
 
 \begin{figure} [H]
   \begin{center}
-    \includegraphics[scale=0.28]{figs/Diseño/RLvsPID/sale-pid/trayecto.png}
+    \includegraphics[scale=0.35]{figs/Diseño/RLvsPID/sale-pid/trayecto.png}
   \end{center}
   \caption{Trayecto del comportamiento PID y Q-learning}
   \label{fig:Trayecto-II}
+  \vspace{-1.5em}
 \end{figure}
 
 Al comienzo del recorrido, tanto el controlador PID como Q-learning
@@ -1493,25 +1502,21 @@ tradicionales pueden no ser suficientes para garantizar un rendimiento fiable.
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/RLvsPID/sale-pid/RL1.png}
-      \caption*{}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/RLvsPID/sale-pid/RL2.png}
-      \caption*{}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/RLvsPID/sale-pid/RL3.png}
-      \caption*{}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.2\textwidth}
       \centering
       \includegraphics[width=\textwidth]{figs/Diseño/RLvsPID/sale-pid/RL4.png}
-      \caption*{}
   \end{minipage}
   % Caption general para la figura
   \caption{Comparativa entre el PID y Q-learning}
