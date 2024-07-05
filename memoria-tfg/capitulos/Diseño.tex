@@ -1,11 +1,11 @@
-\chapter{Diseño}
+\chapter{Diseño e Implementación}
 \label{cap:capitulo4}
 
 
 \vspace{1cm}
-El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación para un dron en entornos de simulación, siendo este capaz de desenvolverse
-por carreteras urbanas con un comportamiento reactivo y seguro. 
-En este capítulo se desarrolla como se ha alcanzando este objetivo. En primer lugar se implementa la infraestructura de comunicaciones entre el entorno de simulación y las diversas 
+El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación sigue-carril para un dron basado en aprendizaje por refuerzo, siendo este capaz de desenvolverse
+por carreteras urbanas con un comportamiento reactivo.
+En este capítulo se desarrolla como se ha alcanzando este objetivo. En primer lugar se diseña la infraestructura de comunicaciones entre el entorno de simulación y las diversas 
 plataformas de desarrollo. Esta 
 infraestructura de comunicaciones, permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
 una comunicación fluida y eficiente.
@@ -13,7 +13,7 @@ A continuación, se desarrolla el sistema perceptivo mediante el uso de intelige
  en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados se incluye 
 el control clásico basado en controladores y métodos de control avanzados basados en aprendizaje por refuerzo, con el objetivo de que el dron aprenda y se 
 adapte a distintos escenarios urbanos. 
-Una vez desarrollados estos comportamientos, se procede a realizar una evaluación exhaustiva de los resultados obtenidos. Se recopilan
+Una vez desarrollados estos comportamientos, se procede a realizar una evaluación de los comportamientos obtenidos. Se recopilan
 diversas métricas para determinar la efectividad de cada enfoque y adaptabilidad del dron. 
 Finalmente, se analizan los resultados y se realiza una comparativa, destacando las ventajas y limitaciones de cada enfoque, 
 proporcionando así una visión global del desempeño del sistema autónomo 
@@ -22,9 +22,20 @@ de navegación del dron en carreteras.
 \section{Arquitectura}
 \label{sec:Arquitectura}
 
-La arquitectura propuesta para este trabajo como se muestra en la figura \ref{fig:infraestructura} consta de dos componentes principales 
-comunicados entre sí: el entorno de simulación  y las plataformas de desarrollo. Estos componentes 
+La arquitectura propuesta para este trabajo se muestra en la figura \ref{fig:infraestructura}. Consta de dos componentes principales 
+comunicados entre sí por medio de un router y conexión Ethernet: el entorno de simulación  y las plataformas de desarrollo. Estos componentes 
 están separados en dos ordenadores distintos, siendo PC1 el entorno de simulación y PC2 las plataformas de desarrollo junto con los algoritmos de percepción y de sigue-carril. 
+El objetivo de esta separación en dos ordenadores diferentes es para poder dividir la carga computacional, ya que una sola máquina es incapaz de ejecutar el simulador y los algoritmos 
+desarrollados en este TFG dada la alta demanda computacional del simulador Airsim. 
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/diagrama_arquitectura_2.png}
+  \end{center}
+  \caption{Arquitectura general del desarrollo en este TFG}
+  \label{fig:infraestructura}
+  \vspace{-1.5em}
+\end{figure}
 
 Por un lado, el primer componente está compuesto por el entorno de simulación Airsim, ejecutado en el PC1. Incluye la configuración de sensores y actuadores necesarios 
 para la navegación del dron. La comunicación entre este componente y el segundo componente (PC2), se realiza a través de dos interfaces principales: 
@@ -56,21 +67,17 @@ Toda la funcionalidad se implementa dentro de dos submódulos:
     \item \textbf{PID}: Un enfoque clásico de control que ajusta las velocidad angulares en función de las desviaciones del carril detectado. En este controlador, la velocidad lineal 
     del dron es constante.
     \item \textbf{Aprendizaje por Refuerzo}: Un enfoque más avanzado que utiliza técnicas de aprendizaje automático para optimizar el comportamiento del dron. Este método 
-    permite al dron aprender de su entorno en diferentes condiciones. 
+    permite al dron aprender de su entorno en diferentes condiciones, dotandole de la capacidad de generalizar el comportamiento aprendido, provocando que sea capaz de funcionar correctamente
+    en entornos nunca vistos anteriormente.
+
   \end{enumerate}
 
   Ambos enfoques de control generan comandos de velocidades lineales y angulares que son enviados al Client Airsim. Este, a su vez, traduce estos comandos en acciones físicas 
   en el entorno simulado, permitiendo un movimiento controlado y preciso del dron. 
+
+
 \end{enumerate}
 
-\begin{figure} [H]
-    \begin{center}
-      \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/diagrama_arquitectura.png}
-    \end{center}
-    \caption{Arquitectura general del desarrollo en este TFG}
-    \label{fig:infraestructura}
-  \end{figure}
-\newpage
 \section{Configuración del sistema distribuido}
 \label{distribución}
 En el desarrollo de este TFG, se ha decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
@@ -316,7 +323,7 @@ dificultades en la detección de las lineas, debido a que HoughLines esta optimi
 Debido al mal funcionamiento de estos algoritmos de visión clásica en la detección de líneas en los carriles, 
 hemos optado por utilizar técnicas de Inteligencia Artificial, en especial Deep Learning, utilizando la red neuronal YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
 YOLOP es una red neuronal que realiza una detección de objetos de tráfico, una segmentación del área transitable y una detección de carriles. Es importante 
-destacar que se realiza solamente la inferencia de los distintos modelos ya entrenados que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
+destacar que se realiza solamente la inferencia de los distintos modelos ya entrenados con datos reales que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
 la detección de las líneas proporcionadas por la red para mejorar la percepción del entorno del dron, proporcionando una detección más robusta y precisa a una gran variedad de configuraciones
 de las carreteras urbanas dentro del entorno de Airsim. 
 
@@ -325,8 +332,8 @@ de las carreteras urbanas dentro del entorno de Airsim.
 
 Para realizar la detección de las líneas en la carretera, se utiliza la red neuronal YOLOP\footnote{\url{https://github.com/hustvl/YOLOP}}. En primer lugar, 
 se realiza la inferencia del modelo \texttt{End-to-end.pth} y más adelante la inferencia de los modelos \texttt{Yolop-320-320.onnx}, \texttt{Yolop-640-640.onnx} e 
-\texttt{Yolop-1280-1280.onnx} mediante el uso de ONNX Runtime. 
-El archivo End-to-end.pth es un modelo preentrenado construido en formato Pytorch que contiene los pesos y sesgos de la red neuronal después del entrenamiento. En el contexto de 
+\texttt{Yolop-1280-1280.onnx} mediante el uso de ONNX Runtime, todos ellos entrenados con datos reales. 
+El archivo End-to-end.pth es un modelo preentrenado con datos reales construido en formato Pytorch que contiene los pesos y sesgos de la red neuronal después del entrenamiento. En el contexto de 
 redes neuronales, \texttt{end-to-end} significa que la red se entrena para realizar todas las etapas de un proceso completo. En el caso de YOLOP, esto significa que se ha entrenado de manera integral 
 para realizar simultáneamente todas sus tareas (detección de objetos, segmentación de áreas transitables y detección de líneas). Para poder cargar este modelo, se realiza 
 su carga mediante el repositorio de Github\footnote{\url{https://github.com/hustvl/YOLOP}}
@@ -492,7 +499,7 @@ la inferencia de los modelos. Aunque se escoja el modelo \texttt{Yolop-320-320.o
 \end{figure}
 
 Para lograr una reconstrucción del carril que se desea seguir, se seleccionan las líneas que se necesitan mediante DBSCAN, un algoritmo de clustering basado en aprendizaje no supervisado. 
-Con este algoritmo, se realiza una clasificación de las diferentes líneas detectadas por parte del modelo \texttt{Yolop-320-320.onnx} para más adelante aplicar un filtro y seleccionar las líneas 
+Con este algoritmo, se realiza una segmentación de las diferentes líneas detectadas por parte del modelo \texttt{Yolop-320-320.onnx} para más adelante aplicar un filtro y seleccionar las líneas 
 para reconstruir el carril. Las líneas de la red neuronal no llegan a ser exactas, lo cual aunque se realice el filtrado de estas líneas se necesita construir el carril a partir de unas líneas 
 definidas mediante regresiones cuadráticas. 
 \begin{figure} [H]
@@ -931,7 +938,8 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
   compuesto por (x,y).
   
   El resultado final del cálculo del centroide se muestra en la figura \ref{fig:centro de masas} resaltando con una flecha de color rojo donde se encuentra
-  el centro de masas del carril representado por un círculo de color blanco.
+  el centro de masas del carril representado por un círculo de color blanco. Este centroide se utilizará en los controladores que se explicarán
+  posteriormente, para poder determinar que tan desviado esta el dron respecto al centro del carril, que se representa con este centro de masas.
 
   \begin{figure} [H]
     \begin{center}
@@ -978,7 +986,7 @@ Este análisis es crucial para conseguir un sistema perceptivo en tiempo real a 
   \section{Comportamientos de control}
   \label{sec:Control}
 
-  En este apartado, se expone el desarrollo de los comportamientos de control junto con el sistema perceptivo desarrollado para posteriormente realizar 
+  En este sub-apartado, se describe el desarrollo de los comportamientos de control junto con el sistema perceptivo desarrollado para posteriormente realizar 
   una comparativa entre ambos y contrastar los resultados obtenidos.
 
 \subsection{Sigue-carril basado en PID}
@@ -993,18 +1001,40 @@ El proceso de ajuste de las constantes del controlador PID es crucial y debe rea
 destacar que los valores óptimos de las constantes para un escenario particular pueden no ser aplicables directamente a otros escenarios, lo que requiere ajustes personalizados. 
 En cuanto a la velocidad lineal, se mantiene un valor constante.
 
-Además del controlador PID utilizado para el seguimiento del carril, se implementa un controlador PD para mantener la altura del dron con respeto al suelo durante su navegación. 
+Además del controlador PID utilizado para el seguimiento del carril, se implementa otro controlador PD para mantener la altura del dron con respeto al suelo durante su navegación. 
 Esto se debe a la naturaleza del simulador, donde las carreteras presentan variaciones en su elevación, lo que puede afectar la detección del carril del sistema perceptivo. Por lo cual, 
 con este controlador PD, permite al dron ajustar su altitud, asegurando así una altura constante y estable. En el código \ref{cod:ValoresPID} se expone los valores de cada 
 constante de los controlador PID Y PD ajustadas.
 
 En la figura \ref{sigue-carril}, se muestran diferentes frames de la navegación autónoma 
-del dron utilizando ambos controladores. En las imágenes
+del dron utilizando el controlador anteriormente descrito. En las imágenes
 se muestran los valores de la velocidad lineal, angular, el error con respecto al centro de masas y una línea representando la mitad de la imagen. 
 En la primera imagen y en la segunda, el error se encuentra
 entre 4 y 7 píxeles, mostrando que el dron consigue una alineación centrada respecto al carril. Por último, en la tercera imagen 
 se muestra una desviación significativa con un error de 16 píxeles, el controlador
 PID realiza ajustes en la velocidad angular para corregir la trayectoria. 
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/PID/PID1.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/PID/PID2.png}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/PID/PID3.png}
+  \end{minipage}
+  \caption{Sigue-carril basado en PID}
+  \label{sigue-carril}
+  \vspace{-1.5em}
+\end{figure}
+
   \begin{code}[h]
     \begin{lstlisting}[language=Python]
 
@@ -1020,38 +1050,27 @@ PID realiza ajustes en la velocidad angular para corregir la trayectoria.
     \label{cod:ValoresPID}
     \end{code} 
 
-    \begin{figure}[H]
-      \centering
-      \begin{minipage}[t]{0.3\textwidth}
-          \centering
-          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID1.png}
-      \end{minipage}
-      \hfill
-      \begin{minipage}[t]{0.3\textwidth}
-          \centering
-          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID2.png}
-      \end{minipage}
-      \hfill
-      \begin{minipage}[t]{0.3\textwidth}
-          \centering
-          \includegraphics[width=\textwidth]{figs/Diseño/PID/PID3.png}
-      \end{minipage}
-      \caption{Sigue-carril basado en PID}
-      \label{sigue-carril}
-      \vspace{-1.5em}
-    \end{figure}
+   
 
-Este controlador PID, aunque funcional, presenta problemas ya que es incapaz de adaptarse a todos los escenarios. Debido a esto, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
+Este controlador PID, aunque funcional, presenta problemas ya que es incapaz de adaptarse a todos los escenarios, ya que en algunos casos más complicados en los que las curvas son más cerradas
+el controlador es incapaz de trazar la curva provocando una salida de carril por parte del dron. 
+
+Debido a esto, se considera una implementación de técnicas de aprendizaje por refuerzo. Estas técnicas, 
 permiten al dron aprender y adaptarse de manera autónoma a diversas condiciones del entorno, manteniéndose centrado en el carril de manera más eficiente y robusta en comparación 
-con los métodos de control tradicionales.
-  \newpage
+con los métodos de control tradicionales. Este método a diferencia del anterior, permite al dron generalizar las acciones que debe de tomar ante distintas situaciones del entorno, lo que tiene
+como consecuencia que este pueda funcionar correctamente ante entornos desconocidos.
   \subsection{Sigue-carril basado en aprendizaje por refuerzo}
   \label{sec:aprendizaje por refuerzo}
 
-  Como se menciona en la sección \ref{sec:IA}, el aprendizaje por refuerzo consiste en enseñar a un agente 
+  Como se menciona en la sección \ref{sec:IA}, el aprendizaje por refuerzo consiste en enseñar a un agente a
   desempeñar un comportamiento deseado mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,
-  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. Al desarrollar el aprendizaje por refuerzo, es esencial 
-  definir sus componentes fundamentales. En el contexto sigue-carril, se identifica los componentes clave como: 
+  de forma similar a los niños que exploran el mundo que les rodea y aprenden las acciones que les ayudan a alcanzar un objetivo. 
+
+  En este TFG se emplea como algoritmo de aprendizaje por refuerzo, el algoritmo Q-learning. Este se basa en una tabla de correspondencias estado-acción que almacena ante distintos estados 
+  la acción que se debe de tomar para maximizar la recompensa. Para este algoritmo es necesario definir distintos componentes, que son: agente, entorno, estados, acciones, función de recompensa y 
+  la política.
+  
+  Los componentes del algoritmo Q-learning, que se definen para la tarea del sigue-carril son los siguientes: 
   \begin{itemize} 
     \item \textbf{Agente}: En este caso, el dron. Es la entidad o modelo que se pretende entrenar para que aprenda a tomar decisiones (acciones) en función del estado en el que se 
     encuentre y de las observaciones que vea en el entorno. 
@@ -1068,9 +1087,11 @@ con los métodos de control tradicionales.
     \end{figure}
 
     Dentro de este escenario, se ha considerado tres localizaciones distintas para el dron a la hora de realizar el entrenamiento, así como un punto final del recorrido, como se muestra en la figura
-    \ref{fig:Entorno}. La idea de utilizar diferentes localizaciones es evitar que el modelo haga sobreajuste (overfitting, es decir, que se aprenda de memoria los movimientos que debe hacer)\footnote{\url{https://iartificial.blog/aprendizaje/estrategias-para-evitar-el-overfitting-en-modelos-de-ml/}} 
-    a una sola ruta específica. En su lugar, se quiere que el dron 
-    sea capaz de aprender y adaptarse a diversas situaciones, desarrollando así un comportamiento más generalizado y robusto.
+    \ref{fig:Entorno}. La idea de utilizar diferentes localizaciones de inicio es evitar que el modelo haga sobreajuste (overfitting)\footnote{\url{https://iartificial.blog/aprendizaje/estrategias-para-evitar-el-overfitting-en-modelos-de-ml/}} 
+    , es decir, que se aprenda de memoria los movimientos que debe hacer, para completar la ruta. En su lugar, se quiere que el dron 
+    sea capaz de aprender y adaptarse a diversas situaciones, desarrollando así un comportamiento más generalizado y robusto. Esto se consigue debido a que en los distintos 
+    entrenamientos, para una misma iteración, el dron se encontrará en posiciones distintas de la carretera, ya que la posición de inicio se elige de forma aleatoria (equiprobable) para cada
+    episodio.
     
     \item \textbf{Estados}: Se necesita definir las situaciones que se puede encontrar el dron navegando dentro  por el carril. Por ello, se divide verticalmente la imagen del sistema perceptivo
     en múltiples franjas representando cada una franja un estado. En total son 14 franjas equidistantes de 10 píxeles, empezando desde la izquierda de la imagen hasta la derecha. La determinación
@@ -1096,7 +1117,7 @@ con los métodos de control tradicionales.
   
     \begin{figure} [H]
       \begin{center}
-        \includegraphics[scale=0.3]{figs/Diseño/RL/Tabla_acciones.png}
+        \includegraphics[scale=0.28]{figs/Diseño/RL/Tabla_acciones.png}
       \end{center}
       \caption{Acciones disponibles para el sigue-carril basado en aprendizaje por refuerzo}
       \label{fig:Acciones}
@@ -1105,7 +1126,7 @@ con los métodos de control tradicionales.
   
     \item \textbf{Función de Recompensa o Penalizaciones}: Determina cómo se premia o penaliza el agente para que alcance el objetivo deseado. Las recompensas o penalizaciones
     se definen en una función específica, la cual varía según el objetivo que se quiere lograr. La función de recompensa se compone en dos partes: premiar al dron por permanecer 
-    centrado en el carril y premiarlo por mantener una orientación adecuada. 
+    centrado en el carril y premiarlo por mantener una orientación adecuada con respecto al carril. 
 
     Cada parte de la función tiene un peso de importancia diferente: un 85\% por permanecer centrado en el carril y un 15\% para la orientación respecto al carril. Ambas partes 
     son normalizadas en un rango de 0 a 1. Además, se penaliza con un valor constante de -10 al dron cuando se sale del carril o pierde la percepción. En la ecuación 
@@ -1114,8 +1135,8 @@ con los métodos de control tradicionales.
 
       \begin{myequation}[H]
         \begin{equation}
-          R(s,a) = [1 - norm(error_{centro}) \cdot w_{1}] + 
-          [1 - norm(error_{angulo}) \cdot w_{2}]
+          R(s,a) = (1 - norm(error_{centro})) \cdot w_{1} + 
+          (1 - norm(error_{angulo})) \cdot w_{2}
           \label{eq:funcionrecompensa}
         \end{equation}
         \caption{Función de recompensa}
@@ -1331,7 +1352,7 @@ Aunque el algoritmo obtiene un rate de 10 FPS como se menciona en la sección \r
 por un factor. La velocidad lineal es multiplicado por 2.0 y la velocidad angular por 1.8 consiguiendo aumentar un 100\% las acciones. Este proceso es interesante realizarlo para 
 maximizar el modelo entrenado sin necesidad de volver a entrenar un nuevo modelo, demostrando que el modelo es efectivo al aumentar el valor de las acciones.
 
-Siendo los nuevos valores de las acciones utilizados en Q-learning durante las fases de comparación entre el seguimiento de carril con el PID y el seguimiento de carril mediante Q-learning. Los nuevos
+Los nuevos
 valores de las acciones originales como se muestran en la figura \ref{fig:Acciones} son multiplicados por ambos factores
 y su gráfico de acciones como se muestra en la figura \ref{fig:inferencia_factor}. Se puede observar que en la distribución de acciones el dron
 sigue escogiendo acciones con velocidad lineal alta y velocidad angular baja para mantenerse dentro del recorrido sin salirse, además de aumentar el porcentaje de las acciones escogidas respecto a la distribución de acciones
@@ -1341,20 +1362,19 @@ que se muestra en la figura \ref{fig:Distribucción_inferencia}
   \begin{center}
     \includegraphics[scale=0.3]{figs/Diseño/RL/Acciones_inferidas_factor.png}
   \end{center}
-  \caption{Distribución de acciones en inferencia multiplicadas por el factor}
+  \caption{Distribución de acciones en inferencia}
   \label{fig:inferencia_factor}
 \end{figure}
 
 \subsection{Comparativa PID vs Q-learning}
 \label{sec:Análisis y comparativa entre el seguiento de carril clásico}
-Para comprobar la robustez y la eficacia que demuestra el modelo entrenado respecto al seguimiento de carril mediante el PID, se realiza varias comparativas, en ambos
+Para comprobar la robustez y la eficacia que demuestra el modelo entrenado con aprendizaje por refuerzo respecto al seguimiento de carril mediante el PID, se realiza varias comparativas, en ambos
 comportamientos se utiliza el mismo sistema perceptivo que se menciona en la sección \ref{sec:Percepción}. 
 
 Se definen límites a las velocidades (lineales y angulares) del controlador PID para que ambos tengan las mismas condiciones, siendo que el controlador PID tenga los mismos 
 rangos mínimos y máximos de velocidades como Q-learning. Para realizar la comparativa, se ha escogido un escenario en el que ambos comportamientos visitan por primera vez 
 sin que ninguno de los dos comportamientos se salgan del carril. En la figura \ref{fig:escenario-comparativa} se muestra el escenario marcando el inicio 
-y el final del recorrido, además de la vista que tiene el dron al comienzo del recorrido. El escenario se trata de un trayecto semirrecto sin apenas curvas en donde se pone a prueba
-la eficacia de los dos comportamientos. 
+y el final del recorrido, además de la vista que tiene el dron al comienzo del recorrido.
 
 
 \begin{figure} [H]
@@ -1460,7 +1480,8 @@ Q-learning demuestra una capacidad para adaptarse al recorrido, completándolo d
 
 En la figura \ref{comparativa-PID-qlearning} se muestran varios frames de ambos comportamientos durante la trayectoria mostrando como Q-learning mantiene una trayectoria robusta y centrada 
 en comparación con el PID. En particular, en la tercera columna se observa cómo el controlador PID se desvía su trayectoria, mientras que Q-learning sigue su trayecto con éxito. 
-Estos resultados subrayan la importancia de utilizar métodos de control adaptativos como Q-learning para aplicaciones de navegación autónomas con drones en carreteras, donde los métodos 
+Estos resultados subrayan la importancia de utilizar métodos de control adaptativos que tienen la capacidad de generalizar y ser flexibles
+como Q-learning para aplicaciones de navegación autónomas con drones en carreteras, donde los métodos 
 tradicionales pueden no ser suficientes para garantizar un rendimiento fiable. 
 
 \begin{figure}[H]
