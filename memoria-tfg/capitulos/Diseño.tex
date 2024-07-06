@@ -78,23 +78,30 @@ Toda la funcionalidad se implementa dentro de dos submódulos:
 
 \end{enumerate}
 
-\section{Configuración del sistema distribuido}
+\section{Configuración del sistema cliente-servidor}
 \label{distribución}
-En el desarrollo de este TFG, se ha decidido adoptar un enfoque distribuido. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
-operativo Windows 10 y una GPU Nvidia RTX 2070 Super. Por otra parte, las plataformas de desarrollo y control, que incluyen ROS, AirSim ROS Wrapper Node y Client Airsim se ejecutan en un ordenador
-portátil con un sistema operativo Ubuntu 20.04 y una GPU Nvidia RTX 2070.
-Esta propuesta se tomó con la iniciativa de no encapsular en un único componente el entorno de simulación y las plataformas de desarrollo. Inicialmente, todo el sistema 
+En el desarrollo de este TFG, se ha decidido adoptar un enfoque cliente-servidor. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
+operativo Windows 10, una GPU Nvidia RTX 2070 Super, Intel Core i9-9900KF y 32 GiB de memoria. Por otra parte, las plataformas de desarrollo y control, que incluyen ROS, AirSim ROS Wrapper Node y Client Airsim se ejecutan en un ordenador
+portátil con un sistema operativo Ubuntu 20.04, una GPU Nvidia RTX 2070, un procesador Intel Core i7-10875H y 32 GiB de memoria.
+Esta propuesta se tomó con la premisa de no encapsular en un único ordenador el entorno de simulación y las plataformas de desarrollo. Inicialmente, todo el sistema 
 seguía una configuración centralizada en un solo equipo con Ubuntu 20.04, generando cuellos de botella y limitando al rendimiento del sistema. Para solventar estos problemas, 
-se configuró una infraestructura distribuida entre dos ordenadores distintos, dividendo así la carga de trabajo entre los dos sistemas.
+se configuró una infraestructura entre dos ordenadores distintos, dividendo así la carga de trabajo entre los dos sistemas. Ambos ordenadores se comunican a través de un router teniendo cada uno una dirección IP distinta. 
+
+Con la configuración en un único ordenador, el simulador generaba la imagen de la cámara a una frecuencia de 6 fotogramas por segundo, la cual era muy baja para el comportamiento que se 
+deseaba implementar. Sin embargo, en la configuración separada, el simulador es capaz de generar imágenes a una frecuencia de 30 fotogramas por segundo, valor máximo que el simulador es 
+capaz de ofrecer debido a la configuración que tiene la cámara simulada.
 
 Al principio del desarrollo, en esta distribución de equipos, se utilizó una comunicación con PX4 y Mavros, siguiendo la documentación oficial\footnote{\url{https://docs.px4.io/main/en/simulation/}} 
 junto con el entorno de simulación Airsim. Sin embargo, se decidió cambiar por una nueva configuración que emplea ROS Wrapper Airsim Node y Client Airsim, ya que 
 la comunicación original añadía una capa de procesamiento adicional, produciendo bajos rendimientos que afectaba a la sincronización con el simulador. 
+También este cambio, se realizó debido a que el funcionamiento del simulador se degradaba rápidamente, provocando que el simulador sufriese
+de cierres inesperados, además de introducir latencias inecesarias. Si no hubiese sido por este cambio, no se hubiese podido desarrollar el entrenamiento por refuerzo que se explicará posteriormente,
+ya que todos los comportamientos que hubiese podido aprender, se perderían, ya que manejar esta situación en el programa de entrenamiento no era posible.
 
 En resumen, el sistema de comunicaciones se compone de dos ordenadores interconectados en la misma red. El diagrama 
 de comunicaciones ilustrado en la figura \ref{fig:diagramadeAirsim}, muestra esta implementación distribuida en diferentes ordenadores. Cada ordenador asume roles distintos: 
 El primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona las plataformas de desarrollo en donde se implementan los algoritmos 
-de percepción y seguimiento de carril. Ambos ordenadores se comunican a través de un router teniendo cada uno una dirección IP distinta. 
+de percepción y seguimiento de carril. 
 
 \begin{figure} [H]
   \begin{center}
@@ -488,7 +495,14 @@ Por ello, se escoge el modelo \texttt{Yolop320-320.onnx} ya que obtiene mejores 
 En cuanto a los resultados de la inferencia, en la figura \ref{Proceso-YOLOP} 
 se puede observar los diferentes resultados que tiene la red neuronal YOLOP dependiendo del modelo empleado. Para ello, se utilizan dos zonas totalmente distintas para realizar 
 la inferencia de los modelos. Aunque se escoja el modelo \texttt{Yolop-320-320.onnx}, la detección de las líneas no es perfecta como se muestra en la figura 
-\ref{f:Inferencia320-320}. Depende de como se halla entrenado la red. 
+\ref{f:Inferencia320-320}. 
+
+Como se puede ver en la figura el margen izquierdo del carril no se detecta correctamente, solo se pueden apreciar unos pocos puntos, además la detección 
+de la zona que pertenece al carril presenta parches que la red no detecta como zona transitable, que se pueden observar en la parte central de la imagen como en la parte inferior. Debido 
+a esto, se realiza un post-procesado que se explicará a continuación, para que estos errores provinientes de la red neuronal, no afecten al posterior control del dron. 
+
+Estos fallos en la detección se deben principalmente a que los modelos preentrenados que se proporcionan junto al YOLOP, han sido entrenados unicamente con datos reales como se 
+ha mencionado anteriormente. 
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.6]{figs/Diseño/YOLOP/resultados-yolop/sitio3/yolop-320-320.jpg}
@@ -498,10 +512,24 @@ la inferencia de los modelos. Aunque se escoja el modelo \texttt{Yolop-320-320.o
   \vspace{-1.5em}
 \end{figure}
 
-Para lograr una reconstrucción del carril que se desea seguir, se seleccionan las líneas que se necesitan mediante DBSCAN, un algoritmo de clustering basado en aprendizaje no supervisado. 
-Con este algoritmo, se realiza una segmentación de las diferentes líneas detectadas por parte del modelo \texttt{Yolop-320-320.onnx} para más adelante aplicar un filtro y seleccionar las líneas 
-para reconstruir el carril. Las líneas de la red neuronal no llegan a ser exactas, lo cual aunque se realice el filtrado de estas líneas se necesita construir el carril a partir de unas líneas 
-definidas mediante regresiones cuadráticas. 
+Para lograr una reconstrucción del carril que se desea seguir y mejorar la información obtenida de la red neuronal, se deben de seguir una serie de pasos que se pueden observar 
+en la figura \ref{Proceso}. En primer lugar, se seleccionan las líneas que se necesitan mediante DBSCAN, 
+sun algoritmo de clustering basado en aprendizaje no supervisado. 
+Con este algoritmo, se realiza una segmentación de las diferentes líneas detectadas por parte del modelo \texttt{Yolop-320-320.onnx} para en segundo lugar aplicar un filtro y seleccionar las líneas 
+para reconstruir el carril. Las líneas de la red neuronal no llegan a ser exactas, por lo que, aunque se realice el filtrado de estas líneas, estas deben ser recontruidas para lo cual, en último lugar 
+se emplearán regresiones cuadráticas.
+
+Con las líneas que delimitan el carril, se puede obtener el área transitable del mismo para posteriormente obtener su centroide y realizar el control del dron como se explicará en la sección 
+\ref{sec:Control}. \\
+
+\begin{figure} [H]
+  \begin{center}
+    \includegraphics[width=1.0\textwidth]{figs/Diseño/YOLOP/esquema-esquema.png}
+  \end{center}
+  \caption{Fases de reconstrucción de las líneas del carril}
+  \label{Proceso}
+\end{figure}
+
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.06]{figs/Diseño/YOLOP/resultados.png}
@@ -762,16 +790,6 @@ cada cinco iteraciones. Este paso es crucial para reducir las oscilaciones causa
 coeficientes, se calcula la regresión cuadrática mediante la función \texttt{Polyval}, dicha función calcula
 la función cuadrática con los coeficientes calculados anteriormente. 
 
-Al obtener los valores de la función cuadrática, se seleccionan los puntos de dicha función que se encuentran en el eje y, entre 0 y el máximo de la imagen menos uno (es decir, entre 0 y 319). 
-Este proceso se debe realizar debido a que el resultado de la función \texttt{Polyval} puede dar como resultado números negativos. En una imagen no se puede indexar con números negativos ya que 
-se corresponderían a píxeles que se encuentran fuera de la propia imagen.
-
-Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
-escogidos de la izquierda. 
-Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
-ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática} teniendo presente los pasos que se ha tenido que seguir para 
-realizar las regresiones, dichas líneas se representan de color amarillo.
-
 \begin{code}[H]
   \begin{lstlisting}[language=Python]
 
@@ -801,14 +819,74 @@ realizar las regresiones, dichas líneas se representan de color amarillo.
   \end{lstlisting}
   \caption[Cálculo de la regresión cuadrática]{Cálculo de la regresión cuadrática}
   \label{cod:regresión}
-  \end{code}  
-\begin{figure} [H]
-  \begin{center}
-    \includegraphics[scale=0.28]{figs/Diseño/Regresiones/regresiones.png}
-  \end{center}
+  \end{code} 
+
+Al obtener los valores de la función cuadrática, se seleccionan los puntos de dicha función que se encuentran en el eje y, entre 0 y el máximo de la imagen menos uno (es decir, entre 0 y 319). 
+Este proceso se debe realizar debido a que el resultado de la función \texttt{Polyval} puede dar como resultado números negativos. En una imagen no se puede indexar con números negativos ya que 
+se corresponderían a píxeles que se encuentran fuera de la propia imagen.
+
+Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
+escogidos de la izquierda. 
+Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
+ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática} teniendo presente los pasos que se ha tenido que seguir para 
+realizar las regresiones, dichas líneas se representan de color amarillo.
+
+
+  
+
+\begin{figure}[H]
+  \centering
+  % Título para la segunda fila
+  \textbf{Detección de Yolop-320-320.onnx}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/yolop-1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/yolop-2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/yolop-3.jpg}
+      \caption*{}
+  \end{minipage}
+
+  \vspace{0.5cm}
+
+  % Título para la tercera fila
+  \textbf{Resultado de las regresiones}
+  \vspace{0.5cm}
+
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/regresion1.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/regresion2.jpg}
+      \caption*{}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{figs/Diseño/Regresiones/regresiones-fotos/regresion3.jpg}
+      \caption*{}
+  \end{minipage}
+
+  % Caption general para la figura
   \caption{Resultado de la regresión cuadrática}
   \label{fig:regresión cuadrática}
 \end{figure}
+
 
 \subsubsection{Interpolación y cálculo del centro de masas del carril}
 \label{sec:Interpolación y cálculo del centro de masas del carril}
@@ -1152,16 +1230,7 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
         target_heading = 0
         error_lane_center = (WIDTH/2 - cx)
         heading_difference = (target_heading - angle) 
-        
-        MIN_ERROR = 0
-        MAX_ERROR = 80
-
-        MIN_ANGLE = 0
-        MAX_ANGLE = 70
-
-        CENTRE_WEIGHT = 0.85
-        ANGLE_WEIGHT = 0.15
-        
+                
         if (self.is_exit_lane(cx)):
             reward = -10
 
@@ -1169,7 +1238,6 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
             normalise_error_centre = (abs(error_lane_center) - MIN_ERROR) / (MAX_ERROR - MIN_ERROR)
             reward_centre = 1 - normalise_error_centre
 
-            
             normalise_error_angle = (abs(heading_difference) - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE)
             reward_angle = 1 - normalise_error_angle
 
@@ -1284,14 +1352,6 @@ ha sido capaz de converger debido a que el dron es capaz de completar el recorri
   \vspace{-1.5em}
 \end{figure}
 
-Respecto a la evolución de la función de recompensa, se puede observar en la figura \ref{fig:recompensa} como la recompensa acumulativa va obteniendo valores ascendentes a medida que el dron 
-aprende del entorno para no salirse del carril. En el momento en que se llega al episodio 900, la recompensa acumulativa tiende a ser siempre ascendente teniendo pequeñas variaciones entre los 
-episodios. Este comportamiento ocurre como las iteraciones, se producen pequeñas variaciones debido a los puntos de partida que tiene el dron durante cada comienzo de su entrenamiento. A partir 
-del momento 
-que no se produzca grandes variaciones respecto a las iteraciones y la recompensa acumulativa en función de los episodios, se puede decir que el modelo ha sido capaz de converger. Esto significa
-que el dron completa satisfactoriamente el recorrido en cualquier punto de partida definido. Una vez analizado los resultados del entrenamiento con las diferentes métricas, se da a pie a la 
-fase de inferencia para verificar el resultado obtenido con el modelo convergido.
-
 \begin{figure} [H]
   \begin{center}
     \includegraphics[scale=0.4]{figs/Diseño/RL/recompensa.png}
@@ -1300,6 +1360,15 @@ fase de inferencia para verificar el resultado obtenido con el modelo convergido
   \label{fig:recompensa}
   \vspace{-1.5em}
 \end{figure}
+
+Respecto a la evolución de la función de recompensa, se puede observar en la figura \ref{fig:recompensa} como la recompensa acumulativa va obteniendo valores ascendentes a medida que el dron 
+aprende del entorno para no salirse del carril. En el momento en que se llega al episodio 900, la recompensa acumulativa tiende a ser siempre ascendente teniendo pequeñas variaciones entre los 
+episodios. Este comportamiento ocurre como las iteraciones, se producen pequeñas variaciones debido a los puntos de partida que tiene el dron durante cada comienzo de su entrenamiento. A partir 
+del momento 
+que no se produzca grandes variaciones respecto a las iteraciones y la recompensa acumulativa en función de los episodios, se puede decir que el modelo ha sido capaz de converger. Esto significa
+que el dron completa satisfactoriamente el recorrido en cualquier punto de partida definido. Una vez analizado los resultados del entrenamiento con las diferentes métricas, se da a pie a la 
+fase de inferencia para verificar el resultado obtenido con el modelo convergido.
+
 
 \subsubsection{Fase de inferencia}
 \label{sec:fases_inferencia}
@@ -1395,14 +1464,17 @@ trayectorias.
   \begin{minipage}{0.65\textwidth}
     \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto-zoom.png}
   \end{minipage}
+  \caption{Comparativa de trayectorias entre el control clásico y el control de aprendizaje por refuerzo}
+  \label{fig:Comparativa-de-trayectorias}
+  \vspace{-1.5em}
+\end{figure}
 
-  \vspace{1cm}
-
+\begin{figure}[H]
+  \centering
   \begin{minipage}{0.65\textwidth}
     \includegraphics[width=\linewidth]{figs/Diseño/RLvsPID/zona-trayecto.png}
   \end{minipage}
-  \caption{Comparativa de trayectorias entre el control clásico y el control de aprendizaje por refuerzo}
-  \label{fig:Comparativa-de-trayectorias}
+  \caption{Amplicación. Comparativa de trayectorias entre el control clásico y el control de aprendizaje por refuerzo}
   \vspace{-1.5em}
 \end{figure}
 
@@ -1475,7 +1547,6 @@ y centrada, completando el recorrido sin salirse del carril.
 
 Esta comparativa de las trayectorias revela que el algoritmo de Q-learning ofrece mejores resultados en cuanto al controlador PID. Mientras que el PID sufre oscilaciones y se sale de la trayectoria,
 Q-learning demuestra una capacidad para adaptarse al recorrido, completándolo de manera eficiente y manteniéndose dentro del carril.
-
 
 
 En la figura \ref{comparativa-PID-qlearning} se muestran varios frames de ambos comportamientos durante la trayectoria mostrando como Q-learning mantiene una trayectoria robusta y centrada 
