@@ -6,7 +6,7 @@ En este capítulo se detalla sobre qué tecnologías se ha utilizado durante el 
 \label{sec:programación}
 \subsection{Python}
 \label{sec:python}
-Para el desarrollo de este TFG, hemos utilizado como lenguaje de programación Python. Python\footnote{\url{https://www.python.org/}} es un lenguaje de programación interpretado, 
+Para el desarrollo de este TFG, se ha utilizado como lenguaje de programación Python. Python\footnote{\url{https://www.python.org/}} es un lenguaje de programación interpretado, 
 de tipado dinámico y orientado a objetos,
 utilizado para el desarrollo de software, aplicaciones web, data science y machine learning (ML).  
 Fue creado por Guido van Rossum\footnote{\url{https://gvnrossum.github.io/}} en 1989, el nombre de "Python" se inspiró en el programa de televisión británico 
@@ -92,7 +92,7 @@ los desarrolladores crear y entrenar modelos de aprendizaje profundo. Proporcion
 Numpy, lo que facilita la manipulación y el análisis de datos, además de tener soporte de GPU y CPU. Esta disponible para varios sistemas operativos 
 como Windows, Linux, MacOs y Cloud Platforms (Amazon Web Services, Google Cloud Platform, Microsoft Azure).
 
-Onnx\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un formato abierto para representar modelos de aprendizaje profundo. Este tipo de formato 
+ONNX\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un formato abierto para representar modelos de aprendizaje profundo. Este tipo de formato 
 permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, ONNX permite convertirlo 
 a un formato compatible sin necesidad de reescribir el código fuente desde cero. Dentro de Onnx existe un motor de inferencia de alto rendimiento denominado ONNX Runtime utilizado 
 para ejecutar los modelos con formato ONNX, es compatible para diferentes sistemas operativos como Linux, Windows y Mac, además de permitir su uso en diversos entornos de programación
@@ -113,7 +113,7 @@ y modelado de datos. Esta librería soporta diferentes sistemas operativos como 
 científicas como Numpy, SciPy y Matplotlib. Se puede realizar múltiples algoritmos de aprendizaje automático como clasificaciones, regresiones, agrupamientos, reducciones de dimensionalidad y 
 muchos más.
 Además de tener una gran comunidad debido a su facilidad de uso, documentación completa y su enfoque en la eficiencia y la simplicidad. En este trabajo se utiliza la librería para el uso
-de algoritmos de clasificación específicamente clustering. 
+de algoritmos de aprendizaje no supervisado específicamente clustering. 
 
 \section{YOLOP}
 \label{sec:YOLOP}
@@ -138,7 +138,7 @@ manejar simultáneamente tres tareas cruciales en la conducción autónoma:
 YOLOP está compuesto por un codificador para la extracción de características y tres decodificadores para manejar las tareas específicas. Este modelo ha demostrado un rendimiento 
 bueno en el desafiante conjunto de datos BDD100K\cite{BDD100K}, logrando el estado del arte en las tres tareas en términos de precisión y velocidad. 
 
-Nosotros utilizaremos los decodificadores de segmentación del área transitable 
+En este TFG, se utiliza los decodificadores de segmentación del área transitable 
 y detección de carriles. El decodificador de segmentación del área transitable utiliza los mapas de características
 extraídos por el codificador para realizar una predicción semántica a nivel de píxeles. Esto significa que 
 para cada píxel de la imagen, el decodificador de segmentación del área transitable predice si el píxel 
@@ -163,7 +163,7 @@ estructura de cuadrícula, como una imagen. Esta red presenta los diferentes mod
 
 \begin{enumerate}
   \item \textbf{End-to-end.pth}: Este archivo se ha construido a partir de la biblioteca Pytorch. 
-  \item \textbf{Yolop-320-320.onnx, Yolop-640-640.onnx y Yolop-1020-1020.onnx}: Estos tres archivos se han construido usandO ONNX Runtime.
+  \item \textbf{Yolop-320-320.onnx, Yolop-640-640.onnx y Yolop-1020-1020.onnx}: Estos tres archivos se han construido usando ONNX Runtime.
 \end{enumerate}
 
 Dependiendo de que modelo se quiera utilizar, se obtiene resultados diferentes en el ámbito de cómputo y rapidez a la hora de 
@@ -201,7 +201,7 @@ Por lo que, se utiliza esta red neuronal para poder detectar los carriles que pu
 \section{ROS}
 \label{sec:ros}
 \textbf{ROS (Robot Operating System)}\footnote{\url{https://www.ros.org/}} es un conjunto de librerías de código abierto utilizadas principalmente para aplicaciones robóticas. 
-Podemos definir este middleware como se muestra en la figura \ref{fig:ROS}:
+Se puede definir este middleware como se muestra en la figura \ref{fig:ROS}:
 
 \begin{figure} [H]
     \begin{center}
@@ -317,15 +317,15 @@ se ha utilizado el escenario Coastline, consiste en un entorno fotorrealista de 
 información del entorno para realizar el comportamiento sigue carril con el dron. 
 
 Todos estos escenarios se pueden encontrar en las releases de Airsim\footnote{\url{https://github.com/Microsoft/AirSim/releases}} tanto para Windows como para Linux.
-En nuestro caso hemos utilizado el escenario Coastline, ya que queremos desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
+En este caso, se ha utilizado el escenario Coastline, ya que se quiere desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
 a cabo.
 
 \subsubsection{Sensores}
 \label{sec:airsim}
 Ofrece sensores como cámaras, barómetros, Imus, GPS, Magnetómetros, sensores de distancia y Lidar.
-En nuestro caso utilizaremos como sensores una cámara para poder realizar la detención del carril 
+En este caso, se utiliza como sensores una cámara para poder realizar la detención del carril 
 que queremos seguir, el sensor Lidar para saber a que altura se encuentra el dron respecto al suelo y el sensor
-GPS para poder obtener la localización del vehículo. 
+GPS para poder obtener la localización del dron. 
 
 
 \begin{figure}[H]
@@ -384,15 +384,15 @@ GPS para poder obtener la localización del vehículo.
   
 \end{enumerate}
 
-Como hemos numerado anteriormente, este entorno de simulación tiene un catálogo de vehículos, sensores y
-cambios climatológicos dentro del entorno. Nosotros utilizaremos un dron de tipo "SimpleFligh". 
+Como se ha  enumerado anteriormente, este entorno de simulación tiene un catálogo de vehículos, sensores y
+cambios climatológicos dentro del entorno. En este TFG, se utiliza un dron de tipo "SimpleFligh" como vehículo. 
 
 \subsection{Airsim ROS Wrapper}
 \label{sec:wrapper}
-Utilizaremos el paquete \textbf{Airsim ROS Wrapper}\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}} para poder acceder a ciertos sensores 
-que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece hablaremos sobre que es un ROS Wrapper. 
+Se utiliza el paquete \textbf{Airsim ROS Wrapper}\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}} para poder acceder a ciertos sensores 
+que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece se hablará sobre qué es un ROS Wrapper. 
 
-\textbf{ROS Wrapper} es un componente que facilita la integración entre dos sistemas o entornos diferentes. Si lo llevamos al contexto de \textbf{ROS}, un wrapper es un nodo o paquete 
+\textbf{ROS Wrapper} es un componente que facilita la integración entre dos sistemas o entornos diferentes. Si se lleva al contexto de \textbf{ROS}, un wrapper es un nodo o paquete 
 que permite que los componentes de \textbf{ROS} se comuniquen con otros sistemas o bibliotecas que no fueron originalmente diseñadas para trabajar con \textbf{ROS}. Este paquete 
 puede proporcionar publicación de datos desde el sistema externo a \textbf{ROS} a través de topics, suscripción a topics de \textbf{ROS} para recibir comando o datos, adaptación 
 de interfaces de llamada (por ejemplo, entre C++ y Python). 
@@ -440,7 +440,7 @@ Para poder utilizar PX4 SITL, se debe configurar el entorno de desarrollo adecua
 \subsection{Modos de vuelo}
 \label{sec:flight modes} 
 
-PX4 ofrece varios modos de vuelo por ejemplo como Takeoff,Land,Hold, Position, Offboard, etc. Un modo de vuelo define como el usuario puede controlar el vehículo a través de comandos
+PX4 ofrece varios modos de vuelo por ejemplo como Takeoff, Land, Hold, Position, Offboard, etc. Un modo de vuelo define como el usuario puede controlar el vehículo a través de comandos
   y ver que respuesta tiene. 
 
 

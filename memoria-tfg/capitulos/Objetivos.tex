@@ -6,7 +6,7 @@ En esta sección se describirá el problema a resolver junto con los objetivos y
 \section{Descripción del problema}
 \label{sec:descripcion}
 
-El objetivo principal de este TFG, es desarrollar un comportamiento de navegación autónoma basado en 
+El objetivo principal de este TFG, es desarrollar un comportamiento de navegación autónoma basado en seguimiento de carriles utilizando
 aprendizaje por refuerzo e inteligencia artificial, en el que el dron sea capaz de navegar de una manera robusta por escenarios urbanos. El enfoque de este trabajo de investigación 
 se centra en la creación de una solución eficiente y completa ante la problemática que puede llegar a tener la navegación autónoma, se 
 muestra un comportamiento capaz de realizar el seguimiento de un carril para demostrar la complejidad de mantener una trayectoria estable 
@@ -33,7 +33,7 @@ Los requisitos que han de cumplirse en este trabajo son:
     \item Uso del vehículo UAV en el entorno de simulación fotorrealista Airsim junto a UnRealEngine.
     \item Utilización del middleware robótico ROS para así garantizar la interoperabilidad del trabajo en otro tipo de escenarios permitiendo
     la reutilización del proyecto en diversas aplicaciones. 
-    \item Comportamiento robusto y en tiempo real para garantizar la navegación del dron dentro del circuito urbano.
+    \item Comportamiento robusto y en tiempo real para garantizar la navegación del dron dentro del escenario urbano.
     \item Los sistemas desarrollados deben ser reactivos para poder reaccionar a su entorno de manera concisa y eficiente durante
     la navegación en tiempo real.
     \item Uso del algoritmo de Q-learning para la navegación autónoma del dron. 
@@ -43,7 +43,7 @@ Los requisitos que han de cumplirse en este trabajo son:
 \section{Metodología}
 \label{sec:metodologia}
 
-Este trabajo, comenzó oficialmente en Septiembre del 2023 aunque en Diciembre del 2022 se plantearon varias ideas a desarrollar, y se finalizó en Mayo del 2024.
+Este trabajo, comenzó oficialmente en Septiembre del 2023 aunque en Diciembre del 2022 se plantearon varias ideas a desarrollar, y se finalizó en Junio del 2024.
 
 La metodología que se llevo a cabo fue:
 
@@ -107,14 +107,14 @@ Finalmente, los pasos a seguir de este trabajo han sido:
     \item Desarrollo: Una vez se tuvo listo toda la infraestructura tanto de comunicaciones como de librerías de software, se dio a pie el comienzo del desarrollo del código
         \begin{itemize}
             \item En primer lugar, se desarrollo un teleoperador sencillo del drone para ver el funcionamiento del vehículo y dicho comportamiento.
-            \item Una vez finalizada la tarea del teleoperador, se comenzó con los algoritmos de percepción de detención de carril mediante redes neuronales.
+            \item Una vez finalizada la tarea del teleoperador, se comenzó con los algoritmos de percepción de detección de carril mediante redes neuronales.
             \item Análisis y comparación de los resultados de los diferentes modelos que ofrece la red neuronal escogida con el propósito de tener la mejor solución. 
             \item El siguiente paso fue estudiar la posibilidad de tener un algoritmo de aprendizaje no supervisado llamado clustering para clasificar las diferentes lineas que aparezcan en el escenario de la carretera.
             \item Desarrollo del algoritmo de percepción junto con los dos puntos anteriormente mencionados.
             \item Con el fin del algoritmo de percepción, se comenzó el desarrollo de un controlador sencillo PID para ver el funcionamiento de la percepción y de la navegación en el vehículo. 
-            \item A continuación, fue la programación del algoritmo de aprendizaje por refuerzo para el seguimiento del carril.
+            \item A continuación, se desarrolló el algoritmo de aprendizaje por refuerzo para el seguimiento del carril.
         \end{itemize}
-    \item Evaluación: Se realizo la comparativa de los resultados obtenidos en el aprendizaje por refuerzo.
+    \item Evaluación: Se realizó la comparativa de los resultados obtenidos en el aprendizaje por refuerzo.
         
     \item Redacción de la memoria del trabajo para la documentación de todo el proceso de investigación realizado. 
 \end{enumerate}
