@@ -2,7 +2,7 @@
 \label{cap:capitulo3}
 
 En este capítulo se detalla sobre qué tecnologías se ha utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación y las librerías utilizadas.
-\section{Lenguaje de programación}
+\section{Lenguajes de programación}
 \label{sec:programación}
 \subsection{Python}
 \label{sec:python}
@@ -11,14 +11,14 @@ de tipado dinámico y orientado a objetos,
 utilizado para el desarrollo de software, aplicaciones web, data science y machine learning (ML).  
 Fue creado por Guido van Rossum\footnote{\url{https://gvnrossum.github.io/}} en 1989, el nombre de "Python" se inspiró en el programa de televisión británico 
 "Monty Python's Flying Circus".
-
 Este lenguaje con los tiempos se ha convertido en uno de los lenguajes más populares del mundo, esto se puede deber a su sintaxis sencilla, clara y legible, aparte 
 de estos beneficios también presenta una amplia gama de bibliotecas y marcos de trabajo. Además,se trata de un lenguaje de programación 'open source' (código abierto) y está disponible bajo
 una licencia de código abierto aprobada por la Iniciativa de Código Abierto (OSI), esto significa que Python es libre de usar, distribuir y modificar, incluso para uso
 comercial.
 
 En el caso de este TFG, se utiliza Python3 para todo el desarrollo del código junto con el middleware robótico ROS (véase la sección \ref{sec:ros}) y para el desarrollo
-de los diferentes algoritmos. 
+de los diferentes algoritmos. Para el desarrollo del sistema de percepción, se ha  utilizado varías librerías mediante el lenguaje de programación Python para poder
+percibir el entorno en el que se va a estar trabajando. 
 
 \begin{code}[h]
 \begin{lstlisting}[language=Python]
@@ -33,8 +33,7 @@ de los diferentes algoritmos.
 \caption[Ejemplo de código en Python de una función para calcular el factorial de un número]{Ejemplo de código en Python de una función para calcular el factorial de un número}
 \label{cod:codejemplo}
 \end{code}  
-Para el desarrollo del sistema de percepción, se ha  utilizado varías librerías mediante el lenguaje de programación Python para poder
-percibir el entorno en el que se va a estar trabajando. 
+
 \subsubsection{OpenCV}
 \label{sec:OpenCV}
 OpenCV (Open Source Computer Vision Library) es una biblioteca de open source dedicada para el tratamiento de imágenes y aprendizaje automático. Fue desarrollada por Intel y lanzada en 
@@ -93,17 +92,18 @@ Numpy, lo que facilita la manipulación y el análisis de datos, además de tene
 como Windows, Linux, MacOs y Cloud Platforms (Amazon Web Services, Google Cloud Platform, Microsoft Azure).
 
 ONNX\footnote{\url{https://onnxruntime.ai/}}(Open Neural Network Exchange) es un formato abierto para representar modelos de aprendizaje profundo. Este tipo de formato 
-permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, ONNX permite convertirlo 
-a un formato compatible sin necesidad de reescribir el código fuente desde cero. Dentro de Onnx existe un motor de inferencia de alto rendimiento denominado ONNX Runtime utilizado 
+permite la interoperabilidad entre diferentes herramientas de aprendizaje automático como Pytorch, Keras, Scikit-Learn y más. Por ejemplo, si un modelo ha sido creado desde Pytorch, 
+ONNX permite convertirlo 
+a un formato compatible sin necesidad de reescribir el código fuente desde cero. Dentro de ONNX existe un motor de inferencia de alto rendimiento denominado ONNX Runtime utilizado 
 para ejecutar los modelos con formato ONNX, es compatible para diferentes sistemas operativos como Linux, Windows y Mac, además de permitir su uso en diversos entornos de programación
-como puede ser C, Python, C++, Java y más. Ofrece múltiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de Onnx, cada proveedor de ejecución
+como puede ser C, Python, C++, Java y más. Ofrece múltiples bibliotecas de aceleración hardware a través de Execution Providers (EP) para ejecutar de manera óptima los modelos de ONNX, cada proveedor de ejecución
 esta diseñado para aprovechar las capacidades de cómputo de una plataforma en particular, como CPU, GPU, FGPA o NPUs (Unidades de procesamiento neuronal).
 Algunos de los proveedores de ejecución compatibles con ONNX Runtime incluyen Nvidia CUDA, Nvidia TensorRT, Intel OpenVINO y más\footnote{\url{https://onnxruntime.ai/docs/execution-providers/}}. 
 
-En resumen, ONNX Runtime esta diseñado para la inferencia eficiente y ofrece una solución portátil y optimizada para ejecutar modelos ONNX en una variedad de entornos,en cambio Pytorch es muy utilizado 
+En resumen, ONNX Runtime esta diseñado para la inferencia eficiente y ofrece una solución portátil y optimizada para ejecutar modelos ONNX en una variedad de entornos, en cambio Pytorch es muy utilizado 
 en la comunidad para el desarrollo y entrenamiento de modelos. 
 
-En este TFG, se hace uso de ámbos librerías/runtimes para las ejecuciones de los modelos y entrenamiento con RL.
+En este TFG, se hace uso de ámbos librerías/runtimes para las ejecuciones de los modelos y entrenamiento con Aprendizaje por Refuerzo.
 
 \subsubsection{Scikit-learn}
 \label{Scikit-learn}
@@ -310,12 +310,10 @@ Para más detalles sobre el archivo de settings.json está la paǵina oficial de
 \label{sec:airsim}
 Los escenarios que ofrece Airsim depende en que sistema operativo nos encontremos, en nuestro caso al utilizar el escenario en Windows 
 tenemos más variedad que en comparación con Linux. 
-
 Tiene escenarios desde carreteras y ciudades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
 muestra en la figura \ref{f:escenarios_airsim}. En este caso
 se ha utilizado el escenario Coastline, consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno se obtiene la
 información del entorno para realizar el comportamiento sigue carril con el dron. 
-
 Todos estos escenarios se pueden encontrar en las releases de Airsim\footnote{\url{https://github.com/Microsoft/AirSim/releases}} tanto para Windows como para Linux.
 En este caso, se ha utilizado el escenario Coastline, ya que se quiere desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
 a cabo.
@@ -369,7 +367,7 @@ GPS para poder obtener la localización del dron.
 \begin{enumerate}
   \item \textbf{Coche}
     \begin{itemize}
-      \item \textbf{PhysXCar}: Representa un vehículo en tierra con física realista basado en el motor de física PhysX.
+      \item \textbf{PhysXCar}: Representa un vehículo en tierra con física realista basado en el motor de físicas PhysX.
       \item \textbf{ArduRover}: Se utiliza para vehículos terrestres que sigan el estándar ArduRover. ArduRover\footnote{\url{https://ardupilot.org/rover/}} 
       se trata de un piloto automático de código abierto utilizado específicamente para vehículos terrestres.
     \end{itemize}
