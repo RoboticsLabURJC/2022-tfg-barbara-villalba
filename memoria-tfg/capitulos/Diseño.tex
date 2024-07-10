@@ -104,7 +104,7 @@ ya que todos los comportamientos que hubiese podido aprender, se perderían, ya 
 
 En resumen, la arquitectura se compone de dos ordenadores interconectados en la misma red, utilizando un router por vía Ethernet. El diagrama 
 de comunicaciones ilustrado en la figura \ref{fig:diagramadeAirsim}, muestra esta implementación cliente-servidor en diferentes ordenadores. Cada ordenador asume roles distintos: 
-el primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona los algoritmos de percepción y control en donde se implementan los algoritmos peceptivos y de seguimiento de carril. 
+el primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona los algoritmos de percepción y control en donde se implementan los algoritmos perceptivos y de seguimiento de carril. 
 
 \begin{figure} [H]
   \begin{center}
@@ -309,7 +309,7 @@ dificultades en la detección de las líneas, debido a que HoughLines esta optim
 \end{figure}
 
 Debido al funcionamiento no correcto y que no es capaz de generalizar estos algoritmos de visión clásica en la detección de líneas en los carriles, se 
-ha optado por utilizar técnicas de Inteligencia Artificial, en especial Deep Learning, utilizando \textit{Driving percepcion network} YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
+ha optado por utilizar técnicas de Inteligencia Artificial, en especial Deep Learning, utilizando \textit{Driving percepción Network} YOLOP. Como se comenta en la sección \ref{sec:YOLOP}, 
 YOLOP es una red neuronal que realiza una detección de objetos de tráfico, una segmentación del área transitable y una detección de carriles. Es importante 
 destacar que se realiza solamente la inferencia de los distintos modelos ya entrenados con datos reales que ofrece YOLOP, sin realizar un nuevo entrenamiento. Este enfoque nos permite aprovechar 
 la detección de las líneas proporcionadas por la red para mejorar la percepción del entorno del dron, proporcionando una detección más robusta y precisa a una gran variedad de configuraciones
@@ -452,7 +452,7 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
 
 \subsubsection{Evaluación de YOLOP }
 \label{sec:resultados}
-En esta sección se evalua los resultados de la inferencia de YOLOP con los diferentes modelos preentrenados que ofrece esta red. Para realizar esta comparación, se usa el ordenador utilizado 
+En esta sección se evalúa los resultados de la inferencia de YOLOP con los diferentes modelos preentrenados que ofrece esta red. Para realizar esta comparación, se usa el ordenador utilizado 
 en el componente de algoritmos de percepción y algoritmos junto con la GPU Nvidia 2070 RTX para realizar la inferencia de cada modelo. Se recopilan datos del tiempo medio de inferencia en milisegundos de cada 
 modelo de YOLOP durante aproximadamente
 un minuto, mientras se teleopera con un joystick el dron por las carreteras. El resultado de la inferencia de estos modelos se puede ver en este \href{https://youtu.be/8s3RBu_L3oE?si=iJM_OqKiDvtyfBvv}{\textbf{vídeo}}, 
@@ -487,7 +487,7 @@ Como se puede ver en la figura \ref{f:Inferencia320-320}, el margen izquierdo de
 de la zona que pertenece al carril presenta parches que la red no detecta como zona transitable, que se pueden observar en la parte central de la imagen como en la parte inferior. Esta detección 
 se debe a que YOLOP ha sido entrenada con un dataset de datos reales capturados desde una cámara a bordo de un coche. Debido a estas limitaciones en la detección, se realiza un 
 un post-procesado, que se explicará a continuación, para evitar que estos errores provenientes de la red neuronal, no afecten al posterior control del dron. Además, no es posible 
-realizar un re-entrenamiento de YOLOP, ya que esto requeriría crear un nuevo dataset con datos capturados desde la perspectiva de un dron dentro del entorno Aisim y etiquetar los datos, 
+realizar un re-entrenamiento de YOLOP, ya que esto requeriría crear un nuevo dataset con datos capturados desde la perspectiva de un dron dentro del entorno AirSim y etiquetar los datos, 
 lo cual es una tarea laboriosa de realizar.
 \begin{figure} [H]
   \begin{center}
@@ -1036,7 +1036,7 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
     \label{tab:Profiling}
 \end{table}
 
-Estos datos se recopilan utilizando un ordenador portátil (componente de algoritmos de percepcion y control) con una GPU Nvidia RTX 2070, como se menciona en la sección de \ref{sec:Arquitectura}. La tabla muestra que los 
+Estos datos se recopilan utilizando un ordenador portátil (componente de algoritmos de percepción y control) con una GPU Nvidia RTX 2070, como se menciona en la sección de \ref{sec:Arquitectura}. La tabla muestra que los 
 componentes perceptivos que requieren más tiempo de procesamiento son la inferencia del modelo \texttt{Yolop-320-320.onnx} y el cálculo de las interpolaciones. 
 Aunque la inferencia se realice en la GPU, está constantemente procesando imágenes para generar la salida. Por otro lado, la interpolación 
 requiere procesar todos los puntos que pertenecen a las dos regresiones, lo cual consume recursos de la CPU.
@@ -1121,8 +1121,8 @@ Debido a esto, se considera una implementación de técnicas de aprendizaje por 
 permiten al dron aprender y adaptarse de manera autónoma a diversas condiciones del entorno, manteniéndose centrado en el carril de manera más eficiente y robusta en comparación 
 con los métodos de control tradicionales. Este método a diferencia del anterior, permite al dron generalizar las acciones que debe de tomar ante distintas situaciones del entorno, lo que tiene
 como consecuencia que este pueda funcionar correctamente ante entornos desconocidos.
-  \subsection{Sigue-carril basado en aprendizaje por refuerzo}
-  \label{sec:aprendizaje por refuerzo}
+  \subsection{Sigue-carril basado en Q-learning}
+  \label{sec:Q-learning}
 
   Como se menciona en la sección \ref{sec:IA}, el aprendizaje por refuerzo consiste en enseñar a un agente a
   desempeñar un comportamiento deseado mediante recompensas y penalizaciones. Este comportamiento se aprende a base de interacciones con el entorno de trabajo y observaciones de como puede responder,

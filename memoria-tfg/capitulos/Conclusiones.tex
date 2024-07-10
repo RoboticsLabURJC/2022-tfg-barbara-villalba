@@ -1,7 +1,7 @@
 \chapter{Conclusiones}
 \label{cap:capitulo5}
 
-En este TFG se han cumplido los objetivos marcados durante el desarrollo de él mismo. Primero la creación de algoritmos de
+En este TFG se han cumplido los objetivos marcados durante su desarrollo. Primero la creación de algoritmos de
 navegación autónoma para drones para resolver la problemática de seguimiento de carril en entornos de carreteras
 urbanas. En segundo lugar la utilización de algoritmos basados en inteligencia artificial y aprendizaje no supervisado
 con el fin de evaluar su efectividad. Tercero, analizar el desarrollo de aplicaciones de navegación autónoma drones
@@ -22,9 +22,9 @@ Los objetivos presentados en la sección \ref{sec:descripcion}, han sido cumplid
     redes neuronales junto con algoritmos de aprendizaje automático.
     \item Se implementó satisfactoriamente un sistema de control utilizando técnicas de aprendizaje por refuerzo, en especial Q-learning 
     para lograr el seguimiento del carril del dron de manera robusta y eficaz.
-    \item Se completó de manera exitosa la aplicación para el seguimiento del carril para drones.
-    \item Se han completado análisis efectivos para cada uno de los comportamientos desarrollados contrastando sus métricas
-    de forma exitosa tanto en el sistema perceptivo como de control. 
+    \item Se completó de manera exitosa la aplicación para el seguimiento del carril para drones, haciendo uso del sistema perceptivo y de control
+    \item Se han completado análisis efectivos para tanto para el sistema perceptivo como los comportamientos de control de PID y Q-learning, demostrando que el comportamiento
+    de Q-learning es capaz de generalizar mejor en comparación con el controlador PID.
 \end{enumerate}
 
 \section{Requisitos satisfechos}
@@ -39,6 +39,8 @@ de la siguiente forma:
     del entorno de simulación Airsim. 
     \item La navegación autónoma basada en aprendizaje por refuerzo ha demostrado ser lo suficiente robusta y eficiente en los
     diferentes trayectos dentro del escenario Coastline. 
+    \item El comportamiento Q-learning junto con el sistema perceptivo han demostrado ser reactivos y poder reaccionar al entorno en tiempo real
+    durante la navegación del dron.
     \item Uso del algoritmo de Q-Learning para desarrollar el comportamiento sigue carril y de carreteras basados en aprendizaje por 
     refuerzo.
 \end{enumerate}
@@ -72,12 +74,11 @@ el proceso. Destacando las siguientes competencias:
 
 \section{Líneas futuras}
 \label{lineas_futuras}
-Aunque hemos obtenido resultados exitosos y satisfactorios a lo largo del TFG, existen diferentes líneas futuras que se
+Hemos obtenido resultados exitosos y satisfactorios a lo largo del TFG, dentro del campo de la navegación autónoma de drones, no obstante, existen diferentes líneas futuras que se
 podrían desarrollar a partir de este trabajo.
 
 \begin{itemize}
-\item Utilizar la red neuronal usada en el trabajo y volver a entrenar dicha red en el entorno de trabajo teniendo en
-cuenta la visión de un dron.
+\item Re-entrenar la red YOLOP con un nuevo dataset teniendo en cuenta la posición y el ángulo de la cámara abordo del dron en diferentes entornos de Airsim.
 \item Búsqueda de algoritmos alternativos que produzcan mejores resultados a la hora de refinar resultados de redes neuronales de segmentación.
 \item Búsqueda sobre la infraestructura que existe entre el simulador PX4 Autopilot y Airsim, para tener mejores
 comportamientos en cuanto a rendimiento y latencia.
