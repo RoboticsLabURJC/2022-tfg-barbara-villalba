@@ -7,7 +7,7 @@ En esta sección se describe el problema a resolver junto con los objetivos y re
 \label{sec:descripcion}
 
 El objetivo principal de este TFG, es desarrollar un comportamiento de navegación autónoma basado en seguimiento de carriles utilizando
-aprendizaje por refuerzo e inteligencia artificial, en el que el dron sea capaz de navegar de una manera robusta y autónoma por escenarios de carreteras. El enfoque de este trabajo de investigación 
+aprendizaje por refuerzo e Inteligencia Artificial, en el que el dron sea capaz de navegar de una manera robusta y autónoma por escenarios de carreteras. El enfoque de este trabajo de investigación 
 se centra en la creación de una solución eficiente y completa ante la problemática que puede llegar a tener la navegación autónoma, se 
 muestra un comportamiento capaz de realizar el seguimiento de un carril para demostrar la complejidad de mantener una trayectoria estable 
 y precisa utilizando un dron. 
@@ -29,7 +29,7 @@ A continuación, se definen los siguientes sub-objetivos:
 
 Los requisitos que han de cumplirse en este trabajo son: 
 \begin{enumerate}
-    \item Uso del vehículo UAV en el entorno de simulación fotorrealista Airsim junto a UnRealEngine.
+    \item Uso del vehículo UAV en el entorno de simulación fotorrealista Airsim junto a Unreal Engine.
     \item Utilización del middleware robótico ROS para así garantizar la interoperabilidad del trabajo en otro tipo de escenarios permitiendo
     la reutilización del proyecto en diversas aplicaciones. 
     \item Comportamiento robusto y en tiempo real para garantizar la navegación del dron dentro del escenario de carreteras.
@@ -54,14 +54,14 @@ La metodología que se llevo a cabo fue:
   
     \begin{itemize}
       \item \textbf{Fase 1: Inicio del proyecto}. Consiste en marcar los objetivos que se deben seguir dentro del proyecto junto la asignación e identificación de tareas. En esta fase, 
-      definimos el tipo de aplicación que se iba a seguir que es la navegación autónoma de drones considerando un entorno de simulación de carreteras, la infraestructura, los tipos 
+      se define el tipo de aplicación que se iba a seguir que es la navegación autónoma de drones considerando un entorno de simulación de carreteras, la infraestructura, los tipos 
       de algoritmos a seguir y las analíticas de los comportamientos desarrollados durante el TFG. 
       \item \textbf{Fase 2: Diseño del tablero Kanban}. Se crea un tablero en donde se visualizarán las tareas y su estado. Cada tarea se definen en las columnas del tableros las
-      tareas que se deben realizar junto con indicadores visuales como se muestra en la figura 
+      tareas que se deben realizar junto con indicadores visuales como se muestra en la figura \ref{fig:Kanban}
       \item \textbf{Fase 3: Implementación del tablero Kanban}. Se asignan las tareas a realizar y se establecen límites de trabajo en progreso como el tiempo de desarrollo para 
       completar dicha tarea. 
       \item \textbf{Fase 4: Seguimiento y mejora continua}. Se realiza un flujo continuo y constante del trabajo identificando nuevas soluciones para mejorar la eficacia y la 
-      productividad hasta poder cambiar estrategias existentes por nuevas alternativas previamente definidas. En este trabajo hemos realizo varias tareas y seguimientos para encontrar
+      productividad hasta poder cambiar estrategias existentes por nuevas alternativas previamente definidas. En este trabajo se ha realizado varias tareas y seguimientos para encontrar
       la mejor solución ante el problema a resolver.
 
       
@@ -74,12 +74,12 @@ La metodología que se llevo a cabo fue:
           \includegraphics[scale=0.3]{figs/objetivos/Kanban3.jpg}
         \end{center}
         \caption{Ilustración del tablero Kanban durante el desarrollo del TFG}
-        \label{fig:Espiral}
+        \label{fig:Kanban}
         \vspace{-1.5em}
       \end{figure}
   
     \item Tener un control de versiones mediante la plataforma GitHub\footnote{\url{https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba}}, con el objetivo de tener un almacenamiento de código y respaldos de ello.  
-    \item El uso de un blog \footnote{\url{https://roboticslaburjc.github.io/2022-tfg-barbara-villalba/}}, en el cual se describió brevemente los pasos que se siguieron para el desarrollo del TFG.
+    \item El uso de un blog\footnote{\url{https://roboticslaburjc.github.io/2022-tfg-barbara-villalba/}}, en el cual se describió brevemente los pasos que se siguieron para el desarrollo del TFG.
 \end{enumerate}
 
 \begin{figure} [H]
@@ -108,7 +108,7 @@ Finalmente, los pasos a seguir de este trabajo han sido:
             \item En primer lugar, se desarrollo un teleoperador sencillo del drone para ver el funcionamiento del dron y dicho comportamiento.
             \item Una vez finalizada la tarea del teleoperador, se comenzó con los algoritmos de percepción de detección de carril mediante redes neuronales.
             \item Análisis y comparación de los resultados de los diferentes modelos que ofrece la red neuronal escogida con el propósito de tener la mejor solución. 
-            \item El siguiente paso fue estudiar la posibilidad de tener un algoritmo de aprendizaje no supervisado llamado clustering para clasificar las diferentes lineas que aparezcan en el escenario de la carretera.
+            \item El siguiente paso fue estudiar la posibilidad de tener un algoritmo de aprendizaje no supervisado llamado clustering para agrupar las diferentes líneas que aparezcan en el escenario de la carretera.
             \item Desarrollo del algoritmo de percepción junto con los dos puntos anteriormente mencionados.
             \item Una vez finalizado el algoritmo de percepción, se comenzó el desarrollo de un controlador PID para ver el funcionamiento del componente perceptivo y de la navegación en el drone. 
             \item A continuación, se desarrolló el algoritmo de aprendizaje por refuerzo para el seguimiento del carril.

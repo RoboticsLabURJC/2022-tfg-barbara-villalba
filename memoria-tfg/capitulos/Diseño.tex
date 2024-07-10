@@ -4,7 +4,7 @@
 
 \vspace{1cm}
 El principal objetivo de este TFG es desarrollar un sistema autónomo de navegación sigue-carril para un dron basado en aprendizaje por refuerzo, siendo éste capaz de desenvolverse
-por carreteras urbanas con un comportamiento reactivo.
+por carreteras con un comportamiento reactivo.
 En este capítulo se desarrolla el diseño, la arquitectura e implementación
 
 En primer lugar se diseña la infraestructura de comunicaciones entre el entorno de simulación y las diversas 
@@ -12,7 +12,7 @@ plataformas de desarrollo. Esta
 infraestructura de comunicaciones, permite la transferencia de datos en tiempo real y la integración de diferentes módulos del sistema, garantizando 
 una comunicación fluida y eficiente.
 
-A continuación, se desarrolla el sistema perceptivo mediante el uso de inteligencia artificial junto con la implementación de comportamientos autónomos tradicionales empleados
+A continuación, se desarrolla el sistema perceptivo mediante el uso de Inteligencia Artificial junto con la implementación de comportamientos autónomos tradicionales empleados
  en diferentes robots, como el seguimiento de carriles. Entre los métodos utilizados se incluye 
 el control clásico basado en controladores y métodos de control avanzados basados en aprendizaje por refuerzo, con el objetivo de que el dron aprenda y se 
 adapte a distintos escenarios de carreteras. 
@@ -54,7 +54,7 @@ para la navegación del dron. La comunicación entre este componente y el segund
   \begin{center}
     \includegraphics[scale=0.30]{figs/Diseño/Comunicaciones/diagrama_arquitectura.png}
   \end{center}
-  \caption{Arquitectura general del desarrollo en este TFG}
+  \caption{Arquitectura general}
   \label{fig:infraestructura}
   \vspace{-1.5em}
 \end{figure}
@@ -86,8 +86,8 @@ Toda la funcionalidad se implementa dentro de dos submódulos:
 
 \section{Configuración del sistema cliente-servidor}
 \label{distribución}
-En el desarrollo de este TFG, se ha decidido adoptar un enfoque cliente-servidor. El entorno de simulación, compuesto por Airsim y UnrealEngine, se ejecuta en un ordenador de sobremesa con un sistema 
-operativo Windows 10, una GPU Nvidia RTX 2070 Super, Intel Core i9-9900KF y 32 GB de memoria. Por otra parte, las plataformas de navegación y control, que incluyen ROS, AirSim ROS Wrapper Node y 
+En el desarrollo de este TFG, se ha decidido adoptar un enfoque cliente-servidor. El entorno de simulación, compuesto por Airsim y Unreal Engine, se ejecuta en un ordenador de sobremesa con un sistema 
+operativo Windows 10, una GPU Nvidia RTX 2070 Super, Intel Core i9-9900KF y 32 GB de memoria. Por otra parte, los algoritmos de percepción y control junto con ROS, AirSim ROS Wrapper Node y 
 Client Airsim se ejecutan en un ordenador
 portátil con un sistema operativo Ubuntu 20.04, una GPU Nvidia RTX 2070, un procesador Intel Core i7-10875H y 32 GB de memoria.
 Esta propuesta se tomó con la premisa de no encapsular en un único ordenador el entorno de simulación y las plataformas de desarrollo. Inicialmente, todo el sistema 
@@ -104,7 +104,7 @@ ya que todos los comportamientos que hubiese podido aprender, se perderían, ya 
 
 En resumen, la arquitectura se compone de dos ordenadores interconectados en la misma red, utilizando un router por vía Ethernet. El diagrama 
 de comunicaciones ilustrado en la figura \ref{fig:diagramadeAirsim}, muestra esta implementación cliente-servidor en diferentes ordenadores. Cada ordenador asume roles distintos: 
-el primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestiona los algoritmos de percepción y control en donde se implementan los algoritmos perceptivos y de seguimiento de carril. 
+el primer ordenador ejecuta el entorno de simulación en cambio el segundo ordenador, gestionan los algoritmos de percepción y control en donde se implementan los algoritmos perceptivos y de seguimiento de carril. 
 
 \begin{figure} [H]
   \begin{center}
@@ -117,11 +117,11 @@ el primer ordenador ejecuta el entorno de simulación en cambio el segundo orden
 \subsection{Preparación del entorno de simulación}
 \label{sec:Preparación_entorno}
 
-Como se menciona en la sección \ref{sec:Airsim}, se utiliza como simulador Airsim junto con el motor UnrealEngine. Para construir el entorno de simulación, primero
-se necesita instalar UnrealEngine. Para ello, se sigue las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}}, 
+Como se menciona en la sección \ref{sec:Airsim}, se utiliza como simulador Airsim junto con el motor Unreal Engine. Para construir el entorno de simulación, primero
+se necesita instalar Unreal Engine. Para ello, se sigue las instrucciones marcadas por la página oficial de Epic Games\footnote{\url{https://www.unrealengine.com/en-US/download}}, 
 utilizando la versión 4.27.2.
 
-Una vez que UnrealEngine está instalado, se procede a configurar el entorno de simulación mediante el archivo settings.json. Por defecto, al ejecutar Airsim 
+Una vez que Unreal Engine está instalado, se procede a configurar el entorno de simulación mediante el archivo settings.json. Por defecto, al ejecutar Airsim 
 por primera vez, el simulador crea este archivo automáticamente dentro de una carpeta denominada Airsim en la carpeta Documentos en Windows. 
 
 
@@ -281,7 +281,7 @@ para la detección de bordes en la imagen. Finalmente, se aplica el método Houg
 para detectar líneas en la imagen mediante la transformación de Hough, permitiendo identificar líneas rectas dentro de una imagen. 
 
 El resultado final de este enfoque tradicional de estos algoritmos de visión clásica se puede observar en la figura \ref{Vision_clasica}. Se presentan diferentes segmentos
-de carril: Una zona con curvas, una zona recta y una zona semirrecta. Se muestran los resultados de la detección de líneas sobre las imágenes mediante el uso de los algoritmos mencionados. En la zona recta se puede ver como las líneas
+de carril: una zona con curvas, una zona recta y una zona semirrecta. Se muestran los resultados de la detección de líneas sobre las imágenes mediante el uso de los algoritmos mencionados. En la zona recta se puede ver como las líneas
 detectadas son claramente visibles y paralelas, lo que indica una correcta detección en este tipo de trayectos rectos. Mientras que en las zonas curvas y las zonas semirrectas, presentan
 dificultades en la detección de las líneas, debido a que HoughLines esta optimizada para la detección de líneas rectas y no para la detección de líneas con curvas. 
 
@@ -356,7 +356,7 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
     \end{code}  
 
       Esta red neuronal ofrece modelos con formato ONNX: \texttt{Yolop-320-320.onnx, Yolop-640-640.onnx e Yolop-1280-1280.onnx}. Estos modelos son construidos a partir del archivo 
-      \texttt{End-to-end.pth} y se convierten en modelos con formato Onnx. Cada modelo proporcionado con formato onnx tiene una resolución distinta de entrada en cuanto a las dimensiones
+      \texttt{End-to-end.pth} y se convierten en modelos con formato ONNX. Cada modelo proporcionado con formato ONNX tiene una resolución distinta de entrada en cuanto a las dimensiones
       de las imágenes. El archivo \texttt{Yolop-320-320.onnx} necesita una entrada con unas dimensiones de 320x320 píxeles en las imágenes, el archivo \texttt{Yolop-640-640.onnx} necesita 
       una entrada con unas dimensiones de 640x640 píxeles en las imágenes y por último el archivo \texttt{Yolop-1280-1280.onnx} se necesita unas dimensiones de imágenes de 1280x1280 píxeles. 
       En cuanto al uso de estos modelos, se debe realizar la configuración de los drivers de CUDA con la versión disponible para ONNX Runtime, 
@@ -380,7 +380,7 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
         \end{code}  
 
         Para realizar la redimensión de las imágenes dependiendo de cada modelo, se utiliza un método implementado en la propia página de YOLOP en Github 
-        que se puede encontrar en la siguiente página\footnote{\url{https://github.com/hustvl/YOLOP/blob/main/test_onnx.py}}, el cuál redimensiona la imagen de entrada según cada modelo. En el código 
+        que se puede encontrar en la siguiente página\footnote{\url{https://github.com/hustvl/YOLOP/blob/main/test_onnx.py}}, el cual redimensiona la imagen de entrada según cada modelo. En el código 
         \label{cod:Inferencia_onnx} se realiza la inferencia del modelo \texttt{Yolop-320-320.onnx}. 
 
         \begin{code}[h]
@@ -419,10 +419,10 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
         Como resultado de la inferencia se obtiene un tensor de salida que corresponde a la probabilidad de detección de la segmentación
         y la detección de las líneas de la calzada. Dicho tensor se debe de convertir en una imagen para poder visualizar
         dicho resultado como una imagen. 
-        Por ello, se convierte el tensor en un array numpy y se realiza una transformación para cambiar las dimensiones de (H,W,C) 
+        Por ello, se convierte el tensor en un array Numpy y se realiza una transformación para cambiar las dimensiones de (H,W,C) 
         a (C,H,W) esto se debe a que OpenCV representa las imágenes en formato numpy array y se transpone las dimensiones\footnote{\url{https://lindevs.com/convert-pytorch-tensor-to-opencv-image-using-python}}. 
     
-        Después de este proceso, se obtiene un array de numpy, se normaliza con valores de 0-1. Con la normalización 
+        Después de este proceso, se obtiene un array de Numpy, se normaliza con valores de 0-1. Con la normalización 
         se ayuda a igualar la escala de los píxeles de la imagen. Finalmente se muestra el resultado de la inferencia de la red 
         en una imagen como se ilustra en el código \ref{cod:Resultadoinferencia}. Al normalizar los valores de 0-1, los píxeles con un valor 1 se muestran en la imagen final, asignándoles 
         color verde el resultado de la segmentación de la calzada y de color rojo la detección de las líneas de la calzada. 
@@ -455,7 +455,7 @@ la GPU para realizar la inferencia asignándole el dispositivo GPU como se muest
 En esta sección se evalúa los resultados de la inferencia de YOLOP con los diferentes modelos preentrenados que ofrece esta red. Para realizar esta comparación, se usa el ordenador utilizado 
 en el componente de algoritmos de percepción y algoritmos junto con la GPU Nvidia 2070 RTX para realizar la inferencia de cada modelo. Se recopilan datos del tiempo medio de inferencia en milisegundos de cada 
 modelo de YOLOP durante aproximadamente
-un minuto, mientras se teleopera con un joystick el dron por las carreteras. El resultado de la inferencia de estos modelos se puede ver en este \href{https://youtu.be/8s3RBu_L3oE?si=iJM_OqKiDvtyfBvv}{\textbf{vídeo}}, 
+un minuto, mientras se teleopera con un joystick el dron por las carreteras. El resultado de la inferencia de estos modelos se puede ver en este vídeo\footnote{\url{https://youtu.be/8s3RBu_L3oE?si=iJM_OqKiDvtyfBvv}}, 
 en donde se muestra los frames por segundo que realiza cada uno la inferencia.
 
 El objetivo de este análisis es determinar qué modelo ofrece mejores resultados en términos de eficiencia y rendimiento. 
@@ -485,7 +485,7 @@ la inferencia de los modelos. Aunque se escoja el modelo \texttt{Yolop-320-320.o
 
 Como se puede ver en la figura \ref{f:Inferencia320-320}, el margen izquierdo del carril no se detecta correctamente, solo se pueden apreciar unos pocos puntos, además la detección 
 de la zona que pertenece al carril presenta parches que la red no detecta como zona transitable, que se pueden observar en la parte central de la imagen como en la parte inferior. Esta detección 
-se debe a que YOLOP ha sido entrenada con un dataset de datos reales capturados desde una cámara a bordo de un coche. Debido a estas limitaciones en la detección, se realiza un 
+se debe a que YOLOP ha sido entrenada con un dataset de datos reales capturados desde una cámara a bordo de un coche. Debido a estas limitaciones en la detección, se realiza
 un post-procesado, que se explicará a continuación, para evitar que estos errores provenientes de la red neuronal, no afecten al posterior control del dron. Además, no es posible 
 realizar un re-entrenamiento de YOLOP, ya que esto requeriría crear un nuevo dataset con datos capturados desde la perspectiva de un dron dentro del entorno AirSim y etiquetar los datos, 
 lo cual es una tarea laboriosa de realizar.
@@ -527,10 +527,10 @@ Con las líneas que delimitan el carril, se puede obtener el área transitable d
 \subsubsection{DBSCAN}
 \label{sec:DBSCAN}
 
-Para clasificar las lineas detectadas por parte de la red neuronal, se utiliza un algoritmo de clustering basado en aprendizaje no supervisado, en particular
+Para agrupar las líneas detectadas por parte de la red neuronal, se utiliza un algoritmo de clustering basado en aprendizaje no supervisado, en particular
 DBSCAN(Density-Based Spatial Clustering of Applications with Noise)\cite{ski_dbs}.
 
-Este algoritmo clasifica un conjunto de muestras en grupos (clústeres) basándose en la densidad de puntos en el espacio de características, que es una forma de representar
+Este algoritmo agrupa un conjunto de muestras en grupos (clústeres) basándose en la densidad de puntos en el espacio de características, que es una forma de representar
 datos utilizando diferentes medidas o atributos. A diferencia de otros métodos de clustering, como K-Means\footnote{\url{https://www.iebschool.com/blog/algoritmo-k-means-que-es-y-como-funciona-big-data/}}, 
 DBSCAN no requiere especificar el número de clústeres de antemano, 
 siendo capaz de identificar patrones de forma arbitraria y especialmente útil para detectar estructuras complejas en los datos. 
@@ -547,7 +547,7 @@ DBSCAN requiere la configuración de varios parámetros importantes:
 \end{enumerate}
 
 Antes de ejecutar el algoritmo, es necesario convertir la imagen resultante de la red neuronal en un array bidimensional compuesto por coordenadas de puntos x e y, por ello se utiliza
-la función \texttt{column\_stack}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} de numpy, transformando un array
+la función \texttt{column\_stack}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html}} de Numpy, transformando un array
 unidimensional en uno bidimensional. Cuando se realice la conversión se da pie a escoger los valores del algoritmo DBSCAN. Se ha seleccionado un valor de \texttt{eps} de 10, esto significa que, 
 para que un punto sea considerado parte de un mismo clúster, debe estar a una distancia máxima de 10 píxeles para que sean vecinos y pertenezcan al mismo grupo de clúster. 
 El parámetro \texttt{min\_samples} se establece en 5, al menos 5 muestras 
@@ -583,7 +583,6 @@ deben estar presentes en la vecindad de un punto para que se considere parte de 
   \end{footnotesize}
   \end{code}  
 
-
 Al aplicar DBSCAN, el algoritmo devuelve una lista de etiquetas que van desde 0 a n, 
 donde 0 representa el primer clúster detectado y n el último. Las muestras etiquetadas como ruido o no clasificadas reciben la etiqueta -1 y se eliminan de la lista de clústeres. Para visualizar 
 el resultado, se itera sobre la lista de etiquetas y se muestran los puntos correspondientes de cada etiqueta en la imagen de salida. El proceso completo, incluyendo los valores 
@@ -591,8 +590,8 @@ de los parámetros de DBSCAN así como el uso de la clasificación de las línea
 
 La figura \ref{clasificación} se muestran los diferentes resultados que tiene este algoritmo en localizaciones distintas. En la primera fila, se muestra las imágenes originales. En la segunda 
 fila se muestra el resultado del modelo \texttt{Yolop-320-320.onnx} y por último en la tercera fila se muestra el resultado de la clasificación de las líneas detectadas por la red 
-utilizando el algoritmo DBSCAN. Cada clúster detectado es representado por un color distinto para poder visualizar el total de grupos que ha sido capaz clasificar DBSCAN.
-Dependiendo de la ubicación del dron, DBSCAN clasifica las líneas en aproximadamente entre 3 y 4 grupos de clústeres. En función de la clasificación de DBSCAN, se realiza 
+utilizando el algoritmo DBSCAN. Cada clúster detectado es representado por un color distinto para poder visualizar el total de grupos que ha sido capaz agrupar DBSCAN.
+Dependiendo de la ubicación del dron, DBSCAN agrupa las líneas en aproximadamente entre 3 y 4 grupos de clústeres. En función del resultado de DBSCAN, se realiza 
 un filtrado de clústeres para seleccionar específicamente aquellos grupos de puntos que representan las líneas del carril deseado.
 
 \begin{figure}[H]
@@ -698,7 +697,7 @@ Durante el proceso de filtrado de los grupos de clústeres, se seleccionan subgr
 maximizada con respecto a un punto central predefinido P, cuyo valor es (160,220), ajustado según las dimensiones de la imagen de 320x320 píxeles. El resto de clústeres son 
 descartados. Esta función maximizada se detalla en el código \ref{cod:funcion_maximizada}. 
 
-Al manipular puntos en numpy, es importante recordar que las coordenadas están invertidas (y,x en lugar de x,y). Además de seleccionar subgrupos en relación con el punto central P, 
+Al manipular puntos en Numpy, es importante recordar que las coordenadas están invertidas (y,x en lugar de x,y). Además de seleccionar subgrupos en relación con el punto central P, 
 se considera también la densidad de puntos en los grupos de clústeres detectados tanto en la izquierda como en la derecha. Este enfoque garantiza que la selección no solo dependa 
 de la proximidad al punto central, sino también de la cantidad de puntos presentes.
 \begin{code}[h]
@@ -716,7 +715,7 @@ de la proximidad al punto central, sino también de la cantidad de puntos presen
   \vspace{-1.5em}
   \end{code}  
  
-  En la figura \ref{fig:comparativa} se muestra el proceso desde la clasificación de líneas por DBSCAN hasta la selección de los clústeres. 
+  En la figura \ref{fig:comparativa} se muestra el proceso desde la agrupación de las líneas por DBSCAN hasta la selección de los clústeres. 
   DBSCAN es capaz de detectar hasta 4 clústeres, a partir de los cuales se realiza un filtrado basado en las coordenadas x de cada centroide de cada clúster. Posteriormente, 
   se aplica una función maximizada para obtener los 2 clústeres requeridos. Estos clústeres están representados en color rojo para el grupo izquierdo y en verde para el grupo 
   derecho. 
@@ -747,7 +746,7 @@ completamente rectas, suelen ser curvilíneas, se opta por utilizar una regresi�
 La regresión cuadrática permite modelar los puntos de cada clúster como curvas, lo cual es más adecuado para capturar las variaciones y curvaturas típicas de los carriles. Esta técnica no solo
 ayuda a interpretar mejor la forma del carril, sino que también facilita la navegación del dron al seguir la trayectoria por el carril.
 
-Para la construcción de las regresiones cuadráticas se utiliza las funciones de la librería numpy denominada \texttt{Polyfit}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
+Para la construcción de las regresiones cuadráticas se utiliza las funciones de la librería Numpy denominada \texttt{Polyfit}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html}}
 y \texttt{Polyval}\footnote{\url{ https://numpy.org/doc/stable/reference/generated/numpy.polyval.html}}. 
 \texttt{Polyfit} es una función que calcula los coeficientes del polinomio que mejor se ajusta a los datos utilizando el método de los mínimos 
 cuadrados para la ecuación cuadrática, obteniendo tres coeficientes, denominados a, b y c. Se define los valores de las coordenadas x como los puntos que se quiere
@@ -810,11 +809,11 @@ Al obtener los valores de la función cuadrática, se seleccionan los puntos de 
 Este proceso se debe realizar debido a que el resultado de la función \texttt{Polyval} puede dar como resultado números negativos. En una imagen no se puede indexar con números negativos ya que 
 se corresponderían a píxeles que se encuentran fuera de la propia imagen.
 
-Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados
+Este proceso se realiza dos veces, una regresión cuadrática para el grupo de clústeres detectados y escogidos de la derecha y otra regresión cuadrática para el grupo de clústeres detectados y 
 escogidos de la izquierda. 
 Finalmente, con dichas regresiones cuadráticas se procede a realizar una dilatación de los puntos para tener un resultado más llamativo y visual al poder
-ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática} teniendo presente los pasos que se ha tenido que seguir para 
-realizar las regresiones, dichas líneas se representan de color amarillo.
+ver las regresiones cuadráticas. El resultado se puede visualizar en la figura \ref{fig:regresión cuadrática}, siendo la primera fila la detección de las líneas por 
+parte de \texttt{Yolop-320-320.onnx} y en la segunda fila el resultado de las regresiones cuadrática, dichas líneas se representan de color amarillo.
 
 
   
@@ -912,7 +911,7 @@ y otra para los puntos de la regresión izquierda.
   \end{code}  
 
 Estas funciones interpolan los valores de los puntos en \textit{y} en función de los valores de los puntos en \textit{x}, 
-más adelante se evalúa los valores de los puntos que se encuentran entre 
+más adelante se evalúan los valores de los puntos que se encuentran entre 
 ambas regresiones cuadráticas como se muestra en el código \ref{cod:interpolación}. Cuando se proceda a dicha evaluación, se desarrolla un filtro 
 para seleccionar un fragmento de carril. El carril se representa en color azul en la imagen resultante.
 
@@ -1013,7 +1012,7 @@ Para el cálculo del centroide del carril, se toma ecuación \ref{eq:funcioncent
     \vspace{-1.5em}
   \end{figure}
 
-  \subsection{Análisis del algoritmo de percepción}
+  \subsection{Análisis computacional del algoritmo de percepción}
   \label{sec:Análisis del algoritmo de percepción}
   A continuación, se realiza un análisis detallado de cada submódulo del sistema perceptivo. Esta evaluación se presenta en la tabla \ref{tab:Profiling}, incluye 
   tres columnas indicando el nombre  de cada componente del sistema perceptivo, el dispositivo donde se ejecuta y el tiempo medio calculado en milisegundos.
@@ -1143,7 +1142,7 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
       \begin{center}
         \includegraphics[scale=0.4]{figs/Diseño/RL/entorno.png}
       \end{center}
-      \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-Leaning}
+      \caption{Entorno en la fase de entrenamiento del sigue carril basado en Q-leaning}
       \label{fig:Entorno}
       \vspace{-1.5em}
     \end{figure}
@@ -1164,14 +1163,14 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
       \begin{center}
         \includegraphics[scale=0.5]{figs/Diseño/RL/Estados.png}
       \end{center}
-      \caption{Estados definidos para el sigue-carril basado en aprendizaje por refuerzo}
+      \caption{Estados definidos para el sigue-carril basado en Q-learning}
       \label{fig:Estados}
       \vspace{-1.5em}
     \end{figure}
 
     \item \textbf{Acciones}: En total, se han definido 21 acciones que el agente puede llevar a cabo. Se componen de pares de velocidades lineales y angulares, las velocidades lineales
     tienen un intervalo de 0.1 m/s hasta 2.0 m/s. Así siendo el intervalo de la velocidad angular de -25 hasta 25 grados/segundo, teniendo giros hacia la izquierda y hacia la derecha. Dichos pares
-    de velocidades están formados a partir de la función que nos proporciona numpy llamada \texttt{linspace}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. 
+    de velocidades están formados a partir de la función que nos proporciona Numpy llamada \texttt{linspace}\footnote{\url{https://numpy.org/doc/stable/reference/generated/numpy.linspace.html}}. 
 
     En la figura \ref{fig:Acciones}, se puede observar las acciones definidas en 3 partes. En color naranja se representa las acciones con giro izquierdo, en color rojo se presenta 
     la acción central definida así como velocidad lineal sin velocidad angular y en color azul, las acciones con giro derecho. Cada pareja de acción tiene un identificador, desde el 0
@@ -1181,7 +1180,7 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
       \begin{center}
         \includegraphics[scale=0.28]{figs/Diseño/RL/Tabla_acciones.png}
       \end{center}
-      \caption{Acciones disponibles para el sigue-carril basado en aprendizaje por refuerzo}
+      \caption{Acciones disponibles para el sigue-carril basado en Q-learning}
       \label{fig:Acciones}
       \vspace{-1.5em}
     \end{figure}
@@ -1282,8 +1281,8 @@ como consecuencia que este pueda funcionar correctamente ante entornos desconoci
   \begin{itemize}
     \item \textbf{$Q(s, a)$}: Valor Q para el estado $s$ y la acción $a$. Se trata de una matriz formada por estado y acción que se rellena durante la fase de entrenamiento para utilizarla
     en la fase de inferencia.
-    \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que daremos al agente para el proceso de aprendizaje, 
-    si dicho valor es alto daremos más peso al valor aprendido. Dicho valor se define con un valor de 0.5 
+    \item \textbf{$\alpha$}: Tasa de aprendizaje entre un valor de 0 a 1. Consiste en el porcentaje que se da al agente para el proceso de aprendizaje, 
+    si dicho valor es alto, se da más peso al valor aprendido. Dicho valor se define con un valor de 0.5 
     \item \textbf{$R(s, a)$ }: Recompensa por tomar la acción $a$ en el estado $s$. La función de recompensa es crucial en el proceso de aprendizaje del agente, 
     evalúa como es de buena la acción tomada por el agente en el estado que se encuentre. Proporciona información al agente sobre que acciones maximizan la recompensa total a lo largo del tiempo. Dicha función
     de recompensa es diseñada dependiendo de cual sea el objetivo de tu agente. 
@@ -1357,7 +1356,7 @@ fase de inferencia para verificar el resultado obtenido con el modelo convergido
 \subsubsection{Fase de inferencia}
 \label{sec:fases_inferencia}
 La fase de inferencia consiste en indexar la tabla Q(S,A) que se ha ido rellenando en la fase de entrenamiento. El dron cuando se encuentre en un estado especifico consultará la tabla Q(S,A) para
-encontrar la mejor acción en ese estado (cuando mencionamos la mejor acción nos referimos al máximo valor en la tabla que tenga en ese estado). Cuando el dron tome dicha acción se moverá al siguiente estado
+encontrar la mejor acción en ese estado (cuando se menciona la mejor acción, se refiere al máximo valor en la tabla que tenga en ese estado). Cuando el dron tome dicha acción se moverá al siguiente estado
 siendo así un proceso iterativo hasta alcanzar la meta. En esta fase, los valores de la tabla permanecen constantes y se utiliza para la toma de decisiones basadas en el conocimiento
 aprendido en la fase de entrenamiento.
 
@@ -1394,7 +1393,7 @@ estable respecto al centro del carril.
   \begin{minipage}{0.3\textwidth}
     \includegraphics[width=\linewidth]{figs/Diseño/RL/RL5.png}
   \end{minipage}
-  \caption{Resultado del comportamiento de aprendizaje por refuerzo ilustrando los estados y acciones en la fase de inferencia}
+  \caption{Resultado del comportamiento Q-learning ilustrando los estados y acciones en la fase de inferencia}
   \label{fig:inferencia-imagenes}
   \vspace{-1.5em}
 \end{figure}
@@ -1430,7 +1429,7 @@ relación se expresa siguiendo la ecuación \ref{eq:MCU} del MCU, donde v es la 
  Por lo tanto, al aumentar la velocidad lineal, también se debe aumentar la velocidad angular. Este es un aspecto crucial a tener en cuenta al modificar los valores de las velocidades 
  lineales y angulares en un modelo de Q-learning. 
 
- A partir de ahora, a la hora de inferir el modelo, se utilizan estos nuevos valores de velocidades lineales y angulares. En la figura \ref{fig:Distribucción_inferencia} se puede observar 
+ A partir de ahora, en el proceso de inferencia, se utilizan estos nuevos valores de velocidades lineales y angulares. En la figura \ref{fig:Distribucción_inferencia} se puede observar 
  que el dron sigue escogiendo acciones con velocidad lineal alta y velocidad angular baja para mantenerse dentro del recorrido sin salirse, además de aumentar 
  el porcentaje de las acciones escogidas respecto a la distribución de acciones. 
 
@@ -1444,11 +1443,18 @@ relación se expresa siguiendo la ecuación \ref{eq:MCU} del MCU, donde v es la 
 
 \subsection{Comparativa PID vs Q-learning}
 \label{sec:Análisis y comparativa entre el seguiento de carril clásico}
-Para comprobar la robustez y la eficacia que demuestra el modelo entrenado con aprendizaje por refuerzo respecto al seguimiento de carril mediante el PID, se realiza varias comparativas, en ambos
+Para comprobar la robustez y la eficacia que demuestra el modelo entrenado con Q-learning respecto al seguimiento de carril mediante el PID, se realiza varias comparativas, en ambos
 comportamientos se utiliza el mismo sistema perceptivo que se menciona en la sección \ref{sec:Percepción}. 
 
+\subsubsection{Experimento 1}
+\label{sec:experimento 1}
 Se definen nuevos valores a las velocidades angulares del controlador PID para que ambos tengan las mismas condiciones, siendo que el controlador PID tenga los mismos 
-rangos mínimos y máximos de velocidades angulares como Q-learning, teniendo como velocidad lineal un valor constante. Para realizar la comparativa, se ha escogido un escenario en el que ambos comportamientos visitan por primera vez 
+rangos mínimos y máximos de velocidades angulares como Q-learning, teniendo como velocidad lineal un valor constante. Las velocidades angulares van desde -25 grados/segundo hasta 
+25 grados/segundo, teniendo intervalos discretos de 2.5 en el caso de Q-learning. Respecto a los intervalos de velocidades angulares del controlador PID, toman desde -25 grados/segundo 
+hasta -4.5 grados/segundo y desde 4.5 grados/segundo hasta 25 grados/segundo, siendo los valores del PID continuos. Esta limitación para el controlador PID se ha realizado debido a que 
+el comportamiento Q-learning no es capaz de tomar velocidades entre -4.5 y 4.5 grados/segundo ya que no lo ha aprendido durante el entrenamiento, ya que si el controlador PID fuese mejor
+que Q-learning debería ser capaz de completar el recorrido exitosamente con estas limitaciones. Para realizar la comparativa, se ha escogido un 
+escenario en el que ambos comportamientos visitan por primera vez 
 sin que ninguno de los dos comportamientos se salgan del carril. En la figura \ref{fig:escenario-comparativa} se muestra el escenario marcando el inicio 
 y el final del recorrido, además de la vista que tiene el dron al comienzo del recorrido. Se trata de un escenario en donde presenta curvas hacia la derecha e izquierda.
 
@@ -1461,11 +1467,11 @@ y el final del recorrido, además de la vista que tiene el dron al comienzo del 
   \label{fig:escenario-comparativa}
 \end{figure}
 
-Para realizar como ha sido la trayectoria de ambos comportamientos dentro del escenario, se ha ido recogiendo en cada momento la posición del dron (x,y) durante su navegación
+Para evaluar como ha sido la trayectoria de ambos comportamientos dentro del escenario, se ha ido recogiendo en cada momento la posición del dron (x,y) durante su navegación
  para más adelante contrastarlos. En la figura \ref{fig:Comparativa-de-trayectorias}, se muestra una comparativa de trayectorias entre PID y Q-learning 
 realizando un zoom en una zona de las partes de ambas 
 trayectorias como se muestra en la figura \ref{fig:Comparativa-de-trayectorias-II} junto con el histograma que se muestra en la figura \ref{Histograma-PIDVSQL} comparando 
-las velocidades angulares de ambos comportamientos.
+las velocidades angulares de ambos comportamientos. \\
 
 \begin{figure}[H]
   \centering
@@ -1491,7 +1497,7 @@ las velocidades angulares de ambos comportamientos.
   \begin{center}
     \includegraphics[scale=0.34]{figs/Diseño/RLvsPID/Trayecto-I/histograma.png}
   \end{center}
-  \caption{Histograma de acciones entre el PID y Q-learning }
+  \caption{Histograma de acciones: PID y Q-learning}
   \label{Histograma-PIDVSQL}
   \vspace{-1.5em}
 \end{figure}
@@ -1500,11 +1506,11 @@ Como se observa en esta comparativa, una de las principales diferencias entre am
 realizando eses, consiguiendo velocidades angulares altas para poder corregir y mantenerse dentro del carril. Dichas velocidades angulares que predominan en el controlador PID se tratan 
 de los extremos de las acciones, siendo -45 el rango máximo izquierdo y 45 el rango máximo derecho. Esto se debe a la propia naturaleza del controlador PID, ya que constantemente se encuentra 
 ajustando la velocidad angular para permanecer dentro del carril. Aunque sea capaz de alcanzar velocidades angulares bajas, el controlador PID seguirá oscilando hasta que sea capaz de 
-corregirse. En cambio, en el comportamiento de Q-learning destaca por su trayectoria constante 
-durante todo el recorrido sin apenas realizar oscilaciones obteniendo velocidades angulares suaves, siendo
+corregirse. En cambio, en el comportamiento de Q-learning destaca por su trayectoria suave 
+durante todo el recorrido sin apenas realizar oscilaciones bruscas obteniendo velocidades angulares suaves, siendo
 más gradual que el resultado del controlador PID sin escoger acciones extremas de velocidades angulares. 
 
-Por lo que, el comportamiento con el algoritmo de Q-learning es capaz de aprender y adaptarse con una velocidad angular baja 
+Por lo que, el comportamiento con el algoritmo de Q-learning es capaz de generalizar y adaptarse con una velocidad angular baja 
 realizando giros menos bruscos en comparación con el controlador PID.
 
 \begin{figure}[H]
@@ -1526,12 +1532,15 @@ realizando giros menos bruscos en comparación con el controlador PID.
 \end{figure}
 
 Demostrando así que el modelo entrenado es capaz de obtener comportamientos satisfactorios tomando acciones acordes a diferentes escenarios. En la figura \ref{fig:Resultado-imagenes}, 
-se muestra una secuencia de frames recogidas en este \href{https://youtu.be/rENEqUVqvVs?si=RTOyE4iCgt7TEdFk}{\textbf{vídeo}}
+se muestra una secuencia de frames recogidas en este vídeo\footnote{\url{https://youtu.be/rENEqUVqvVs?si=RTOyE4iCgt7TEdFk}}
 del comportamiento de aprendizaje por refuerzo durante el recorrido siendo capaz de mantenerse centrado al carril, su comportamiento se debe a que las acciones son discretas. 
 Es importante recordar 
 que el objetivo de usar el algoritmo de Q-learning es su capacidad de generalización a distintos escenarios. 
 
-En este otro experimento, se realiza un análisis entre el PID y Q-learning, en el cual ambos comportamientos tienen los mismos rangos de velocidades angulares mínimas y máximas y demostrando que
+\subsubsection{Experimento 2}
+\label{experimento2}
+En un segundo experimento, se realiza un análisis entre el PID y Q-learning, en el cual ambos comportamientos tienen los mismos rangos de velocidades angulares mínimas y máximas, siendo 
+estos valores los mismos que se utilizaron en el anterior experimento. Demostrando que
 el controlador PID no es capaz de mantenerse dentro del carril desembocando que se salga 
 del carril. Se utiliza un escenario en el que ambos comportamientos visitan por primera vez, este escenario se puede visualizar en la figura \ref{fig:escenario-comparativa-II} junto 
 con la vista del dron.
@@ -1561,16 +1570,14 @@ son capaces de mantener una trayectoria centrada respecto al centro del carril. 
 el dron se enfrenta a la primera curva, comienza a surgir diferencias notables. El controlador PID empieza a oscilar, tratando de corregir su posición para mantenerse dentro del carril. Estas 
 oscilaciones son típicas de un sistema PID tratando de adaptarse rápidamente a cambios en la trayectoria. En contraste, el algoritmo Q-learning mantiene una trayectoria acorde a la curva 
 sin realizar ninguna oscilación significativa, mostrando una mayor estabilidad. Debido a las oscilaciones del PID, el dron llega a un punto donde no puede mantenerse dentro del carril, saliéndose 
-de la trayectoria . Esto se destaca en la gráfica, donde se marca la \textbf{"Salida del carril PID"} en una ventana auxiliar. Por otro lado, el comportamiento de Q-learning sigue la trayectoria  de forma consistente 
-y centrada, completando el recorrido sin salirse del carril.
-
-Esta comparativa de las trayectorias revela que el algoritmo de Q-learning ofrece mejores resultados en cuanto al controlador PID. Mientras que el PID sufre oscilaciones y se sale de la trayectoria,
+de la trayectoria . Esto se destaca en la gráfica, donde se marca la \textbf{"Salida del carril"} en una ventana auxiliar. Por otro lado, el comportamiento de Q-learning sigue la trayectoria  de forma consistente 
+y centrada, completando el recorrido sin salirse del carril. Esta comparativa de las trayectorias revela que el algoritmo de Q-learning ofrece mejores resultados en cuanto al controlador PID. Mientras que el PID sufre oscilaciones y se sale de la trayectoria,
 Q-learning demuestra una capacidad para adaptarse al recorrido, completándolo de manera eficiente y manteniéndose dentro del carril. 
 
-En la figura \ref{comparativa-PID-qlearning} se muestran varios frames recogidos en este \href{https://youtu.be/Ft8N0yvQvjA?si=8o1z48FXkC528yh6}{\textbf{vídeo}} de ambos comportamientos durante la trayectoria mostrando como Q-learning mantiene una trayectoria robusta y centrada 
-en comparación con el PID. En particular, en la cuarta columna se observa cómo el controlador PID se desvía su trayectoria, mientras que Q-learning sigue su trayecto con éxito. 
+En la figura \ref{comparativa-PID-qlearning} se muestran varios frames recogidos en este vídeo\footnote{\url{https://youtu.be/Ft8N0yvQvjA?si=8o1z48FXkC528yh6}} de ambos comportamientos durante la trayectoria mostrando como Q-learning mantiene una trayectoria robusta y centrada 
+en comparación con el PID. En particular, en la cuarta columna se observa como el controlador PID se desvía su trayectoria, mientras que Q-learning sigue su trayecto con éxito. 
 Estos resultados subrayan la importancia de utilizar métodos de control adaptativos que tienen la capacidad de generalizar y ser flexibles
-como Q-learning para aplicaciones de navegación autónomas con drones en carreteras, donde los métodos 
+como Q-learning para aplicaciones de navegación autónoma con drones en carreteras, donde los métodos 
 tradicionales pueden no ser suficientes para garantizar un rendimiento fiable. 
 
 \begin{figure}[H]

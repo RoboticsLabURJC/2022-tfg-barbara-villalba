@@ -1,7 +1,7 @@
-\chapter{Plataforma de desarrollo}
+\chapter{Plataformas de desarrollo}
 \label{cap:capitulo3}
 
-En este capítulo se detalla sobre qué tecnologías se ha utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación y las librerías utilizadas.
+En este capítulo se detalla sobre qué tecnologías se han utilizado durante el desarrollo de este trabajo junto con el lenguaje de programación y las librerías utilizadas.
 \section{Lenguajes de programación}
 \label{sec:programación}
 \subsection{Python}
@@ -12,7 +12,7 @@ utilizado para el desarrollo de software, aplicaciones web, data science y machi
 Fue creado por Guido van Rossum\footnote{\url{https://gvnrossum.github.io/}} en 1989, el nombre de "Python" se inspiró en el programa de televisión británico 
 "Monty Python's Flying Circus".
 Este lenguaje con los tiempos se ha convertido en uno de los lenguajes más populares del mundo, esto se puede deber a su sintaxis sencilla, clara y legible, aparte 
-de estos beneficios también presenta una amplia gama de bibliotecas y marcos de trabajo. Además,se trata de un lenguaje de programación 'open source' (código abierto) y está disponible bajo
+de estos beneficios también presenta una amplia gama de bibliotecas y marcos de trabajo. Además, se trata de un lenguaje de programación 'open source' (código abierto) y está disponible bajo
 una licencia de código abierto aprobada por la Iniciativa de Código Abierto (OSI), esto significa que Python es libre de usar, distribuir y modificar, incluso para uso
 comercial.
 
@@ -38,7 +38,7 @@ percibir el entorno en el que se va a estar trabajando.
 \label{sec:OpenCV}
 OpenCV (Open Source Computer Vision Library) es una biblioteca de open source dedicada para el tratamiento de imágenes y aprendizaje automático. Fue desarrollada por Intel y lanzada en 
 el año 2000 y esta disponible para todos los públicos tanto para uso comercial como para uso personal\footnote{\url{https://opencv.org/}}.
-Ofrece diferentes tareas como procesamiento de imágenes, detención de objetos, extracción de características, reconocimiento facial, estimación de movimiento entre otras. Además de ser
+Ofrece diferentes tareas como procesamiento de imágenes, detección de objetos, extracción de características, reconocimiento facial y estimación de movimiento entre otras. Además de ser
 compatible para múltiples sistemas operativos como Windows, Linux, MacOS, Android e iOS, lo que hace que sea una librería muy versátil para el desarrollo de aplicaciones en diferentes
 dispositivos y entornos. 
 
@@ -65,7 +65,7 @@ En este caso, se utiliza esta biblioteca para poder obtener la imagen mediante l
 Numpy\footnote{\url{https://numpy.org/}} (Numerical Python) es una librería dedicada para el cálculo científico en Python como arrays multidimensionales y matrices, junto con una amplia
 colección de funciones matemáticas. Esta biblioteca es bastante utilizada en la comunidad debido a su eficiencia y a su de uso. 
 
-A continuación, se muestra un simple ejemplo de como podemos crear un array en NumPy e realizar operaciones básicas como la suma y calcular la matriz transpuesta
+A continuación, se muestra en el código \ref{cod:Numpy} un simple ejemplo de como se puede crear un array en Numpy e realizar operaciones básicas como la suma y calcular la matriz transpuesta
 
 \begin{code}[h]
   \begin{lstlisting}[language=Python]
@@ -103,7 +103,7 @@ Algunos de los proveedores de ejecución compatibles con ONNX Runtime incluyen N
 En resumen, ONNX Runtime esta diseñado para la inferencia eficiente y ofrece una solución portátil y optimizada para ejecutar modelos ONNX en una variedad de entornos, en cambio Pytorch es muy utilizado 
 en la comunidad para el desarrollo y entrenamiento de modelos. 
 
-En este TFG, se hace uso de ámbos librerías/runtimes para las ejecuciones de los modelos y entrenamiento con Aprendizaje por Refuerzo.
+En este TFG, se hace uso de ambos librerías/runtimes para las ejecuciones de los modelos y entrenamiento con aprendizaje por refuerzo.
 
 \subsubsection{Scikit-learn}
 \label{Scikit-learn}
@@ -155,7 +155,7 @@ Ambos decodificadores, deben de recibir una entrada (W/8,H/8,256):
 Devuelven una salida de tipo (W,H,2), siendo W la anchura y H la altura de la imagen, solo hay dos canales en cada mapa de características, ya que cada píxel 
 representa si pertenece a una clase de objeto o al fondo. 
 
-\subsubsection{Modelo de YOLOP}
+\subsubsection{Modelos de YOLOP}
 \label{sec:Modelo_YOLOP}
 
 YOLOP utiliza una arquitectura de red neuronal CNN. Es un tipo de red neuronal artificial diseñada para procesar datos con una
@@ -188,7 +188,7 @@ y en la figura \ref{f:resultadosYOLOP} se muestra un ejemplo del uso de YOLOP ut
 
   \begin{figure}[H]
     \centering
-    \begin{minipage}{0.6\textwidth}
+    \begin{minipage}{0.54\textwidth}
       \includegraphics[width=\linewidth]{figs/Plataformas_Desarollo/YOLOP1.png}
     \end{minipage}
     \caption{Resultado de la salida de la red neuronal YOLOP}
@@ -196,7 +196,7 @@ y en la figura \ref{f:resultadosYOLOP} se muestra un ejemplo del uso de YOLOP ut
     \vspace{-1.5em}
   \end{figure}
 
-Por lo que, se utiliza esta red neuronal para poder detectar los carriles que puede tener las áreas transitables en Airsim. 
+Por lo que, se utiliza esta red neuronal para poder detectar las líneas de los carriles que puede tener las áreas transitables en Airsim. 
 
 \section{ROS}
 \label{sec:ros}
@@ -229,7 +229,7 @@ Este tipo sistema es bastante útil ya que permite a los desarrolladores cambiar
 el desarrollo iterativo, permitiendo construir sistemas robóticos complejos, escalables y robustos mejorando la eficiencia y permitiendo el desarrollo y mantenimiento de aplicaciones
 robóticas. 
 
-Se utiliza ROS junto con la distribucción Noetic\footnote{\url{https://wiki.ros.org/noetic}} en el desarrollo del TFG para realizar la conexión con el simulador Airsim y el desarrollo del sistema de percepción del seguimiento del carril a través del controlador PID y 
+Se utiliza ROS junto con la distribución Noetic\footnote{\url{https://wiki.ros.org/noetic}} en el desarrollo del TFG para realizar la conexión con el simulador Airsim y el desarrollo del sistema de percepción del seguimiento del carril a través del controlador PID y 
 aprendizaje por refuerzo. 
 
 
@@ -267,19 +267,19 @@ de Airsim.
 \label{sec:Airsim}
 El entorno de simulación en el que vamos a estar trabajando será \textbf{Airsim} junto con \textbf{UnRealEngine} de Epic Games\footnote{\url{https://www.unrealengine.com/es-ES}}. \textbf{Airsim}\footnote{\url{https://microsoft.github.io/AirSim/}} es un simulador de código abierto que se utiliza en aplicaciones robóticas 
 y aprendizaje automático.
-Se construye sobre entornos 3D creados con \textbf{UnRealEngine}, estos entornos son utilizados para simular el mundo real y probar 
-cómo los vehículos autónomos se comportarían en diferentes situaciones. \textbf{Airsim} es compatible en varias plataformas como Linux, Windows, macOS y también para Docker y WSL. En nuestro caso,se utilizará en Linux junto
+Se construye sobre entornos 3D creados con \textbf{Unreal Engine}, estos entornos son utilizados para simular el mundo real y probar 
+cómo los vehículos autónomos se comportarían en diferentes situaciones. \textbf{Airsim} es compatible en varias plataformas como Linux, Windows, macOS y también para Docker y WSL. En este caso, se utiliza en Linux junto
 con \textbf{ROS}. 
 
-Por otro lado \textbf{UnRealEngine} es un motor de videojuegos que se utiliza para la creación y simulación de entornos 3D realistas para videojuegos,
+Por otro lado \textbf{Unreal Engine} es un motor de videojuegos que se utiliza para la creación y simulación de entornos 3D realistas para videojuegos,
 películas animadas, experiencias interactivas y de realidad virtual. Es una propuesta innovadora utilizar este tipo de herramientas ya que puedes simular 
 comportamientos físicos que se puedan producir en un entorno real. 
 
-Como hemos comentado anteriormente, \textbf{Airsim} es una buena opción de uso si queremos tener comportamientos
+Como se ha comentado anteriormente, \textbf{Airsim} es una buena opción de uso si se quiere tener comportamientos
 similares a un entorno real. Ofrece una variedad de escenarios, tipos de vehículos, sensores y configuraciones del entorno 
 según las necesidades u objetivos marcados de cada persona. 
-Para ello se debe todo configurar en un fichero de configuración con extensión json denominado settings.json ,lo cual para configurar
-el vehículo con nuestras necesidades necesitaremos definir diferentes variables. 
+Para ello se debe todo configurar en un fichero de configuración con extensión json denominado settings.json , lo cual para configurar
+el vehículo para las necesidades de este TFG, se necesita definir diferentes variables. 
 
 Un archivo settings.json es un archivo de configuración específica de Airsim que define cómo 
 se ejecutará la simulación en términos de propiedades del vehículo, configuración de sensores, condiciones climatológicas y más. 
@@ -288,14 +288,14 @@ Un archivo settings.json consta de varias secciones:
 \begin{enumerate}
   \item \textbf{SimMode}: Este parámetro define el modo de simulación, se refiere si el modo de simulación es para coches, multirotores o visión de computador.
   \item \textbf{ClockType}: Determina qué tipo de reloj se utiliza para medir el tiempo en la simulación. 
-  \item \textbf{Vehicles}:Configuración de  las propiedades de cada vehículo individualmente. Puedes especificar el tipo de vehículo, la posición inicial, la dinámica del vehículo, entre otros.
+  \item \textbf{Vehicles}: Configuración de  las propiedades de cada vehículo individualmente. Puedes especificar el tipo de vehículo, la posición inicial, la dinámica del vehículo, entre otros.
   \begin{itemize}
-    \item \textbf{VehicleType}: En este caso ese parámetro es el tipo de vehículo que utilizaremos en la simulación.
-    \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en físico si utilizamos un vehículo en un entorno real.
+    \item \textbf{VehicleType}: En este caso ese parámetro es el tipo de vehículo que se utiliza en la simulación.
+    \item \textbf{UseSerial}: Es para saber si vamos a usar un puerto serial en físico si se utiliza un vehículo en un entorno real.
     \item \textbf{ControlIp}: Esta opción es para especificar si el comportamiento se realizará simulado.
     \item \textbf{ControlPortLocal}: Se especificará el puerto Local. 
     \item \textbf{ControlPortRemote}: Se especificará el puerto Remoto.
-    \item \textbf{LocalHostIp}: La dirección IP del ordenador en donde llevaremos la simulación.
+    \item \textbf{LocalHostIp}: La dirección IP del ordenador en donde se ejecuta la simulación.
     \item \textbf{Sensors}: Permite personalizar la configuración de los sensores simulados, como Lidar, IMU (Unidad de Medición Inercial),GPS y sensor de distancia. 
     \item \textbf{Cameras}: Puedes configurar las cámaras utilizadas en la simulación, especificando sus propiedades como resolución, tipo de lente, posición y orientación relativas al vehículo. 
     
@@ -308,12 +308,12 @@ Para más detalles sobre el archivo de settings.json está la paǵina oficial de
 
 \subsubsection{Escenarios}
 \label{sec:airsim}
-Los escenarios que ofrece Airsim depende en que sistema operativo nos encontremos, en nuestro caso al utilizar el escenario en Windows 
-tenemos más variedad que en comparación con Linux. 
+Los escenarios que ofrece Airsim depende en que sistema operativo te encuentres, en este caso al utilizar el escenario en Windows 
+se tiene más variedad que en comparación con Linux. 
 Tiene escenarios desde carreteras y ciudades con coches simulados hasta entornos industriales como almacenes y entornos de montaña con carreteras como se 
 muestra en la figura \ref{f:escenarios_airsim}. En este caso
-se ha utilizado el escenario Coastline, consiste en un entorno fotorrealista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno se obtiene la
-información del entorno para realizar el comportamiento sigue carril con el dron. 
+se ha utilizado el escenario Coastline, consiste en un entorno foto-realista de un recorrido amplio de 2 carriles con ambiente tropical. Con este entorno se obtiene la
+información del entorno para realizar el comportamiento sigue-carril con el dron. 
 Todos estos escenarios se pueden encontrar en las releases de Airsim\footnote{\url{https://github.com/Microsoft/AirSim/releases}} tanto para Windows como para Linux.
 En este caso, se ha utilizado el escenario Coastline, ya que se quiere desarrollar un comportamiento de seguimiento de carril y este escenario ofrece un amplio recorrido de 2 carriles para poder llevarlo
 a cabo.
@@ -321,8 +321,8 @@ a cabo.
 \subsubsection{Sensores}
 \label{sec:airsim}
 Ofrece sensores como cámaras, barómetros, Imus, GPS, Magnetómetros, sensores de distancia y Lidar.
-En este caso, se utiliza como sensores una cámara para poder realizar la detención del carril 
-que queremos seguir, el sensor Lidar para saber a que altura se encuentra el dron respecto al suelo y el sensor
+En este caso, se utiliza como sensores una cámara para poder realizar la detección del carril 
+que se quiere seguir, el sensor Lidar para saber a que altura se encuentra el dron respecto al suelo y el sensor
 GPS para poder obtener la localización del dron. 
 
 
@@ -373,22 +373,22 @@ GPS para poder obtener la localización del dron.
     \end{itemize}
   \item \textbf{Dron}
     \begin{itemize}
-      \item \textbf{SimpleFlight}: Representa un dron con un modelo de vuelo simplificado. Este tipo de opción puede ser útil si queremos simular comportamientos 
+      \item \textbf{SimpleFlight}: Representa un dron con un modelo de vuelo simplificado. Este tipo de opción puede ser útil si se quiere simular comportamientos 
       de movimiento básico para los drones.
       \item \textbf{PX4Multirotor}: Representa un dron mediante PX4 ArduPilot. 
       \item \textbf{ArduCopter}: Representa un dron pero siguiendo el estándar ArduCopter. ArduCopter\footnote{\url{https://ardupilot.org/copter/}} 
-      se trata de un piloto automático de código abierto utilizado para los drones 
+      se trata de un piloto automático de código abierto utilizado para los drones. 
     \end{itemize}
   
 \end{enumerate}
 
 Como se ha  enumerado anteriormente, este entorno de simulación tiene un catálogo de vehículos, sensores y
-cambios climatológicos dentro del entorno. En este TFG, se utiliza un dron de tipo "SimpleFligh" como vehículo. 
+cambios climatológicos dentro del entorno. En este TFG, se utiliza un dron de tipo SimpleFligh como vehículo. 
 
 \subsection{Airsim ROS Wrapper}
 \label{sec:wrapper}
 Se utiliza el paquete \textbf{Airsim ROS Wrapper}\footnote{\url{https://microsoft.github.io/AirSim/airsim_ros_pkgs/}} para poder acceder a ciertos sensores 
-que serán necesarios como es la cámara,el Lidar y el GPS, pero antes de comentar lo que ofrece se hablará sobre qué es un ROS Wrapper. 
+que serán necesarios como es la cámara, el Lidar y el GPS, pero antes de comentar lo que ofrece se hablará sobre qué es un ROS Wrapper. 
 
 \textbf{ROS Wrapper} es un componente que facilita la integración entre dos sistemas o entornos diferentes. Si se lleva al contexto de \textbf{ROS}, un wrapper es un nodo o paquete 
 que permite que los componentes de \textbf{ROS} se comuniquen con otros sistemas o bibliotecas que no fueron originalmente diseñadas para trabajar con \textbf{ROS}. Este paquete 
@@ -398,20 +398,20 @@ de interfaces de llamada (por ejemplo, entre C++ y Python).
 Por lo tanto, \textbf{Airsim ROS Wrapper} es un paquete de \textbf{ROS} que comunicará \textbf{ROS} y \textbf{Airsim}. Este paquete contiene dos nodos principales 
 que han sido realizados mediante la comunidad de Airsim\footnote{\url{https://github.com/microsoft/AirSim}}:
 \begin{enumerate}
-  \item \textbf{AirSim ROS Wrapper Node}: Este nodo proporciona una interfaz \textbf{ROS} para acceder a los datos del vehículo simulado, por ejemplo, sus sensores, proporcionar velocidades, acceder a su sistema de referencia,etc. 
-  \item \textbf{Simple PID Position Controller Node}: Este nodo es un controlador de posición simple basado en un controlador PID (proporcional-derivativo-integral). Ayuda controlar la posición del vehículo 
+  \item \textbf{AirSim ROS Wrapper Node}: Este nodo proporciona una interfaz \textbf{ROS} para acceder a los datos del vehículo simulado, por ejemplo, sus sensores, proporcionar velocidades, acceder a su sistema de referencia, etc. 
+  \item \textbf{Simple PID Position Controller Node}: Este nodo es un controlador de posición simple basado en un controlador PID (Proporcional Derivativo Integral). Ayuda controlar la posición del vehículo 
   simulado en el entorno \textbf{Airsim}.
 \end{enumerate}
 
 \subsection{Client Airsim}
 \label{sec:Client Airsim}
 
-Airsim ofrece una API implementada para Python demoninada Client Airsim\footnote{\url{https://microsoft.github.io/AirSim/apis/}}, en donde podemos conectarnos con el simulador y tener el control de los sensores y actuadores del vehículo. 
-Esta interfaz es bastante útil ya que podemos tener el control del vehículo simulado sin necesidad de tener que utilizar los topics de ROS, es decir, existen métodos los cuales
-podemos comandar velocidades al vehículo, tener acceso a los sensores como las cámaras o cambiar configuraciones de la simulación como por ejemplo el clima, el viento, el tiempo del día
+Airsim ofrece una API implementada para Python demoninada Client Airsim\footnote{\url{https://microsoft.github.io/AirSim/apis/}}, en donde se puede conectar con el simulador y tener el control de los sensores y actuadores del vehículo. 
+Esta interfaz es bastante útil ya que se puede tener el control del vehículo simulado sin necesidad de tener que utilizar los topics de ROS, es decir, existen métodos los cuales
+se puede comandar velocidades al vehículo, tener acceso a los sensores como las cámaras o cambiar configuraciones de la simulación como por ejemplo el clima, el viento, el tiempo del día
 o la densidad de tráfico en escenarios donde aparecen coches simulados. 
 
-Esta API se utiliza para el control del dron para realizar su navegación con los controladores PID y en 
+Esta API se utiliza para el control del dron para realizar su navegación con el controlador PID y en 
 el desarrollo de aprendizaje por refuerzo. 
 
 \section{PX4 AutoPilot}
@@ -443,28 +443,28 @@ PX4 ofrece varios modos de vuelo por ejemplo como Takeoff, Land, Hold, Position,
 
 
   \begin{enumerate}
-    \item \textbf{TAKEOFF}: Este modo de vuelo permite despegar el dron con una altitud y una velocidad de ascendiente escogida por el usuario con los parametros de PX4 MIS\_TAKEOFF\_ALT y
+    \item \textbf{TAKEOFF}: Este modo de vuelo permite despegar el dron con una altitud y una velocidad de ascendiente escogida por el usuario con los parámetros de PX4 MIS\_TAKEOFF\_ALT y
     MPC\_TKO\_SPEED, dichos parámetros tienen valores por defectos definidos por la plataforma (2.5 m y 1.5 m/s respectivamente). Antes de realizar el despegue el dron será armado 
     para poder realizarlo.
 
     Una vez se realice el despegue del dron se pasa al modo HOLD 
     \item \textbf{LAND}: Permite aterrizar el dron en donde se encuentre en ese instante, una vez que el dron sea aterrizado, se desarmará por defecto. En este modo se puede cambiar por ejemplo
-    la tasa de descenso durante se realiza el aterrizaje del dron con el parametro MPC\_LAND\_SPEED, tiempo en segundos para que se realice el desamardo del dron si se establece dicho tiempo
+    la tasa de descenso durante se realiza el aterrizaje del dron con el parámetro MPC\_LAND\_SPEED, tiempo en segundos para que se realice el desarmado del dron. Si se establece dicho tiempo
     con un valor de -1 el dron no se desarmará cuando aterrice.
     
-    Cuando de realice este modo de vuelo por defecto se cambiará al modo de POSITION
+    Cuando se realice este modo de vuelo por defecto se cambiará al modo de POSITION
 
-    \item \textbf{HOLD}: A partir de este modo de vuelo podemos parar el dron manteniendolo en el aire con su actual posición GPS y altitud. Este modo puede ser bastante útil para cuando se quiere
-    pausar una mision o reiniciar el comportamiento que se quiera realizar. 
+    \item \textbf{HOLD}: A partir de este modo de vuelo, se puede parar el dron manteniéndolo en el aire con su actual posición GPS y altitud. Este modo puede ser bastante útil para cuando se quiere
+    pausar una misión o reiniciar el comportamiento que se quiera realizar. 
 
-    \item \textbf{POSITION}: Es un modo de vuelo manual el cual puedes controlar el DRON mediante un joystick, dicho vuelo controla la posición del dron cuando comandemos velocidades 
+    \item \textbf{POSITION}: Es un modo de vuelo manual el cual puedes controlar el dron mediante un joystick, dicho vuelo controla la posición del dron cuando se comande velocidades 
     mediante el joystick.
 
     \begin{figure} [H]
       \begin{center}
         \includegraphics[scale=0.6]{figs/Diseño/PX4/position_MC.png}
       \end{center}
-      \caption{Diagrama del comportamiento del modo de vuelo Position}
+      \caption{Diagrama del comportamiento del modo de vuelo POSITION}
       \label{fig:position_mode_px4}
       \vspace{-1.5em}
     \end{figure}
@@ -474,9 +474,9 @@ PX4 ofrece varios modos de vuelo por ejemplo como Takeoff, Land, Hold, Position,
 
     Dichos comandos debe ser una secuencia de mensajes de setpoint MavLink o a través de topics mediante ROS con Mavros.
 
-    En este modo, PX4 debe recibir una secuencia de mensajes continua. Si en algún momento dejamos de publicar mensajes, el control externo de PX4 dejará de estar en el modo OFFBOARD después
+    En este modo, PX4 debe recibir una secuencia de mensajes continua. Si en algún momento se deja de publicar mensajes, el control externo de PX4 dejará de estar en el modo OFFBOARD después
     de pasar un tiempo de espera establecido por el parámetro COM\_OF\_LOOS\_T (por defecto esta establecido a 1 s) e intentará aterrizar o realizar alguna acción de seguridad (dichas acciones 
-    de seguridad vienen definidas en la seccion de Failsafes en PX4 Autopilot\footnote{\url{https://docs.px4.io/v1.14/en/config/safety.html}}). La acción dependerá
+    de seguridad vienen definidas en la sección de Failsafes en PX4 Autopilot\footnote{\url{https://docs.px4.io/v1.14/en/config/safety.html}}). La acción dependerá
     si el control RC está disponible, si este control esta disponible pasará a otro tipo de modo de vuelo definido en el parámetro COM\_OBL\_RC\_ACT. 
 
     Para comandar las velocidades al vehículo mediante Mavros, se tendrá que utilizar el topic denominado \texttt{/mavros/setpoint\_velocity/cmd\_vel\_unstamped} dicho topic utiliza un marco de coordenadas
@@ -493,7 +493,7 @@ PX4 ofrece varios modos de vuelo por ejemplo como Takeoff, Land, Hold, Position,
 y configuraciones de vehículos para drones por \textbf{PX4 ArduPilot}. Además, ofrece un control total durante el vuelo y permite la planificación de vuelos autónomos 
 mediante la definición de puntos de referencia, se muestra la posición del vehículo junto con su trayectoria, los puntos de referencia y los instrumentos del vehículo. 
 Es una opción cómoda para poder visualizar tu vehículo y querer cambiar parámetros del vehículo mediante esta aplicación y poder teleoperar el vehículo a través de un mando joystick.
-Funciona en diferentes plataformas como Windows, macOS, Linux,iOS y dispositivos Android, en nuestro caso lo utilizaremos en Linux. 
+Funciona en diferentes plataformas como Windows, macOS, Linux,iOS y dispositivos Android, en este caso se utiliza en Linux. 
 
 \begin{figure} [H]
   \begin{center}

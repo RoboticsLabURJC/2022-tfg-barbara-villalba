@@ -1,0 +1,88 @@
+\begin{appendices}
+\chapter*{Anexo I}
+\addcontentsline{toc}{chapter}{Anexo I}
+\label{cap:anexo}
+\setcounter{page}{1}
+A continuación se muestra las diferentes referencias a las figuras que hemos visto a lo largo de este trabajo junto con el enlace 
+de donde ha sido obtenida. Las imagenes que no incluidas en este capítulo han sido formadas en el desarollo de este trabajo provienen 
+del mismo: \newline
+
+\begin{tabular}{ | m{4cm} | m{10cm}| m{1cm} | }
+    \hline
+    \textbf{Referencia de las imágenes} & \textbf{Enlaces de donde se ha obtenido}  \\
+    \hline
+    \ref{fig:Perseverance} & \url{https://www.bbc.com/mundo/noticias-57317022} \\ 
+    \hline
+    \ref{fig:Nereus} & \url{https://www.whoi.edu/oceanrobots/robots/nereus-phone.html} \\ 
+    \hline
+    \ref{fig:Rega} & \url{https://www.swissinfo.ch/spa/ciencia/drones-suizos-al-rescate/46203902} \\
+    \hline 
+\end{tabular}
+
+\begin{tabular}{ | m{4cm} | m{10cm}| m{1cm} | }
+    \hline
+    \ref{f:Drones} & \url{https://www.smithsonianmag.com/arts-culture/unmanned-drones-have-been-around-since-world-war-i-16055939/} \newline
+    \url{https://web.happystays.com/?m=file-winston-churchill-and-the-secretary-of-state-for-tt-YQ3jGVI4} \newline
+    \url{https://en.wikipedia.org/wiki/V-1_flying_bomb} \newline  
+    \url{https://www.google.com/url?sa=i&url=https%3A%2F%2Fthefrontlines.com%2Fstory%2Fww2-project-aphrodite%2F&psig=AOvVaw2OcBlgMDHlHVU5qsiJ9_Fg&ust=1714151925046000&source=images&cd=vfe&opi=89978449&ved=0CBQQjhxqFwoTCNjGs9bv3YUDFQAAAAAdAAAAABAE} \newline
+    \url{https://en.wikipedia.org/wiki/Ryan_Firebee} \newline
+    \url{https://en.wikipedia.org/wiki/Lockheed_D-21} \newline
+    \url{https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.researchgate.net%2Ffigure%2FBoeing-Condor-UAV-23_fig10_261209014&psig=AOvVaw1q3J6eh2YCyEUzy1QM9z_K&ust=1714152091161000&source=images&cd=vfe&opi=89978449&ved=0CBQQjhxqFwoTCJDAyqXw3YUDFQAAAAAdAAAAABAE} \newline
+    \url{https://www.timesofisrael.com/idf-launches-probe-after-two-more-mini-drones-crash/} \newline
+    \url{https://www.google.com/url?sa=i&url=https%3A%2F%2Fnews.usni.org%2F2020%2F09%2F15%2Fmarines-placing-small-uavs-into-ground-combat-element-as-aviators-still-refining-large-uas-requirement&psig=AOvVaw2csv7vma6UxJokGvlG8j7h&ust=1714152048517000&source=images&cd=vfe&opi=89978449&ved=0CBQQjhxqFwoTCLiCtZHw3YUDFQAAAAAdAAAAABAE} \\
+    \hline 
+    \ref{fig:Ingenuity} & \url{https://www.xataka.com/espacio/helicoptero-ingenuity-ha-aterrizado-lugares-marte-que-nasa-se-esta-quedando-letras-para-nombrarlos} \\
+    \hline
+    \ref{fig:Fenosa} & \url{https://www.elcorreogallego.es/hemeroteca/union-fenosa-distribucion-implanta-uso-drones-supervisar-sus-lineas-alta-tension-galicia-MQCG1024080} \\
+    \hline
+    \ref{fig:PrimerPrimeAir} & \url{https://www.xataka.com/drones/asi-es-el-dron-repartidor-de-amazon-todavia-poco-mas-que-humo-que-promete-entregar-paquetes-en-media-hora} \\ 
+    \hline
+    \ref{fig:MK27-2} & \url{https://www.techtimes.com/articles/285562/20221228/amazon-begins-prime-air-drone-deliveries-california-texas.htm} \\
+    \hline
+    \ref{fig:MK30} & \url{https://emprendedores.es/marketing-y-ventas/ecommerce-marketing-y-ventas/drones-amazon-europa/} \\
+    \hline
+\end{tabular}
+
+\begin{tabular}{ | m{4cm} | m{10cm}| m{1cm} | }
+
+    \hline
+    \ref{fig:Efficient} & \url{https://www.researchgate.net/publication/273392596_Efficient_Road_Detection_and_Tracking_for_Unmanned_Aerial_Vehicle} \\
+    \hline
+    \ref{fig:ClasificaciónIA} & \url{https://www.researchgate.net/publication/378676909_The_prospect_of_artificial_intelligence_to_personalize_assisted_reproductive_technology} \\
+    \hline
+    \ref{fig:malas hierbas} & \url{https://revistas.rcaap.pt/rca/article/view/34973/24651} \\
+    \hline
+    \ref{fig:Reinforcement Learning} & \url{https://becominghuman.ai/the-very-basics-of-reinforcement-learning-154f28a79071} \\
+    \hline
+    \ref{fig:Espiral} & \url{https://www.lifeder.com/modelo-espiral/} \\
+    \hline 
+    \ref{fig:github} & \url{https://github.com/RoboticsLabURJC/2022-tfg-barbara-villalba/graphs/contributors} \\
+    \hline  
+    \ref{fig:Arq_YOLOP} & \url{https://pytorch.org/hub/hustvl_yolop/} \\
+    \hline
+    \ref{fig:ROS} & \url{https://www.ros.org/imgs/ros-equation.png} \\
+    \hline
+    \ref{fig:ArqROS} & \url{https://medium.com/@robtech.impaciente/ros-robot-operating-system-fundamentos-e92478c26e02} \\
+    \hline
+    \ref{fig:InfraROS} & \url{https://404warehouse.net/2015/12/20/autopilot-offboard-control-using-mavros-package-on-ros/} \\
+    \hline
+    \ref{f:escenarios_airsim} & \url{https://img-blog.csdnimg.cn/272026cef41047cdb7e523fb9a28e173.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAamluYXV0bw==,size_20,color_FFFFFF,t_70,g_se,x_16} \newline
+    \url{https://www.scrimmagesim.org/sphinx/html/_images/Asset_LandscapeMountains_1.png} \newline
+    \url{https://www.researchgate.net/figure/Appearance-of-the-maps-for-training-a-City-environment-b-Coastline-c_fig7_359436337} \newline
+    \url{https://www.scrimmagesim.org/sphinx/html/_images/city_airsim_view.png} \newline
+    \url{https://github.com/Microsoft/AirSim/wiki/moveOnPath-demo} \\
+    \hline
+    \ref{fig:position_mode_px4} & \url{https://docs.px4.io/v1.14/en/flight_modes_mc/position.html} \\
+    \hline
+    \ref{fig:QGroundControl} & \url{https://flathub.org/es/apps/org.mavlink.qgroundcontrol} \\
+    \hline
+    \ref{fig:diagramadeAirsim} & \url{https://fossbytes.com/dell-xps-13-developer-edition-linux-laptop-ubuntu-20-04/}  \newline
+    \url{https://www.flaticon.es/icono-gratis/router-de-wifi_3096440} \newline
+    \url{https://www.pngwing.com/es/free-png-twcfq} \\
+    \hline
+\end{tabular}
+\end{appendices}
+
+
+
+
